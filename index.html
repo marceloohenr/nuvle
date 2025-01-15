@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loja de Camisetas - Nuvle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #555555;
+            color: #fff;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        /* A imagem do título substituindo o texto */
+        header img {
+            max-width: 25%; /* Reduz o tamanho da imagem para 25% */
+            height: auto;
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .product {
+            background: #444444;
+            border: 1px solid #888888;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s;
+            text-decoration: none;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .product:hover {
+            transform: translateY(-5px);
+        }
+
+        .product img {
+            width: 100%;
+            height: auto;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .product-info {
+            padding: 15px;
+            text-align: center;
+        }
+
+        .product-info h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .product-info p {
+            margin-bottom: 15px;
+            color: #bbb;
+        }
+
+        .product-info .price {
+            font-size: 1.2rem;
+            color: #00bcd4;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <!-- Imagem do título substituindo o texto -->
+        <img src="https://i.postimg.cc/Njd56gzt/NUVLE-raio.png" alt="Loja de Camisetas Nuvle">
+    </header>
+
+    <div class="products">
+        <!-- Camiseta Básica 3 (Nova) -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/t4d3T4VN/BASICA-3.jpg" alt="Básica Logo Branca">
+            <div class="product-info">
+                <h2>Camiseta Básica 3</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta Básica Preta -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/7hf1YFF1/BASICA-1.jpg" alt="Básica Preta">
+            <div class="product-info">
+                <h2>Camiseta Básica 1</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta Básica 2 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/kGzQVjC0/BASICA-2.jpg" alt="Básica Branca">
+            <div class="product-info">
+                <h2>Camiseta Básica 2</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta Básica 4 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/QdLghn05/BASICA-4.jpg" alt="Básica Logo Preta">
+            <div class="product-info">
+                <h2>Camiseta Básica 4</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta 1 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/x1KvCy4Z/CAMISA-1.jpg" alt="Raposa Paletó">
+            <div class="product-info">
+                <h2>Camiseta 1</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta Antiga 1 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/V6sB2r4V/Camisa-1-ANTIGA.jpg" alt="Águia High School">
+            <div class="product-info">
+                <h2>Camiseta Antiga 1</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta 2 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/zXHSm1S8/CAMISA-2.jpg" alt="Águia Paletó">
+            <div class="product-info">
+                <h2>Camiseta 2</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta Antiga 2 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/KcHrsYT0/Camisa-2-ANTIGA.jpg" alt="Tio Patinhas">
+            <div class="product-info">
+                <h2>Camiseta Antiga 2</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta 3 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/KYxng3X8/CAMISA-3.jpg" alt="Flamingo Paletó">
+            <div class="product-info">
+                <h2>Camiseta 3</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta Antiga 3 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/W34g5R1R/Camisa-3-ANTIGA.jpg" alt="Alien">
+            <div class="product-info">
+                <h2>Camiseta Antiga 3</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta 4 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/KzsLV911/CAMISA-4.jpg" alt="Tigre Paletó">
+            <div class="product-info">
+                <h2>Camiseta 4</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta 5 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/tJZPHh62/CAMISA-5.jpg" alt="Pantera Paletó">
+            <div class="product-info">
+                <h2>Camiseta 5</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta Antiga 5 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/HkCMf8k9/Camisa-5-ANTIGA.jpg" alt="Pernalonga High School">
+            <div class="product-info">
+                <h2>Camiseta Antiga 5</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+
+        <!-- Camiseta Antiga 6 -->
+        <a href="produto.html" class="product">
+            <img src="https://i.postimg.cc/5Nzv7Sbt/Camisa-6-ANTIGA.jpg" alt="Anjo Old Money">
+            <div class="product-info">
+                <h2>Camiseta Antiga 6</h2>
+                <div class="price">R$ 79,90</div>
+            </div>
+        </a>
+    </div>
+</body>
+</html>

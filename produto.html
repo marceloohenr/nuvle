@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produto - Loja de Camisetas Nuvle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #555555;
+            color: #ffffff;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #333;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .tabs button {
+            background-color: #007bff;
+            color: rgb(255, 255, 255);
+            border: none;
+            padding: 10px 20px;
+            margin-right: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        .tabs button:hover {
+            background-color: #0056b3;
+        }
+
+        .tabs button.active {
+            background-color: #0056b3;
+        }
+
+        .product-container {
+            display: none;
+        }
+
+        .product-container.active {
+            display: block;
+        }
+
+        .product {
+            background: #555555;
+            border: 1px solid #555555;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .product img {
+            width: 100%;
+            height: auto;
+            max-width: 600px;
+            margin-bottom: 15px;
+        }
+
+        .product-info {
+            padding: 15px;
+        }
+
+        .product-info h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .product-info p {
+            margin-bottom: 15px;
+            color: #666;
+        }
+
+        .product-info .price {
+            font-size: 1.4rem;
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+
+        .product-info .buy-btn {
+            display: inline-block;
+            background-color: #28a745;
+            color: #fff;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .product-info .buy-btn:hover {
+            background-color: #218838;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .back-btn:hover {
+            background-color: #0056b3;
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Produto - Loja de Camisetas Nuvle</h1>
+    </header>
+
+    <!-- Abas -->
+    <div class="tabs">
+        <button class="tab-button active" data-tab="camisa-1">Básica Logo Branca</button>
+        <button class="tab-button" data-tab="camisa-2">Básica Preta</button>
+        <button class="tab-button" data-tab="camisa-3">Básica Branca</button>
+        <button class="tab-button" data-tab="camisa-4">Básica Logo Preta</button>
+        <button class="tab-button" data-tab="camisa-5">Raposa Paletó</button>
+        <button class="tab-button" data-tab="camisa-6">Águia High School</button>
+        <button class="tab-button" data-tab="camisa-7">Águia Paletó</button>
+        <button class="tab-button" data-tab="camisa-8">Tio Patinhas</button>
+        <button class="tab-button" data-tab="camisa-9">Flamingo Paletó</button>
+        <button class="tab-button" data-tab="camisa-10">Alien</button>
+        <button class="tab-button" data-tab="camisa-11">Tigre Paletó</button>
+        <button class="tab-button" data-tab="camisa-12">Pantera Paletó</button>
+        <button class="tab-button" data-tab="camisa-13">Pernalonga High School</button>
+        <button class="tab-button" data-tab="camisa-14">Anjo Old Money</button>
+    </div>
+
+    <!-- Conteúdo das Camisas -->
+    <div id="camisa-1" class="product-container active">
+        <div class="product">
+            <img src="https://i.postimg.cc/t4d3T4VN/BASICA-3.jpg" alt="Básica Logo Branca">
+            <div class="product-info">
+                <h2>Camiseta Básica 3</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-2" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/5Nzv7Sbt/Camisa-6-ANTIGA.jpg" alt="Básica Preta">
+            <div class="product-info">
+                <h2>Camiseta Básica 1</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-3" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/tJZPHh62/CAMISA-5.jpg" alt="Básica Branca">
+            <div class="product-info">
+                <h2>Camiseta Básica 2</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-4" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/Y0hF5J6k/Basica-4.jpg" alt="Básica Logo Preta">
+            <div class="product-info">
+                <h2>Camiseta Básica 4</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-5" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/2yng5Z57/Basica-1.jpg" alt="Raposa Paletó">
+            <div class="product-info">
+                <h2>Camiseta 1</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-6" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/hPZkM44Y/ANTIGA-1.jpg" alt="Águia High School">
+            <div class="product-info">
+                <h2>Camiseta Antiga 1</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-7" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/6QL4cBjf/Antiga-2.jpg" alt="Águia Paletó">
+            <div class="product-info">
+                <h2>Camiseta Antiga 2</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-8" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/DfVRwpc4/Camisa-3.jpg" alt="Tio Patinhas">
+            <div class="product-info">
+                <h2>Camiseta 3</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-9" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/Bv4xTHcD/ANTIGA-3.jpg" alt="Flamingo Paletó">
+            <div class="product-info">
+                <h2>Camiseta Antiga 3</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-10" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/7PqWZtNp/CAMISA-5.jpg" alt="Alien">
+            <div class="product-info">
+                <h2>Camiseta 5</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-11" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/5Nzv7Sbt/Camisa-6-ANTIGA.jpg" alt="Anjo Old Money">
+            <div class="product-info">
+                <h2>Camiseta 6 Antiga</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-12" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/5Nzv7Sbt/Camisa-6-ANTIGA.jpg" alt="Pernalonga High School">
+            <div class="product-info">
+                <h2>Camiseta Antiga 6</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-13" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/5Nzv7Sbt/Camisa-6-ANTIGA.jpg" alt="Pantera Paletó">
+            <div class="product-info">
+                <h2>Camiseta Antiga 5</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <div id="camisa-14" class="product-container">
+        <div class="product">
+            <img src="https://i.postimg.cc/5Nzv7Sbt/Camisa-6-ANTIGA.jpg" alt="Tigre Paletó">
+            <div class="product-info">
+                <h2>Camiseta Antiga 2</h2>
+                <div class="price">R$ 79,90</div>
+                <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-btn" target="_blank">Comprar Agora</a>
+            </div>
+            <a href="index.html" class="back-btn">Voltar para a Página</a>
+        </div>
+    </div>
+
+    <script>
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const productContainers = document.querySelectorAll('.product-container');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                productContainers.forEach(container => {
+                    if (container.id === tabId) {
+                        container.classList.add('active');
+                    } else {
+                        container.classList.remove('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
