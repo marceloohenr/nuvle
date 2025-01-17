@@ -178,10 +178,37 @@ header img {
     .main-content {
         margin-top: 100px;
     }
+
+    .product {
+        width: 90%;
+        max-width: 100%;
+    }
+
+    .product-info h2 {
+        font-size: 1.3rem;
+    }
+
+    .product-info .price {
+        font-size: 1rem;
+    }
 }
 
 @media (max-width: 480px) {
     .sidebar {
         width: 200px;
+    }
+
+    .sidebar-toggle {
+        top: 15px;
+        left: 15px;
+        font-size: 18px;
+    }
+
+    .main-content {
+        margin-top: 110px;
+    }
+
+    .product {
+        width: 95%;
     }
 }
