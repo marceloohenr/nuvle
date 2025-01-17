@@ -127,7 +127,7 @@ header img {
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 100px) {
     header img {
         max-height: 40vh;
     }
