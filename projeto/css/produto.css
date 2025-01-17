@@ -8,13 +8,11 @@
 body {
     font-family: Arial, sans-serif;
     background-color: #000000;
-    color: #ffffff;
+    color: #fff;
     line-height: 1.6;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    height: 100vh;
+    overflow-x: hidden; /* Evita scroll horizontal desnecessário */
 }
 
 /* Header */
