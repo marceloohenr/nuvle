@@ -7,15 +7,17 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Botão de menu hambúrguer -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+
     <!-- Sidebar -->
-    <button class="sidebar-toggle">☰</button> <!-- Botão de alternância para dispositivos móveis -->
-    <div class="sidebar hidden">
+    <div class="sidebar" id="sidebar">
         <ul>
-            <li><a href="index.html">Home</a></li>
-            <li><a href="/camisas.html">Camisas</a></li>
-            <li><a href="/basicas.html">Básicas</a></li>
-            <li><a href="/estampada.html">Estampadas</a></li>
-            <li><a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAab5cnYB2yCoKqoaydKWNiP_G8vj8CAcuZxhNDDiAdC6MR8puzxzy1MT4f4_aem_am8lt8wNm_x4ChrKafYUGg">Contato</a></li>
+            <li><a href="./index.html">Home</a></li>
+            <li><a href="./camisas.html">Camisas</a></li>
+            <li><a href="./basicas.html">Básicas</a></li>
+            <li><a href="./estampada.html">Estampadas</a></li>
+            <li><a href="https://linktr.ee/nuvle">Contato</a></li>
         </ul>
     </div>
 
@@ -25,20 +27,18 @@
             <img src="https://i.postimg.cc/zBtj4x02/fundo.png" alt="Header da Loja Nuvle">
         </header>
 
-        <!-- Imagem promocional -->
+        <!-- Nova imagem -->
         <div class="image-container">
             <img src="https://i.postimg.cc/T3JgbyjR/VENHA-CONFERIR.png" alt="Venha Conferir" class="promo-image">
         </div>
     </div>
 
     <script>
-        // Script para alternar visibilidade da sidebar em dispositivos móveis
-        const toggleButton = document.querySelector('.sidebar-toggle');
-        const sidebar = document.querySelector('.sidebar');
-
-        toggleButton.addEventListener('click', () => {
-            sidebar.classList.toggle('hidden');
-        });
+        // Função para alternar a visibilidade da sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
     </script>
 </body>
 </html>
