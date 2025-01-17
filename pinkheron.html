@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedido</title>
+    <!-- Referência ao CSS -->
+    <link rel="stylesheet" href="css/produto.css">
+</head>
+<body>
+    <!-- Botão de menu hambúrguer -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <ul>
+            <!-- Ajustado o link do item Home para garantir que redireciona para index.html -->
+            <li><a href="./index.html">Home</a></li>
+            <li><a href="./camisas.html">Camisas</a></li>
+            <li><a href="./basicas.html">Básicas</a></li>
+            <li><a href="./estampada.html">Estampadas</a></li>
+            <li><a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAab5cnYB2yCoKqoaydKWNiP_G8vj8CAcuZxhNDDiAdC6MR8puzxzy1MT4f4_aem_am8lt8wNm_x4ChrKafYUGg">Contato</a></li>
+        </ul>
+    </div>
+
+    <!-- Conteúdo principal -->
+    <div class="main-content">
+        <header>
+            <img src="https://i.postimg.cc/zBtj4x02/fundo.png" alt="Header da Loja Nuvle">        
+        </header>
+
+        <div id="camisa-1" class="product-container">
+            <div class="product">
+                <img src="https://i.postimg.cc/KYxng3X8/CAMISA-3.jpg" alt="Básica Logo Branca">
+                <div class="product-info">
+                    <h2>Camiseta Básica 3</h2>
+                    <div class="price">R$ 79,90</div>
+                    <a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAaaaYx0M0pnUh4PutAoCi289mcDFeUTreZMcWFvWkU05vAREBdjHAGUrq2g_aem_1HbqYqifwyAEsDkgeYTu7A" class="buy-now" target="_blank">Fazer Pedido</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para alternar a visibilidade da sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>
