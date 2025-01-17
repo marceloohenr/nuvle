@@ -7,22 +7,25 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Botão de menu hambúrguer -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <ul>
-            <li><a href="index.html">Home</a></li> <!-- Alteração aqui: Remover # -->
+            <li><a href="index.html">Home</a></li>
             <li><a href="/camisas.html">Camisas</a></li>
             <li><a href="/basicas.html">Básicas</a></li>
             <li><a href="/estampada.html">Estampadas</a></li>
-            <li><a href="https://linktr.ee/nuvle?fbclid=PAZXh0bgNhZW0CMTEAAab5cnYB2yCoKqoaydKWNiP_G8vj8CAcuZxhNDDiAdC6MR8puzxzy1MT4f4_aem_am8lt8wNm_x4ChrKafYUGg">Contato</a></li>
+            <li><a href="https://linktr.ee/nuvle">Contato</a></li>
         </ul>
     </div>
 
     <!-- Conteúdo principal -->
     <div class="main-content">
         <header>
-            <!-- Botão de toggle (menu hambúrguer) -->
-            <img src="https://i.postimg.cc/zBtj4x02/fundo.png" alt="Header da Loja Nuvle">        </header>
+            <img src="https://i.postimg.cc/zBtj4x02/fundo.png" alt="Header da Loja Nuvle">
+        </header>
         
         <div class="products">
             <!-- Camiseta Básica 3 -->
@@ -143,7 +146,13 @@
             </a>
         </div>
     </div>
-
-    <script src="script.js"></script>
+    
+    <script>
+        // Função para alternar a visibilidade da sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+    </script>
 </body>
 </html>
