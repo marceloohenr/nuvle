@@ -8,7 +8,8 @@
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar">
+    <button class="sidebar-toggle">☰</button> <!-- Botão de alternância para dispositivos móveis -->
+    <div class="sidebar hidden">
         <ul>
             <li><a href="index.html">Home</a></li>
             <li><a href="/camisas.html">Camisas</a></li>
@@ -21,19 +22,23 @@
     <!-- Conteúdo principal -->
     <div class="main-content">
         <header>
-            <!-- Botão de toggle (menu hambúrguer) -->
-            <img src="https://i.postimg.cc/zBtj4x02/fundo.png" alt="Header da Loja Nuvle">        </header>
+            <img src="https://i.postimg.cc/zBtj4x02/fundo.png" alt="Header da Loja Nuvle">
         </header>
 
-        <!-- Nova imagem -->
+        <!-- Imagem promocional -->
         <div class="image-container">
             <img src="https://i.postimg.cc/T3JgbyjR/VENHA-CONFERIR.png" alt="Venha Conferir" class="promo-image">
         </div>
-        
-        <!-- O restante do conteúdo vai aqui -->
-        
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        // Script para alternar visibilidade da sidebar em dispositivos móveis
+        const toggleButton = document.querySelector('.sidebar-toggle');
+        const sidebar = document.querySelector('.sidebar');
+
+        toggleButton.addEventListener('click', () => {
+            sidebar.classList.toggle('hidden');
+        });
+    </script>
 </body>
 </html>

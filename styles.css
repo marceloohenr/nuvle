@@ -19,23 +19,21 @@ header {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 20px;
     width: 100%;
     background-color: #444;
-    padding: 0;
-    border-radius: 20px; /* Bordas arredondadas */
-    border: 2px solid #888888; /* Borda consistente */
+    padding: 10px;
+    border-radius: 10px; /* Bordas arredondadas */
+    margin-bottom: 20px;
 }
 
-/* Substituindo o logo pelo cabeçalho */
 header img {
-    width: 100%;  /* A imagem ocupa toda a largura da tela */
-    height: auto;  /* Mantém a proporção da imagem */
-    object-fit: cover;  /* Ajusta a imagem para cobrir sem distorção */
-    border-radius: 20px; /* Borda arredondada para a imagem */
+    width: 100%; /* A imagem ocupa toda a largura */
+    height: auto; /* Mantém a proporção da imagem */
+    object-fit: cover;
+    border-radius: 10px; /* Bordas arredondadas */
 }
 
-/* Sidebar (horizontal) */
+/* Sidebar */
 .sidebar {
     width: 100%;
     background-color: #000000;
@@ -49,14 +47,20 @@ header img {
     align-items: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     z-index: 999;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar.hidden {
+    display: none; /* Sidebar escondida por padrão em telas menores */
 }
 
 .sidebar ul {
     list-style: none;
     padding: 0;
     display: flex;
-    justify-content: center;
-    gap: 20px; /* Espaçamento consistente entre itens */
+    flex-direction: column;
+    gap: 10px;
 }
 
 .sidebar ul li {
@@ -69,7 +73,9 @@ header img {
     font-size: 16px;
     padding: 10px 15px;
     border-radius: 5px;
+    background-color: #444; /* Fundo visível */
     transition: background-color 0.3s ease, transform 0.2s ease;
+    text-align: center;
 }
 
 .sidebar ul li a:hover {
@@ -77,134 +83,92 @@ header img {
     transform: scale(1.05);
 }
 
+/* Botão de alternância */
+.sidebar-toggle {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #444;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+/* Imagem Promocional */
+.promo-image {
+    width: 100%; /* A imagem ocupa toda a largura */
+    max-width: 100%; /* Limita para não estourar */
+    border: 2px solid #888888;
+    border-radius: 10px;
+    height: auto;
+    object-fit: cover;
+}
+
 /* Conteúdo principal */
 .main-content {
-    margin-top: 120px; /* Compensar o espaço da sidebar fixa */
-    padding: 20px;
+    margin-top: 100px; /* Compensa a altura da sidebar fixa */
+    padding: 10px;
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: margin-left 0.3s ease-in-out;
 }
 
-/* Produtos (Básicas, Home e outras abas) */
+/* Produtos */
 .products {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 colunas */
-    gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    grid-template-columns: 1fr; /* Uma coluna para telas pequenas */
+    gap: 15px;
+    width: 100%;
 }
 
-/* Estilo uniforme para todos os produtos (camisetas) */
+/* Produto */
 .product {
     background: #444444;
-    border: 2px solid #888888; /* Borda consistente */
-    border-radius: 20px;
+    border: 2px solid #888888;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    transition: transform 0.3s;
-    text-decoration: none;
-    color: white;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    height: 400px; /* Altura fixa para garantir uniformidade */
-    width: 300px; /* Largura fixa para garantir uniformidade */
+    align-items: center;
 }
 
-/* Imagens com altura e largura fixas */
 .product img {
     width: 100%;
-    height: 250px; /* Altura das imagens uniformizada */
-    object-fit: cover; /* Garante a proporção da imagem */
-    display: block;
+    object-fit: cover;
 }
 
-/* Ajustando as informações do produto para manter o layout uniforme */
 .product-info {
-    padding: 10px;
     text-align: center;
-    flex-grow: 1; /* Permite que o conteúdo ocupe o restante do espaço */
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    padding: 10px;
 }
 
 .product-info h2 {
-    font-size: 1.5rem;
-    margin-bottom: 10px;
-    color: #fff;
+    font-size: 1.2rem;
 }
 
 .product-info .price {
-    font-size: 1.2rem;
+    font-size: 1rem;
     color: #00bcd4;
 }
 
-/* Estilização da imagem promocional */
-.promo-image {
-    width: 100%;  /* A imagem ocupa toda a largura da tela */
-    border: 2px solid #888888; /* Borda consistente */
-    border-radius: 20px;
-    height: 95vh; /* A altura da imagem será 85% da altura da tela */
-    object-fit: cover; /* A imagem vai cobrir toda a área sem distorção */
-    margin-top: 30px;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* CSS para ocultar a sidebar em dispositivos móveis */
-.sidebar.hidden {
-    display: none;
-}
-
-.sidebar-toggle {
-    display: none; /* Garante que o botão de toggle seja escondido por padrão */
-}
-
-/* Para dispositivos móveis */
+/* Responsividade */
 @media (max-width: 768px) {
-    /* Mostrar o botão de alternância */
     .sidebar-toggle {
-        display: block;
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background-color: #444;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        z-index: 1000;
-    }
-
-    /* Sidebar oculta por padrão em dispositivos móveis */
-    .sidebar {
-        display: none;
-    }
-
-    .sidebar.active {
-        display: flex;
-    }
-
-    .main-content {
-        margin-top: 80px; /* Ajusta o conteúdo para não ficar embaixo da sidebar */
+        display: block; /* Exibe o botão em dispositivos menores */
     }
 
     .products {
-        gap: 15px;
-        grid-template-columns: repeat(2, 1fr); /* 2 colunas em telas menores */
+        grid-template-columns: 1fr; /* Uma coluna */
     }
 }
 
-/* Para dispositivos com telas menores */
 @media (max-width: 480px) {
-    .products {
-        gap: 10px;
-        grid-template-columns: 1fr; /* 1 coluna em telas muito pequenas */
+    .promo-image {
+        height: auto; /* Adapta para telas menores */
     }
 }
