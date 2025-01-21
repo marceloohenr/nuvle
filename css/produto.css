@@ -145,6 +145,16 @@ header img {
     color: #fff;
 }
 
+/* Preço original em vermelho e com risco */
+.price-original {
+    color: red;
+    text-decoration: line-through;
+    font-size: 1rem;
+    margin-bottom: 5px;
+    display: block; /* Para alinhar acima do preço promocional */
+}
+
+/* Preço promocional */
 .product-info .price {
     font-size: 1.2rem;
     color: #00bcd4;

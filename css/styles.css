@@ -84,20 +84,20 @@ header {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
     width: 100%;
-    padding: 2px;
-    border-radius: 20px; /* Ajustado para bordas menores */
     background-color: #444;
-    border: 2px solid #666; /* Reduzida a espessura da borda */
+    padding: 0;
+    border-radius: 20px;
+    border: 2px solid #888888;
 }
 
 header img {
     width: 100%;
     height: auto;
-    border-radius: 15px; /* Ajustado para acompanhar o header */
+    object-fit: cover;
+    border-radius: 20px;
 }
-
 
 /* Conteúdo principal */
 .main-content {
@@ -110,17 +110,51 @@ header img {
     transition: margin-left 0.3s ease-in-out;
 }
 
+/* Ajuste da imagem */
 .promo-image {
     width: 100%;
-    border: 1px solid #666; /* Borda mais discreta */
+    border: 2px solid #888888;
     border-radius: 20px;
-    height: auto; /* Altura automática para ajustar ao tamanho da tela */
-    max-height: 80vh; /* Limite de altura para garantir visibilidade */
-    object-fit: contain; /* Ajusta a imagem ao espaço disponível */
-    margin-top: 15px;
+    height: auto; /* A altura vai se ajustar proporcionalmente */
+    object-fit: cover; /* Estica a imagem para ocupar toda a largura */
+    margin-top: 30px;
     display: block;
     margin-left: auto;
     margin-right: auto;
+}
+
+/* Responsividade para telas pequenas */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 250px; /* Sidebar um pouco menor para dispositivos móveis */
+    }
+
+    .main-content {
+        margin-top: 80px;
+    }
+
+    .promo-image {
+        max-height: 70vh; /* Ajusta a altura da imagem para telas menores */
+        height: auto; /* Deixa a altura da imagem ajustável */
+        object-fit: contain; /* Garante que a imagem não seja cortada */
+    }
+
+    .products {
+        gap: 15px;
+        grid-template-columns: repeat(2, 1fr); /* 2 colunas em telas menores */
+    }
+}
+
+@media (max-width: 480px) {
+    .promo-image {
+        max-height: 60vh; /* Ajusta ainda mais para telas pequenas */
+        height: auto;
+        object-fit: contain;
+    }
+
+    .products {
+        grid-template-columns: 1fr; /* 1 coluna em telas muito pequenas */
+    }
 }
 
 /* Produtos (Básicas, Home e outras abas) */
@@ -170,6 +204,16 @@ header img {
     color: #fff;
 }
 
+/* Preço original em vermelho e com risco */
+.price-original {
+    color: red;
+    text-decoration: line-through;
+    font-size: 1rem;
+    margin-bottom: 5px;
+    display: block; /* Para alinhar acima do preço promocional */
+}
+
+/* Preço promocional */
 .product-info .price {
     font-size: 1.2rem;
     color: #00bcd4;
