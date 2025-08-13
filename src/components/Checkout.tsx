@@ -24,8 +24,7 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, onBack }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPixCode, setShowPixCode] = useState(false);
 
-  const shippingCost = state.total > 100 ? 0 : 15.90;
-  const finalTotal = state.total + shippingCost;
+  const finalTotal = state.total;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -44,6 +43,37 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, onBack }) => {
 
   const generatePixCode = () => {
     return `nuvleoficial@gmail.com`;
+  };
+
+  const generateWhatsAppMessage = () => {
+    const itemsList = state.items.map(item => 
+      `• ${item.name} (Tamanho: ${item.size || 'N/A'}) - Qtd: ${item.quantity} - R$ ${(item.price * item.quantity).toFixed(2)}`
+    ).join('\n');
+
+    const message = `🛍️ *NOVO PEDIDO - NUVLE*
+
+👤 *Dados do Cliente:*
+Nome: ${formData.name}
+Email: ${formData.email}
+Telefone: ${formData.phone}
+CPF: ${formData.cpf}
+
+📍 *Endereço de Entrega:*
+${formData.address}
+${formData.city} - ${formData.state}
+CEP: ${formData.zipCode}
+
+🛒 *Itens do Pedido:*
+${itemsList}
+
+💰 *Total: R$ ${finalTotal.toFixed(2)}*
+
+✅ *Pagamento PIX Confirmado*
+Chave PIX: nuvleoficial@gmail.com
+
+#USENUVLE ⚡`;
+
+    return encodeURIComponent(message);
   };
 
   if (!isOpen) return null;
@@ -87,12 +117,15 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, onBack }) => {
               <button
                 onClick={() => {
                   dispatch({ type: 'CLEAR_CART' });
+                  const whatsappMessage = generateWhatsAppMessage();
+                  const whatsappUrl = `https://wa.me/5581988966556?text=${whatsappMessage}`;
+                  window.open(whatsappUrl, '_blank');
                   onClose();
-                  alert('Aguardando confirmação do pagamento PIX!');
+                  alert('Pedido enviado para o WhatsApp! Aguardando confirmação do pagamento PIX.');
                 }}
                 className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-md transition-colors"
               >
-                Já Fiz o Pagamento
+                Confirmar Pagamento e Enviar Pedido
               </button>
             </div>
           </div>
@@ -266,18 +299,13 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, onBack }) => {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                    <span>Subtotal:</span>
-                    <span>R$ {state.total.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                    <span>Frete:</span>
-                    <span>{shippingCost === 0 ? 'Grátis' : `R$ ${shippingCost.toFixed(2)}`}</span>
-                  </div>
                   <div className="flex justify-between font-bold text-lg text-gray-800 dark:text-white border-t pt-2">
                     <span>Total:</span>
                     <span>R$ {finalTotal.toFixed(2)}</span>
                   </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                    Frete será negociado via WhatsApp
+                  </p>
                 </div>
               </div>
 

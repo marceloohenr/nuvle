@@ -19,8 +19,7 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, onCheckout }) => {
     dispatch({ type: 'REMOVE_FROM_CART', payload: id });
   };
 
-  const shippingCost = state.total > 100 ? 0 : 15.90;
-  const finalTotal = state.total + shippingCost;
+  const finalTotal = state.total;
 
   if (!isOpen) return null;
 
@@ -45,6 +44,15 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, onCheckout }) => {
 
           {/* Cart Items */}
           <div className="flex-1 overflow-y-auto p-4">
+            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900 rounded-lg border border-yellow-200 dark:border-yellow-700">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                ⚠️ Verifique estoque antes de comprar
+              </p>
+              <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
+                📱 Frete negociável no WhatsApp
+              </p>
+            </div>
+            
             {state.items.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500 dark:text-gray-400">Seu carrinho está vazio</p>
@@ -103,18 +111,13 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, onCheckout }) => {
           {state.items.length > 0 && (
             <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                  <span>Subtotal:</span>
-                  <span>R$ {state.total.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                  <span>Frete:</span>
-                  <span>{shippingCost === 0 ? 'Grátis' : `R$ ${shippingCost.toFixed(2)}`}</span>
-                </div>
                 <div className="flex justify-between font-bold text-lg text-gray-800 dark:text-white border-t pt-2">
                   <span>Total:</span>
                   <span>R$ {finalTotal.toFixed(2)}</span>
                 </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  Frete será negociado via WhatsApp
+                </p>
               </div>
               
               <button

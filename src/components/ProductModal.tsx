@@ -114,7 +114,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, isOpen, onClose })
               </button>
 
               <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                <p>• Frete grátis para compras acima de R$ 100,00</p>
                 <p>• Produto com garantia de qualidade</p>
                 <p>• Trocas e devoluções em até 30 dias</p>
               </div>

@@ -1,13 +1,54 @@
 import { Product } from '../types/product';
 
 export const products: Product[] = [
+  // Camisetas Oversized
+  {
+    id: 'oversized-branca',
+    name: 'Oversized Branca',
+    price: 110.00,
+    originalPrice: 150.00,
+    image: 'https://i.postimg.cc/pVjdZX5X/Imagem-do-Whats-App-de-2025-08-12-s-19-57-02-a1d5bf1f.jpg',
+    category: 'oversized',
+    description: 'Camiseta oversized branca com modelagem ampla e confortável',
+    sizes: ['P', 'M', 'G', 'GG']
+  },
+  {
+    id: 'oversized-preta',
+    name: 'Oversized Preta',
+    price: 110.00,
+    originalPrice: 150.00,
+    image: 'https://i.postimg.cc/J4c4f6Qf/Imagem-do-Whats-App-de-2025-08-12-s-19-57-03-2395cdc7.jpg',
+    category: 'oversized',
+    description: 'Camiseta oversized preta com modelagem ampla e confortável',
+    sizes: ['P', 'M', 'G', 'GG']
+  },
+  {
+    id: 'oversized-cinza',
+    name: 'Oversized Cinza',
+    price: 110.00,
+    originalPrice: 150.00,
+    image: 'https://i.postimg.cc/FHTFRY8G/Imagem-do-Whats-App-de-2025-08-12-s-19-57-03-dbf4fe7c.jpg',
+    category: 'oversized',
+    description: 'Camiseta oversized cinza com modelagem ampla e confortável',
+    sizes: ['P', 'M', 'G', 'GG']
+  },
+  {
+    id: 'oversized-verde',
+    name: 'Oversized Verde',
+    price: 110.00,
+    originalPrice: 150.00,
+    image: 'https://i.postimg.cc/KY4GgZyb/Imagem-do-Whats-App-de-2025-08-12-s-19-57-03-f4c2f0eb.jpg',
+    category: 'oversized',
+    description: 'Camiseta oversized verde com modelagem ampla e confortável',
+    sizes: ['P', 'M', 'G', 'GG']
+  },
   // Camisetas Básicas
   {
     id: 'logo-basica-branca',
     name: 'Logo Básica Branca',
     price: 74.90,
     originalPrice: 100.00,
-    image: 'https://i.postimg.cc/t4d3T4VN/BASICA-3.jpg',
+    image: 'https://i.postimg.cc/4xfNs6Lm/Imagem-do-Whats-App-de-2025-08-12-s-19-57-03-7485f5d8.jpg',
     category: 'basicas',
     description: 'Camiseta básica com logo da marca em alta qualidade',
     sizes: ['P', 'M', 'G', 'GG']
@@ -37,7 +78,7 @@ export const products: Product[] = [
     name: 'Logo Básica Preta',
     price: 74.90,
     originalPrice: 100.00,
-    image: 'https://i.postimg.cc/QdLghn05/BASICA-4.jpg',
+    image: 'https://i.postimg.cc/SNpxtFcL/Imagem-do-Whats-App-de-2025-08-12-s-19-57-03-34020ff4.jpg',
     category: 'basicas',
     description: 'Camiseta básica preta com logo da marca',
     sizes: ['P', 'M', 'G', 'GG']

@@ -4,7 +4,7 @@ export interface Product {
   price: number;
   originalPrice?: number;
   image: string;
-  category: 'basicas' | 'estampadas';
+  category: 'basicas' | 'estampadas' | 'oversized';
   description?: string;
   sizes?: string[];
 }

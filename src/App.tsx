@@ -16,7 +16,7 @@ function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<'all' | 'basicas' | 'estampadas'>('all');
+  const [activeCategory, setActiveCategory] = useState<'all' | 'basicas' | 'estampadas' | 'oversized'>('all');
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
@@ -67,7 +67,7 @@ function App() {
 
             {/* Category Filter */}
             <div className="flex justify-center mb-8">
-              <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-wrap">
                 <button
                   onClick={() => setActiveCategory('all')}
                   className={`px-6 py-2 text-sm font-medium rounded-l-lg transition-colors ${
@@ -87,6 +87,16 @@ function App() {
                   }`}
                 >
                   Básicas
+                </button>
+                <button
+                  onClick={() => setActiveCategory('oversized')}
+                  className={`px-6 py-2 text-sm font-medium transition-colors ${
+                    activeCategory === 'oversized'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                  }`}
+                >
+                  Oversized
                 </button>
                 <button
                   onClick={() => setActiveCategory('estampadas')}
