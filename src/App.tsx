@@ -66,44 +66,44 @@ function App() {
             </section>
 
             {/* Category Filter */}
-            <div className="flex justify-center mb-8">
-              <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-wrap">
+            <div className="flex justify-center mb-8 px-4">
+              <div className="flex flex-wrap justify-center gap-2 sm:inline-flex sm:rounded-lg sm:border sm:border-gray-200 sm:dark:border-gray-700 sm:bg-white sm:dark:bg-gray-800 sm:gap-0">
                 <button
                   onClick={() => setActiveCategory('all')}
-                  className={`px-6 py-2 text-sm font-medium rounded-l-lg transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg sm:rounded-l-lg sm:rounded-r-none transition-colors min-w-[80px] ${
                     activeCategory === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200 dark:border-gray-700 sm:border-0'
                   }`}
                 >
                   Todos
                 </button>
                 <button
                   onClick={() => setActiveCategory('basicas')}
-                  className={`px-6 py-2 text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg sm:rounded-none transition-colors min-w-[80px] ${
                     activeCategory === 'basicas'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200 dark:border-gray-700 sm:border-0'
                   }`}
                 >
                   Básicas
                 </button>
                 <button
                   onClick={() => setActiveCategory('oversized')}
-                  className={`px-6 py-2 text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg sm:rounded-none transition-colors min-w-[80px] ${
                     activeCategory === 'oversized'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200 dark:border-gray-700 sm:border-0'
                   }`}
                 >
                   Oversized
                 </button>
                 <button
                   onClick={() => setActiveCategory('estampadas')}
-                  className={`px-6 py-2 text-sm font-medium rounded-r-lg transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg sm:rounded-r-lg sm:rounded-l-none transition-colors min-w-[80px] ${
                     activeCategory === 'estampadas'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200 dark:border-gray-700 sm:border-0'
                   }`}
                 >
                   Estampadas
