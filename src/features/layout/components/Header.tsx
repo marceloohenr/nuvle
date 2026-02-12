@@ -1,96 +1,143 @@
-import React, { useState } from 'react';
-import { Menu, X, ShoppingCart, Moon, Sun, Search } from 'lucide-react';
+import { Menu, Moon, Search, ShoppingCart, Sun, UserCircle2, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
 import { useCart } from '../../cart/context/CartContext';
 import { useTheme } from '../../theme/context/ThemeContext';
 
 interface HeaderProps {
-  onMenuToggle: () => void;
   onCartToggle: () => void;
   onSearchToggle: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuToggle, onCartToggle, onSearchToggle }) => {
+const navItems = [
+  { to: '/', label: 'Home' },
+  { to: '/produtos', label: 'Produtos' },
+  { to: '/conta', label: 'Minha conta' },
+  { to: '/pedidos', label: 'Pedidos' },
+];
+
+const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
   const { state } = useCart();
   const { isDark, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const handleMenuToggle = () => {
-    setIsMenuOpen(!isMenuOpen);
-    onMenuToggle();
-  };
+  const totalItems = useMemo(
+    () => state.items.reduce((sum, item) => sum + item.quantity, 0),
+    [state.items]
+  );
 
   return (
-    <header className="bg-white dark:bg-gray-900 shadow-lg transition-colors duration-300">
+    <header className="sticky top-0 z-40 backdrop-blur-lg bg-white/90 dark:bg-gray-950/80 border-b border-slate-200 dark:border-slate-800">
+      <div className="bg-slate-900 text-slate-100 text-center text-xs py-2 px-4 tracking-wide">
+        ENVIO RAPIDO | FRETE E SUPORTE VIA WHATSAPP
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <img 
-              src="https://i.postimg.cc/zBtj4x02/fundo.png" 
-              alt="Nuvle" 
+        <div className="h-20 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-3">
+            <img
+              src="https://i.postimg.cc/zBtj4x02/fundo.png"
+              alt="Nuvle"
               className="h-12 w-auto"
             />
-          </div>
+          </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#contato" className="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Contato
-            </a>
+          <nav className="hidden md:flex items-center gap-2">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
 
-          {/* Actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2">
             <button
               onClick={onSearchToggle}
-              className="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Pesquisar produtos"
             >
-              <Search size={20} />
+              <Search size={19} />
             </button>
 
             <button
               onClick={toggleTheme}
-              className="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Alternar tema"
             >
-              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+              {isDark ? <Sun size={19} /> : <Moon size={19} />}
             </button>
 
             <button
               onClick={onCartToggle}
-              className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className="relative p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Abrir carrinho"
             >
-              <ShoppingCart size={20} />
-              {state.items.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {state.items.reduce((sum, item) => sum + item.quantity, 0)}
+              <ShoppingCart size={19} />
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                  {totalItems}
                 </span>
               )}
             </button>
 
-            {/* Mobile menu button */}
-            <button
-              onClick={handleMenuToggle}
-              className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            <Link
+              to="/login"
+              className="hidden sm:inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
             >
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              <UserCircle2 size={16} />
+              Entrar
+            </Link>
+
+            <button
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              className="md:hidden p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Alternar menu"
+            >
+              {isMenuOpen ? <X size={19} /> : <Menu size={19} />}
             </button>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col space-y-4">
-              <a href="#home" className="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                Home
-              </a>
-              <a href="#contato" className="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                Contato
-              </a>
-            </div>
-          </nav>
-        )}
       </div>
+
+      {isMenuOpen && (
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950">
+          <nav className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-2">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setIsMenuOpen(false)}
+                className={({ isActive }) =>
+                  `px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+            <Link
+              to="/login"
+              onClick={() => setIsMenuOpen(false)}
+              className="px-4 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white"
+            >
+              Entrar na conta
+            </Link>
+          </nav>
+        </div>
+      )}
     </header>
   );
 };

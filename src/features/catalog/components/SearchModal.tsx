@@ -14,6 +14,11 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onProductCli
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
 
+  const handleProductSelect = (product: Product) => {
+    onProductClick(product);
+    onClose();
+  };
+
   useEffect(() => {
     if (searchTerm.trim()) {
       const filtered = products.filter(product =>
@@ -78,12 +83,11 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onProductCli
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredProducts.slice(0, 6).map(product => (
-                    <div key={product.id} onClick={() => { onProductClick(product); onClose(); }}>
-                      <ProductCard 
-                        product={product} 
-                        onProductClick={onProductClick}
-                      />
-                    </div>
+                    <ProductCard 
+                      key={product.id}
+                      product={product} 
+                      onProductClick={handleProductSelect}
+                    />
                   ))}
                 </div>
               )}
