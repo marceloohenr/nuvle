@@ -43,7 +43,12 @@ const AdminPage = () => {
   const { currentUser, isAdmin, users } = useAuth();
   const {
     products,
+    categories,
     addProduct,
+    addCategory,
+    removeCategory,
+    getCategoryLabel,
+    updateProduct,
     adjustProductStock,
     removeProduct,
   } = useCatalog();
@@ -53,10 +58,16 @@ const AdminPage = () => {
   const [orderSearch, setOrderSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [formMessage, setFormMessage] = useState('');
+  const [productEditMessage, setProductEditMessage] = useState('');
+  const [categoryMessage, setCategoryMessage] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingProductName, setEditingProductName] = useState('');
+  const [editingProductDescription, setEditingProductDescription] = useState('');
   const [newProduct, setNewProduct] = useState({
     name: '',
     image: '',
-    category: 'basicas' as 'basicas' | 'estampadas' | 'oversized',
+    category: '',
     price: '',
     originalPrice: '',
     stock: '20',
@@ -71,6 +82,22 @@ const AdminPage = () => {
   useEffect(() => {
     refreshOrders();
   }, []);
+
+  useEffect(() => {
+    setNewProduct((previous) => {
+      if (categories.length === 0) {
+        if (!previous.category) return previous;
+        return { ...previous, category: '' };
+      }
+
+      const hasSelectedCategory = categories.some(
+        (category) => category.id === previous.category
+      );
+
+      if (hasSelectedCategory) return previous;
+      return { ...previous, category: categories[0].id };
+    });
+  }, [categories]);
 
   const filteredProducts = useMemo(() => {
     const query = productSearch.trim().toLowerCase();
@@ -95,6 +122,13 @@ const AdminPage = () => {
         order.customer.city.toLowerCase().includes(query)
     );
   }, [orderSearch, orders]);
+
+  const categoriesWithCount = useMemo(() => {
+    return categories.map((category) => ({
+      ...category,
+      count: products.filter((product) => product.category === category.id).length,
+    }));
+  }, [categories, products]);
 
   const customerRows = useMemo(() => {
     type CustomerRow = {
@@ -179,6 +213,31 @@ const AdminPage = () => {
     };
   }, [orders]);
 
+  const handleCreateCategory = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const result = addCategory(newCategoryName);
+
+    if (!result.success) {
+      setCategoryMessage(result.error ?? 'Nao foi possivel criar a categoria.');
+      return;
+    }
+
+    setCategoryMessage(`Categoria "${result.category?.label}" criada com sucesso.`);
+    setNewCategoryName('');
+  };
+
+  const handleRemoveCategory = (categoryId: string) => {
+    const label = getCategoryLabel(categoryId);
+    const result = removeCategory(categoryId);
+
+    if (!result.success) {
+      setCategoryMessage(result.error ?? 'Nao foi possivel remover a categoria.');
+      return;
+    }
+
+    setCategoryMessage(`Categoria "${label}" removida.`);
+  };
+
   const handleCreateProduct = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -212,6 +271,46 @@ const AdminPage = () => {
       stock: '20',
       sizes: 'P,M,G,GG',
     }));
+  };
+
+  const startEditingProduct = (
+    productId: string,
+    currentName: string,
+    currentDescription?: string
+  ) => {
+    setEditingProductId(productId);
+    setEditingProductName(currentName);
+    setEditingProductDescription(currentDescription ?? '');
+    setProductEditMessage('');
+  };
+
+  const cancelEditingProduct = () => {
+    setEditingProductId(null);
+    setEditingProductName('');
+    setEditingProductDescription('');
+  };
+
+  const handleSaveProductEdit = (productId: string) => {
+    const nextName = editingProductName.trim();
+    const nextDescription = editingProductDescription.trim();
+
+    if (nextName.length < 3) {
+      setProductEditMessage('Nome do produto precisa ter ao menos 3 caracteres.');
+      return;
+    }
+
+    const updated = updateProduct(productId, {
+      name: nextName,
+      description: nextDescription,
+    });
+
+    if (!updated) {
+      setProductEditMessage('Nao foi possivel atualizar este produto.');
+      return;
+    }
+
+    setProductEditMessage('Produto atualizado com sucesso.');
+    cancelEditingProduct();
   };
 
   if (!currentUser) {
@@ -338,6 +437,10 @@ const AdminPage = () => {
               />
             </div>
 
+            {productEditMessage && (
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{productEditMessage}</p>
+            )}
+
             <div className="mt-4 space-y-3 max-h-[720px] overflow-y-auto pr-1">
               {filteredProducts.map((product) => (
                 <article
@@ -353,7 +456,10 @@ const AdminPage = () => {
                     <div className="flex-1">
                       <p className="font-semibold text-slate-900 dark:text-white">{product.name}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {product.category} | {currencyFormatter.format(product.price)}
+                        {getCategoryLabel(product.category)} | {currencyFormatter.format(product.price)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                        {product.description || 'Sem descricao cadastrada.'}
                       </p>
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -384,7 +490,48 @@ const AdminPage = () => {
                         >
                           +10
                         </button>
+                        <button
+                          onClick={() =>
+                            startEditingProduct(product.id, product.name, product.description)
+                          }
+                          className="rounded-lg border border-blue-200 dark:border-blue-900 px-2 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                        >
+                          Editar
+                        </button>
                       </div>
+
+                      {editingProductId === product.id && (
+                        <div className="mt-3 space-y-2 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-3">
+                          <input
+                            value={editingProductName}
+                            onChange={(event) => setEditingProductName(event.target.value)}
+                            placeholder="Novo nome"
+                            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                          />
+                          <textarea
+                            value={editingProductDescription}
+                            onChange={(event) =>
+                              setEditingProductDescription(event.target.value)
+                            }
+                            placeholder="Nova descricao"
+                            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 min-h-20"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleSaveProductEdit(product.id)}
+                              className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-xs font-semibold transition-colors"
+                            >
+                              Salvar
+                            </button>
+                            <button
+                              onClick={cancelEditingProduct}
+                              className="rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <button
@@ -406,102 +553,164 @@ const AdminPage = () => {
             </div>
           </div>
 
-          <aside className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 h-fit sticky top-28">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-              Cadastrar nova camisa
-            </h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Inclua imagem, preco, categoria e tamanhos para publicar no catalogo.
-            </p>
+          <aside className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 h-fit sticky top-28 space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                Gerenciar categorias
+              </h2>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                Adicione ou remova categorias como camisas, bermudas e regatas.
+              </p>
 
-            <form onSubmit={handleCreateProduct} className="mt-4 space-y-3">
-              <input
-                value={newProduct.name}
-                onChange={(event) =>
-                  setNewProduct((prev) => ({ ...prev, name: event.target.value }))
-                }
-                placeholder="Nome do produto"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
-              />
-              <input
-                value={newProduct.image}
-                onChange={(event) =>
-                  setNewProduct((prev) => ({ ...prev, image: event.target.value }))
-                }
-                placeholder="URL da imagem"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
+              <form onSubmit={handleCreateCategory} className="mt-3 flex gap-2">
                 <input
-                  value={newProduct.price}
-                  onChange={(event) =>
-                    setNewProduct((prev) => ({ ...prev, price: event.target.value }))
-                  }
-                  placeholder="Preco"
-                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  value={newCategoryName}
+                  onChange={(event) => setNewCategoryName(event.target.value)}
+                  placeholder="Nova categoria"
+                  className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100"
                 />
-                <input
-                  value={newProduct.originalPrice}
-                  onChange={(event) =>
-                    setNewProduct((prev) => ({ ...prev, originalPrice: event.target.value }))
-                  }
-                  placeholder="Preco original (opcional)"
-                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <select
-                  value={newProduct.category}
-                  onChange={(event) =>
-                    setNewProduct((prev) => ({
-                      ...prev,
-                      category: event.target.value as 'basicas' | 'estampadas' | 'oversized',
-                    }))
-                  }
-                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm font-semibold transition-colors"
                 >
-                  <option value="basicas">Basicas</option>
-                  <option value="estampadas">Estampadas</option>
-                  <option value="oversized">Oversized</option>
-                </select>
-                <input
-                  value={newProduct.stock}
-                  onChange={(event) =>
-                    setNewProduct((prev) => ({ ...prev, stock: event.target.value }))
-                  }
-                  placeholder="Estoque inicial"
-                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
-                />
+                  Criar
+                </button>
+              </form>
+
+              <div className="mt-3 space-y-2 max-h-44 overflow-y-auto pr-1">
+                {categoriesWithCount.map((category) => (
+                  <div
+                    key={category.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2 flex items-center justify-between gap-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-1">
+                        {category.label}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {category.count} produto(s)
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveCategory(category.id)}
+                      className="inline-flex items-center justify-center rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 px-2.5 py-1.5 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/30"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))}
               </div>
-              <input
-                value={newProduct.sizes}
-                onChange={(event) =>
-                  setNewProduct((prev) => ({ ...prev, sizes: event.target.value }))
-                }
-                placeholder="Tamanhos (P,M,G,GG)"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
-              />
-              <textarea
-                value={newProduct.description}
-                onChange={(event) =>
-                  setNewProduct((prev) => ({ ...prev, description: event.target.value }))
-                }
-                placeholder="Descricao"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100 min-h-24"
-              />
 
-              {formMessage && (
-                <p className="text-sm text-slate-600 dark:text-slate-300">{formMessage}</p>
+              {categoryMessage && (
+                <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{categoryMessage}</p>
               )}
+            </div>
 
-              <button
-                type="submit"
-                className="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors"
-              >
-                <PlusCircle size={16} />
-                Adicionar produto
-              </button>
-            </form>
+            <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                Cadastrar novo produto
+              </h2>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                Inclua imagem, preco, categoria e tamanhos para publicar no catalogo.
+              </p>
+
+              <form onSubmit={handleCreateProduct} className="mt-4 space-y-3">
+                <input
+                  value={newProduct.name}
+                  onChange={(event) =>
+                    setNewProduct((prev) => ({ ...prev, name: event.target.value }))
+                  }
+                  placeholder="Nome do produto"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <input
+                  value={newProduct.image}
+                  onChange={(event) =>
+                    setNewProduct((prev) => ({ ...prev, image: event.target.value }))
+                  }
+                  placeholder="URL da imagem"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={newProduct.price}
+                    onChange={(event) =>
+                      setNewProduct((prev) => ({ ...prev, price: event.target.value }))
+                    }
+                    placeholder="Preco"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  />
+                  <input
+                    value={newProduct.originalPrice}
+                    onChange={(event) =>
+                      setNewProduct((prev) => ({ ...prev, originalPrice: event.target.value }))
+                    }
+                    placeholder="Preco original (opcional)"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <select
+                    value={newProduct.category}
+                    onChange={(event) =>
+                      setNewProduct((prev) => ({
+                        ...prev,
+                        category: event.target.value,
+                      }))
+                    }
+                    disabled={categories.length === 0}
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400"
+                  >
+                    {categories.length === 0 ? (
+                      <option value="">Cadastre uma categoria primeiro</option>
+                    ) : (
+                      categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.label}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <input
+                    value={newProduct.stock}
+                    onChange={(event) =>
+                      setNewProduct((prev) => ({ ...prev, stock: event.target.value }))
+                    }
+                    placeholder="Estoque inicial"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+                <input
+                  value={newProduct.sizes}
+                  onChange={(event) =>
+                    setNewProduct((prev) => ({ ...prev, sizes: event.target.value }))
+                  }
+                  placeholder="Tamanhos (P,M,G,GG)"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <textarea
+                  value={newProduct.description}
+                  onChange={(event) =>
+                    setNewProduct((prev) => ({ ...prev, description: event.target.value }))
+                  }
+                  placeholder="Descricao"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100 min-h-24"
+                />
+
+                {formMessage && (
+                  <p className="text-sm text-slate-600 dark:text-slate-300">{formMessage}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={categories.length === 0}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 rounded-xl transition-colors"
+                >
+                  <PlusCircle size={16} />
+                  Adicionar produto
+                </button>
+              </form>
+            </div>
           </aside>
         </section>
       )}

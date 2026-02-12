@@ -3,20 +3,16 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../cart/context/CartContext';
 import { Product } from '../types/product';
+import { useCatalog } from '../context/CatalogContext';
 
 interface ProductCardProps {
   product: Product;
   onProductClick: (product: Product) => void;
 }
 
-const categoryLabel: Record<Product['category'], string> = {
-  basicas: 'Basicas',
-  estampadas: 'Estampadas',
-  oversized: 'Oversized',
-};
-
 const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
   const { dispatch } = useCart();
+  const { getCategoryLabel } = useCatalog();
   const [isLiked, setIsLiked] = useState(false);
   const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] || '');
   const isOutOfStock = product.stock <= 0;
@@ -63,7 +59,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
 
         <div className="absolute top-3 left-3 flex items-center gap-2">
           <span className="rounded-full bg-white/90 dark:bg-slate-900/90 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200">
-            {categoryLabel[product.category]}
+            {getCategoryLabel(product.category)}
           </span>
           {discount > 0 && (
             <span className="rounded-full bg-red-500 text-white px-2.5 py-1 text-xs font-bold">

@@ -1,4 +1,10 @@
-export type ProductCategory = 'basicas' | 'estampadas' | 'oversized';
+export type ProductCategory = string;
+
+export interface ProductCategoryMeta {
+  id: ProductCategory;
+  label: string;
+  createdAt: string;
+}
 
 export interface Product {
   id: string;

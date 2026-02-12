@@ -10,13 +10,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useCart } from '../../features/cart';
 import { useCatalog } from '../../features/catalog';
-import type { Product } from '../../features/catalog';
-
-const categoryLabel: Record<Product['category'], string> = {
-  basicas: 'Basicas',
-  estampadas: 'Estampadas',
-  oversized: 'Oversized',
-};
 
 const reviews = [
   {
@@ -57,7 +50,7 @@ const faqItems = [
 const ProductDetailsPage = () => {
   const { productId } = useParams();
   const { dispatch } = useCart();
-  const { products } = useCatalog();
+  const { products, getCategoryLabel } = useCatalog();
 
   const product = useMemo(
     () => products.find((item) => item.id === productId),
@@ -148,7 +141,7 @@ const ProductDetailsPage = () => {
 
         <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">
           <p className="inline-flex rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1 text-xs font-semibold uppercase tracking-widest">
-            {categoryLabel[product.category]}
+            {getCategoryLabel(product.category)}
           </p>
           <h1 className="mt-3 text-4xl font-black text-slate-900 dark:text-white">
             {product.name}

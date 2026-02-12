@@ -4,7 +4,6 @@ import { useSearchParams } from 'react-router-dom';
 import {
   ProductCard,
   type Product,
-  type ProductCategory,
   useCatalog,
 } from '../../features/catalog';
 
@@ -15,34 +14,30 @@ interface ProductsPageProps {
 type PriceFilter = 'all' | 'under-80' | '80-100' | '100-120' | 'over-120';
 type SortOption = 'recommended' | 'price-asc' | 'price-desc' | 'name-asc';
 
-const categoryLabels: Record<'all' | ProductCategory, string> = {
-  all: 'Todos',
-  basicas: 'Basicas',
-  estampadas: 'Estampadas',
-  oversized: 'Oversized',
-};
-
-const isCategory = (value: string | null): value is ProductCategory => {
-  return value === 'basicas' || value === 'estampadas' || value === 'oversized';
-};
-
 const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
-  const { products } = useCatalog();
+  const { products, categories, getCategoryLabel } = useCatalog();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'all' | ProductCategory>('all');
+  const [activeCategory, setActiveCategory] = useState<'all' | string>('all');
   const [selectedSize, setSelectedSize] = useState<'all' | string>('all');
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('recommended');
 
   useEffect(() => {
     const categoryParam = searchParams.get('categoria');
-    if (isCategory(categoryParam)) {
+    if (categoryParam && categories.some((category) => category.id === categoryParam)) {
       setActiveCategory(categoryParam);
       return;
     }
+
+    if (categoryParam) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('categoria');
+      setSearchParams(nextParams, { replace: true });
+    }
+
     setActiveCategory('all');
-  }, [searchParams]);
+  }, [categories, searchParams, setSearchParams]);
 
   const availableSizes = useMemo(() => {
     const sizes = new Set<string>();
@@ -96,7 +91,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
     }
   }, [activeCategory, priceFilter, products, searchTerm, selectedSize, sortBy]);
 
-  const updateCategory = (category: 'all' | ProductCategory) => {
+  const updateCategory = (category: 'all' | string) => {
     setActiveCategory(category);
     const params = new URLSearchParams(searchParams);
     if (category === 'all') {
@@ -184,21 +179,29 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
               Categoria
             </p>
             <div className="flex flex-wrap gap-2">
-              {(Object.keys(categoryLabels) as Array<'all' | ProductCategory>).map(
-                (category) => (
-                  <button
-                    key={category}
-                    onClick={() => updateCategory(category)}
-                    className={`rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
-                      activeCategory === category
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {categoryLabels[category]}
-                  </button>
-                )
-              )}
+              <button
+                onClick={() => updateCategory('all')}
+                className={`rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
+                  activeCategory === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                Todos
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => updateCategory(category.id)}
+                  className={`rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
+                    activeCategory === category.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {getCategoryLabel(category.id)}
+                </button>
+              ))}
             </div>
           </div>
 

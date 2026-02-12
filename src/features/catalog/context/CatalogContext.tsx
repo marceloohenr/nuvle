@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import { products as seedProducts } from '../data/products';
-import type { Product, ProductCategory } from '../types/product';
+import type { Product, ProductCategory, ProductCategoryMeta } from '../types/product';
 
 interface ProductDraft {
   name: string;
@@ -39,42 +39,120 @@ interface ConsumeStockResult {
   issues?: ConsumeStockIssue[];
 }
 
+interface ActionResult {
+  success: boolean;
+  error?: string;
+}
+
+interface CategoryActionResult extends ActionResult {
+  category?: ProductCategoryMeta;
+}
+
 interface CatalogContextValue {
   products: Product[];
-  addProduct: (product: ProductDraft) => { success: boolean; error?: string };
+  categories: ProductCategoryMeta[];
+  addProduct: (product: ProductDraft) => ActionResult;
   updateProduct: (productId: string, updates: Partial<Omit<Product, 'id'>>) => boolean;
   removeProduct: (productId: string) => void;
   adjustProductStock: (productId: string, delta: number) => void;
   consumeProductStock: (items: StockItem[]) => ConsumeStockResult;
+  addCategory: (label: string) => CategoryActionResult;
+  removeCategory: (categoryId: string) => CategoryActionResult;
+  getCategoryLabel: (categoryId: string) => string;
   getProductById: (productId: string) => Product | undefined;
 }
 
 const CATALOG_STORAGE_KEY = 'nuvle-catalog-v1';
+const CATEGORIES_STORAGE_KEY = 'nuvle-categories-v1';
 const DEFAULT_STOCK = 20;
+const DEFAULT_SIZES = ['P', 'M', 'G', 'GG'];
+const DEFAULT_CREATED_AT = '2026-01-01T00:00:00.000Z';
 
-const isProductCategory = (value: unknown): value is ProductCategory => {
-  return value === 'basicas' || value === 'estampadas' || value === 'oversized';
+const defaultCategoryLabels: Record<string, string> = {
+  basicas: 'Basicas',
+  estampadas: 'Estampadas',
+  oversized: 'Oversized',
+};
+
+const slugify = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+const toTitleCase = (value: string) =>
+  value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+
+const toReadableCategoryLabel = (categoryId: string) => {
+  const fromPreset = defaultCategoryLabels[categoryId];
+  if (fromPreset) return fromPreset;
+
+  const text = categoryId
+    .split('-')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  return text || 'Categoria';
+};
+
+const normalizeCategoryId = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  return slugify(value);
 };
 
 const normalizeSizes = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return ['P', 'M', 'G', 'GG'];
+  if (!Array.isArray(value)) return DEFAULT_SIZES;
 
   const sizes = value
     .map((entry) => (typeof entry === 'string' ? entry.trim().toUpperCase() : ''))
     .filter((entry) => entry.length > 0);
 
-  return sizes.length > 0 ? Array.from(new Set(sizes)) : ['P', 'M', 'G', 'GG'];
+  return sizes.length > 0 ? Array.from(new Set(sizes)) : DEFAULT_SIZES;
+};
+
+const normalizeCategoryMeta = (value: unknown): ProductCategoryMeta | null => {
+  if (!value || typeof value !== 'object') return null;
+  const entry = value as Partial<ProductCategoryMeta>;
+
+  const categoryId = normalizeCategoryId(entry.id);
+  if (!categoryId) return null;
+
+  const label =
+    typeof entry.label === 'string' && entry.label.trim().length > 0
+      ? entry.label.trim()
+      : toReadableCategoryLabel(categoryId);
+
+  const createdAt =
+    typeof entry.createdAt === 'string' && entry.createdAt.trim().length > 0
+      ? entry.createdAt
+      : DEFAULT_CREATED_AT;
+
+  return {
+    id: categoryId,
+    label,
+    createdAt,
+  };
 };
 
 const normalizeProduct = (value: unknown): Product | null => {
   if (!value || typeof value !== 'object') return null;
   const item = value as Partial<Product>;
 
+  const categoryId = normalizeCategoryId(item.category);
+
   if (
     !item.id ||
     !item.name ||
     !item.image ||
-    !isProductCategory(item.category) ||
+    !categoryId ||
     typeof item.id !== 'string' ||
     typeof item.name !== 'string' ||
     typeof item.image !== 'string' ||
@@ -100,7 +178,7 @@ const normalizeProduct = (value: unknown): Product | null => {
     id: item.id,
     name: item.name,
     image: item.image,
-    category: item.category,
+    category: categoryId,
     price: normalizedPrice,
     originalPrice: normalizedOriginalPrice,
     description: typeof item.description === 'string' ? item.description : undefined,
@@ -115,6 +193,7 @@ const normalizeProductDraft = (draft: ProductDraft): ProductDraft => {
     name: draft.name.trim(),
     image: draft.image.trim(),
     description: draft.description?.trim(),
+    category: normalizeCategoryId(draft.category),
     price: Number(draft.price),
     originalPrice:
       typeof draft.originalPrice === 'number' && Number.isFinite(draft.originalPrice)
@@ -133,6 +212,59 @@ const saveProducts = (products: Product[]) => {
   } catch {
     // Ignore storage failures to avoid breaking the storefront.
   }
+};
+
+const saveCategories = (categories: ProductCategoryMeta[]) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
+  } catch {
+    // Ignore storage failures to avoid breaking the storefront.
+  }
+};
+
+const deriveCategoriesFromProducts = (products: Product[]): ProductCategoryMeta[] => {
+  const ids = Array.from(new Set(products.map((product) => normalizeCategoryId(product.category))));
+
+  return ids
+    .filter(Boolean)
+    .map((id) => ({
+      id,
+      label: toReadableCategoryLabel(id),
+      createdAt: DEFAULT_CREATED_AT,
+    }));
+};
+
+const mergeCategories = (
+  primary: ProductCategoryMeta[],
+  secondary: ProductCategoryMeta[]
+): ProductCategoryMeta[] => {
+  const next: ProductCategoryMeta[] = [];
+  const knownIds = new Set<string>();
+
+  [...primary, ...secondary].forEach((entry) => {
+    if (!entry.id || knownIds.has(entry.id)) return;
+    knownIds.add(entry.id);
+    next.push(entry);
+  });
+
+  return next;
+};
+
+const areCategoriesEqual = (left: ProductCategoryMeta[], right: ProductCategoryMeta[]) => {
+  if (left.length !== right.length) return false;
+
+  return left.every((category, index) => {
+    const compare = right[index];
+    if (!compare) return false;
+
+    return (
+      category.id === compare.id &&
+      category.label === compare.label &&
+      category.createdAt === compare.createdAt
+    );
+  });
 };
 
 const getInitialProducts = (): Product[] => {
@@ -166,30 +298,139 @@ const getInitialProducts = (): Product[] => {
   }
 };
 
-const slugify = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+const getInitialCategories = (): ProductCategoryMeta[] => {
+  const categoriesFromProducts = deriveCategoriesFromProducts(getInitialProducts());
+
+  if (typeof window === 'undefined') return categoriesFromProducts;
+
+  try {
+    const raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+    if (!raw) {
+      saveCategories(categoriesFromProducts);
+      return categoriesFromProducts;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      saveCategories(categoriesFromProducts);
+      return categoriesFromProducts;
+    }
+
+    const normalized = parsed
+      .map((entry) => normalizeCategoryMeta(entry))
+      .filter((entry): entry is ProductCategoryMeta => Boolean(entry));
+
+    const merged = mergeCategories(normalized, categoriesFromProducts);
+
+    if (normalized.length !== merged.length) {
+      saveCategories(merged);
+    }
+
+    return merged.length > 0 ? merged : categoriesFromProducts;
+  } catch {
+    return categoriesFromProducts;
+  }
+};
 
 const CatalogContext = createContext<CatalogContextValue | null>(null);
 
 export const CatalogProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>(getInitialProducts);
+  const [categories, setCategories] = useState<ProductCategoryMeta[]>(getInitialCategories);
 
   useEffect(() => {
     saveProducts(products);
   }, [products]);
+
+  useEffect(() => {
+    saveCategories(categories);
+  }, [categories]);
+
+  useEffect(() => {
+    setCategories((previous) => {
+      const inferred = deriveCategoriesFromProducts(products);
+      const merged = mergeCategories(previous, inferred);
+
+      return areCategoriesEqual(previous, merged) ? previous : merged;
+    });
+  }, [products]);
+
+  const getCategoryLabel = useCallback(
+    (categoryId: string) => {
+      const normalizedId = normalizeCategoryId(categoryId);
+      const category = categories.find((entry) => entry.id === normalizedId);
+
+      if (category) return category.label;
+      return toReadableCategoryLabel(normalizedId);
+    },
+    [categories]
+  );
 
   const getProductById = useCallback(
     (productId: string) => products.find((product) => product.id === productId),
     [products]
   );
 
+  const addCategory = useCallback(
+    (label: string): CategoryActionResult => {
+      const cleanedLabel = toTitleCase(label);
+      if (cleanedLabel.length < 2) {
+        return { success: false, error: 'Nome da categoria precisa ter ao menos 2 caracteres.' };
+      }
+
+      const categoryId = normalizeCategoryId(cleanedLabel);
+      if (!categoryId) {
+        return { success: false, error: 'Nome de categoria invalido.' };
+      }
+
+      const exists = categories.some((category) => category.id === categoryId);
+      if (exists) {
+        return { success: false, error: 'Esta categoria ja existe.' };
+      }
+
+      const nextCategory: ProductCategoryMeta = {
+        id: categoryId,
+        label: cleanedLabel,
+        createdAt: new Date().toISOString(),
+      };
+
+      setCategories((previous) => [...previous, nextCategory]);
+      return { success: true, category: nextCategory };
+    },
+    [categories]
+  );
+
+  const removeCategory = useCallback(
+    (categoryId: string): CategoryActionResult => {
+      const normalizedId = normalizeCategoryId(categoryId);
+
+      if (!normalizedId) {
+        return { success: false, error: 'Categoria invalida.' };
+      }
+
+      if (categories.length <= 1) {
+        return {
+          success: false,
+          error: 'A loja precisa manter ao menos uma categoria ativa.',
+        };
+      }
+
+      const inUse = products.some((product) => product.category === normalizedId);
+      if (inUse) {
+        return {
+          success: false,
+          error: 'Nao e possivel remover: existem produtos cadastrados nesta categoria.',
+        };
+      }
+
+      setCategories((previous) => previous.filter((category) => category.id !== normalizedId));
+      return { success: true };
+    },
+    [categories.length, products]
+  );
+
   const addProduct = useCallback(
-    (draft: ProductDraft): { success: boolean; error?: string } => {
+    (draft: ProductDraft): ActionResult => {
       const normalized = normalizeProductDraft(draft);
 
       if (normalized.name.length < 3) {
@@ -204,7 +445,12 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: 'Informe uma URL de imagem valida.' };
       }
 
-      const baseId = slugify(normalized.name) || 'camiseta';
+      const hasCategory = categories.some((category) => category.id === normalized.category);
+      if (!hasCategory) {
+        return { success: false, error: 'Selecione uma categoria valida.' };
+      }
+
+      const baseId = slugify(normalized.name) || 'produto';
       let candidateId = baseId;
       let index = 1;
 
@@ -228,10 +474,10 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         stock: normalized.stock,
       };
 
-      setProducts((prev) => [nextProduct, ...prev]);
+      setProducts((previous) => [nextProduct, ...previous]);
       return { success: true };
     },
-    [products]
+    [categories, products]
   );
 
   const updateProduct = useCallback(
@@ -239,18 +485,26 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       const target = products.find((product) => product.id === productId);
       if (!target) return false;
 
-      setProducts((prev) =>
-        prev.map((product) => {
+      setProducts((previous) =>
+        previous.map((product) => {
           if (product.id !== productId) return product;
 
           const nextPrice =
             typeof updates.price === 'number' && updates.price > 0
               ? updates.price
               : product.price;
+
           const nextStock =
             typeof updates.stock === 'number'
               ? Math.max(0, Math.round(updates.stock))
               : product.stock;
+
+          const requestedCategoryId =
+            typeof updates.category === 'string' ? normalizeCategoryId(updates.category) : null;
+
+          const canUseRequestedCategory = requestedCategoryId
+            ? categories.some((category) => category.id === requestedCategoryId)
+            : false;
 
           return {
             ...product,
@@ -259,6 +513,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
             image: updates.image?.trim() || product.image,
             description: updates.description?.trim() || product.description,
             sizes: updates.sizes ? normalizeSizes(updates.sizes) : product.sizes,
+            category: canUseRequestedCategory ? requestedCategoryId : product.category,
             price: nextPrice,
             originalPrice:
               typeof updates.originalPrice === 'number' && updates.originalPrice > nextPrice
@@ -271,18 +526,18 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
 
       return true;
     },
-    [products]
+    [categories, products]
   );
 
   const removeProduct = useCallback((productId: string) => {
-    setProducts((prev) => prev.filter((product) => product.id !== productId));
+    setProducts((previous) => previous.filter((product) => product.id !== productId));
   }, []);
 
   const adjustProductStock = useCallback((productId: string, delta: number) => {
     if (!Number.isFinite(delta) || delta === 0) return;
 
-    setProducts((prev) =>
-      prev.map((product) =>
+    setProducts((previous) =>
+      previous.map((product) =>
         product.id === productId
           ? { ...product, stock: Math.max(0, product.stock + Math.round(delta)) }
           : product
@@ -329,10 +584,11 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, issues };
       }
 
-      setProducts((prev) =>
-        prev.map((product) => {
+      setProducts((previous) =>
+        previous.map((product) => {
           const requested = requestedByProduct.get(product.id);
           if (!requested) return product;
+
           return { ...product, stock: Math.max(0, product.stock - requested) };
         })
       );
@@ -345,14 +601,30 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo<CatalogContextValue>(
     () => ({
       products,
+      categories,
       addProduct,
       updateProduct,
       removeProduct,
       adjustProductStock,
       consumeProductStock,
+      addCategory,
+      removeCategory,
+      getCategoryLabel,
       getProductById,
     }),
-    [products, addProduct, updateProduct, removeProduct, adjustProductStock, consumeProductStock, getProductById]
+    [
+      products,
+      categories,
+      addProduct,
+      updateProduct,
+      removeProduct,
+      adjustProductStock,
+      consumeProductStock,
+      addCategory,
+      removeCategory,
+      getCategoryLabel,
+      getProductById,
+    ]
   );
 
   return <CatalogContext.Provider value={value}>{children}</CatalogContext.Provider>;
@@ -368,4 +640,4 @@ export const useCatalog = () => {
   return context;
 };
 
-export type { ConsumeStockIssue, ProductDraft, StockItem };
+export type { CategoryActionResult, ConsumeStockIssue, ProductDraft, StockItem };
