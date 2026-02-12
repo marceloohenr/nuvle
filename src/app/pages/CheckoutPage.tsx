@@ -1,11 +1,19 @@
 import { CheckCircle2, ChevronLeft, CreditCard, Smartphone } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useCart } from '../../features/cart';
 import type { CheckoutForm } from '../../features/cart';
 
 type PaymentMethod = 'pix' | 'credit' | 'debit';
 type CheckoutStep = 1 | 2 | 3;
+type CardData = {
+  number: string;
+  name: string;
+  expiry: string;
+  cvv: string;
+};
+
+const CHECKOUT_DRAFT_KEY = 'nuvle-checkout-draft-v1';
 
 const steps: Array<{ id: CheckoutStep; title: string }> = [
   { id: 1, title: 'Dados e entrega' },
@@ -24,6 +32,13 @@ const initialForm: CheckoutForm = {
   zipCode: '',
 };
 
+const initialCardData: CardData = {
+  number: '',
+  name: '',
+  expiry: '',
+  cvv: '',
+};
+
 const inputClass =
   'rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100';
 
@@ -32,12 +47,7 @@ const CheckoutPage = () => {
   const [currentStep, setCurrentStep] = useState<CheckoutStep>(1);
   const [formData, setFormData] = useState<CheckoutForm>(initialForm);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
-  const [cardData, setCardData] = useState({
-    number: '',
-    name: '',
-    expiry: '',
-    cvv: '',
-  });
+  const [cardData, setCardData] = useState<CardData>(initialCardData);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showStepError, setShowStepError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,6 +85,68 @@ const CheckoutPage = () => {
   }, [cardData, paymentMethod]);
 
   const canSubmit = isCustomerStepValid && isPaymentStepValid && acceptedTerms;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const raw = localStorage.getItem(CHECKOUT_DRAFT_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as Partial<{
+        formData: CheckoutForm;
+        paymentMethod: PaymentMethod;
+        cardData: CardData;
+        currentStep: CheckoutStep;
+        acceptedTerms: boolean;
+      }>;
+
+      if (parsed.formData) {
+        setFormData({ ...initialForm, ...parsed.formData });
+      }
+
+      if (
+        parsed.paymentMethod === 'pix' ||
+        parsed.paymentMethod === 'credit' ||
+        parsed.paymentMethod === 'debit'
+      ) {
+        setPaymentMethod(parsed.paymentMethod);
+      }
+
+      if (parsed.cardData) {
+        setCardData({ ...initialCardData, ...parsed.cardData });
+      }
+
+      if (parsed.currentStep === 1 || parsed.currentStep === 2 || parsed.currentStep === 3) {
+        setCurrentStep(parsed.currentStep);
+      }
+
+      if (typeof parsed.acceptedTerms === 'boolean') {
+        setAcceptedTerms(parsed.acceptedTerms);
+      }
+    } catch {
+      // Ignore broken draft payloads.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || orderId) return;
+
+    try {
+      localStorage.setItem(
+        CHECKOUT_DRAFT_KEY,
+        JSON.stringify({
+          formData,
+          paymentMethod,
+          cardData,
+          currentStep,
+          acceptedTerms,
+        })
+      );
+    } catch {
+      // Ignore storage quota or permission errors.
+    }
+  }, [acceptedTerms, cardData, currentStep, formData, orderId, paymentMethod]);
 
   if (state.items.length === 0 && !orderId) {
     return <Navigate to="/carrinho" replace />;
@@ -124,6 +196,9 @@ const CheckoutPage = () => {
       const generatedOrder = `NV${Date.now().toString().slice(-8)}`;
       setOrderId(generatedOrder);
       dispatch({ type: 'CLEAR_CART' });
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(CHECKOUT_DRAFT_KEY);
+      }
       setIsSubmitting(false);
     }, 1200);
   };

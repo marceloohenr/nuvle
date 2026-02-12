@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { Cart, Checkout } from '../features/cart';
+import { Cart } from '../features/cart';
 import { ProductModal, SearchModal, type Product } from '../features/catalog';
 import { Footer, Header } from '../features/layout';
 import { AppProviders } from '../shared/providers';
@@ -17,7 +17,6 @@ import {
 
 function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -25,16 +24,6 @@ function App() {
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setIsProductModalOpen(true);
-  };
-
-  const handleCheckout = () => {
-    setIsCartOpen(false);
-    setIsCheckoutOpen(true);
-  };
-
-  const handleBackToCart = () => {
-    setIsCheckoutOpen(false);
-    setIsCartOpen(true);
   };
 
   return (
@@ -68,13 +57,6 @@ function App() {
           <Cart
             isOpen={isCartOpen}
             onClose={() => setIsCartOpen(false)}
-            onCheckout={handleCheckout}
-          />
-
-          <Checkout
-            isOpen={isCheckoutOpen}
-            onClose={() => setIsCheckoutOpen(false)}
-            onBack={handleBackToCart}
           />
 
           <ProductModal

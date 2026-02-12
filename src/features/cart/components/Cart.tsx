@@ -1,14 +1,14 @@
 import React from 'react';
 import { X, Plus, Minus, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
 interface CartProps {
   isOpen: boolean;
   onClose: () => void;
-  onCheckout: () => void;
 }
 
-const Cart: React.FC<CartProps> = ({ isOpen, onClose, onCheckout }) => {
+const Cart: React.FC<CartProps> = ({ isOpen, onClose }) => {
   const { state, dispatch } = useCart();
 
   const updateQuantity = (id: string, quantity: number) => {
@@ -120,12 +120,13 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, onCheckout }) => {
                 </p>
               </div>
               
-              <button
-                onClick={onCheckout}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors"
+              <Link
+                to="/checkout"
+                onClick={onClose}
+                className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors"
               >
                 Finalizar Compra
-              </button>
+              </Link>
             </div>
           )}
         </div>
