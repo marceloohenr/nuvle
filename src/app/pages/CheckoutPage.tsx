@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useCart } from '../../features/cart';
 import type { CheckoutForm } from '../../features/cart';
+import { addLocalOrder } from '../../features/orders';
+import type { OrderPaymentMethod, OrderStatus } from '../../features/orders';
 
-type PaymentMethod = 'pix' | 'credit' | 'debit';
+type PaymentMethod = OrderPaymentMethod;
 type CheckoutStep = 1 | 2 | 3;
 type CardData = {
   number: string;
@@ -42,6 +44,47 @@ const initialCardData: CardData = {
 const inputClass =
   'rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100';
 
+const digitsOnly = (value: string) => value.replace(/\D/g, '');
+
+const formatCpf = (value: string) => {
+  const digits = digitsOnly(value).slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  }
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+};
+
+const formatPhone = (value: string) => {
+  const digits = digitsOnly(value).slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
+const formatZipCode = (value: string) => {
+  const digits = digitsOnly(value).slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+};
+
+const formatCardNumber = (value: string) => {
+  const digits = digitsOnly(value).slice(0, 19);
+  return digits.replace(/(.{4})/g, '$1 ').trim();
+};
+
+const formatCardExpiry = (value: string) => {
+  const digits = digitsOnly(value).slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+};
+
+const formatCardCvv = (value: string) => digitsOnly(value).slice(0, 4);
+
 const CheckoutPage = () => {
   const { state, dispatch } = useCart();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>(1);
@@ -61,26 +104,26 @@ const CheckoutPage = () => {
   const progress = useMemo(() => ((currentStep - 1) / (steps.length - 1)) * 100, [currentStep]);
 
   const isCustomerStepValid = useMemo(() => {
-    const requiredValues = [
-      formData.name,
-      formData.email,
-      formData.phone,
-      formData.cpf,
-      formData.address,
-      formData.city,
-      formData.state,
-      formData.zipCode,
-    ];
-    return requiredValues.every((value) => value.trim().length > 0);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return (
+      formData.name.trim().length >= 3 &&
+      emailRegex.test(formData.email.trim()) &&
+      digitsOnly(formData.phone).length >= 10 &&
+      digitsOnly(formData.cpf).length === 11 &&
+      formData.address.trim().length >= 6 &&
+      formData.city.trim().length >= 2 &&
+      formData.state.trim().length >= 2 &&
+      digitsOnly(formData.zipCode).length === 8
+    );
   }, [formData]);
 
   const isPaymentStepValid = useMemo(() => {
     if (paymentMethod === 'pix') return true;
     return (
-      cardData.number.trim().length >= 16 &&
+      digitsOnly(cardData.number).length >= 16 &&
       cardData.name.trim().length >= 3 &&
-      cardData.expiry.trim().length >= 4 &&
-      cardData.cvv.trim().length >= 3
+      /^\d{2}\/\d{2}$/.test(cardData.expiry.trim()) &&
+      digitsOnly(cardData.cvv).length >= 3
     );
   }, [cardData, paymentMethod]);
 
@@ -96,7 +139,6 @@ const CheckoutPage = () => {
       const parsed = JSON.parse(raw) as Partial<{
         formData: CheckoutForm;
         paymentMethod: PaymentMethod;
-        cardData: CardData;
         currentStep: CheckoutStep;
         acceptedTerms: boolean;
       }>;
@@ -111,10 +153,6 @@ const CheckoutPage = () => {
         parsed.paymentMethod === 'debit'
       ) {
         setPaymentMethod(parsed.paymentMethod);
-      }
-
-      if (parsed.cardData) {
-        setCardData({ ...initialCardData, ...parsed.cardData });
       }
 
       if (parsed.currentStep === 1 || parsed.currentStep === 2 || parsed.currentStep === 3) {
@@ -138,7 +176,6 @@ const CheckoutPage = () => {
         JSON.stringify({
           formData,
           paymentMethod,
-          cardData,
           currentStep,
           acceptedTerms,
         })
@@ -146,7 +183,7 @@ const CheckoutPage = () => {
     } catch {
       // Ignore storage quota or permission errors.
     }
-  }, [acceptedTerms, cardData, currentStep, formData, orderId, paymentMethod]);
+  }, [acceptedTerms, currentStep, formData, orderId, paymentMethod]);
 
   if (state.items.length === 0 && !orderId) {
     return <Navigate to="/carrinho" replace />;
@@ -155,13 +192,25 @@ const CheckoutPage = () => {
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setFormData((prev) => ({ ...prev, [event.target.name]: event.target.value }));
+    const { name, value } = event.target;
+    let nextValue = value;
+
+    if (name === 'cpf') nextValue = formatCpf(value);
+    if (name === 'phone') nextValue = formatPhone(value);
+    if (name === 'zipCode') nextValue = formatZipCode(value);
+
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
   };
 
   const handleCardInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
-    const normalized = value.replace(/\s+/g, ' ').trimStart();
-    setCardData((prev) => ({ ...prev, [name]: normalized }));
+    let nextValue = value;
+
+    if (name === 'number') nextValue = formatCardNumber(value);
+    if (name === 'expiry') nextValue = formatCardExpiry(value);
+    if (name === 'cvv') nextValue = formatCardCvv(value);
+
+    setCardData((prev) => ({ ...prev, [name]: nextValue }));
   };
 
   const goNext = () => {
@@ -191,9 +240,32 @@ const CheckoutPage = () => {
 
     setShowStepError(false);
     setIsSubmitting(true);
+    const orderItemsSnapshot = state.items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      image: item.image,
+      quantity: item.quantity,
+      price: item.price,
+      size: item.size,
+    }));
+    const customerSnapshot = { ...formData };
+    const orderTotal = state.total;
 
     setTimeout(() => {
       const generatedOrder = `NV${Date.now().toString().slice(-8)}`;
+      const orderStatus: OrderStatus =
+        paymentMethod === 'pix' ? 'pending_payment' : 'paid';
+
+      addLocalOrder({
+        id: generatedOrder,
+        createdAt: new Date().toISOString(),
+        paymentMethod,
+        status: orderStatus,
+        total: orderTotal,
+        items: orderItemsSnapshot,
+        customer: customerSnapshot,
+      });
+
       setOrderId(generatedOrder);
       dispatch({ type: 'CLEAR_CART' });
       if (typeof window !== 'undefined') {
