@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowLeft, CreditCard, Smartphone, DollarSign, CheckCircle, Copy } from 'lucide-react';
-import { useCart } from '../contexts/CartContext';
-import { CheckoutForm } from '../types/product';
+import { useCart } from '../context/CartContext';
+import { CheckoutForm } from '../types/checkout';
 
 interface CheckoutProps {
   isOpen: boolean;

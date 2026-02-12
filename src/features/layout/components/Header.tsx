@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X, ShoppingCart, Moon, Sun, Search } from 'lucide-react';
-import { useCart } from '../contexts/CartContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useCart } from '../../cart/context/CartContext';
+import { useTheme } from '../../theme/context/ThemeContext';
 
 interface HeaderProps {
   onMenuToggle: () => void;

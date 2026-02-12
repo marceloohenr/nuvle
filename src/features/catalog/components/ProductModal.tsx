@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ShoppingCart } from 'lucide-react';
 import { Product } from '../types/product';
-import { useCart } from '../contexts/CartContext';
+import { useCart } from '../../cart/context/CartContext';
 
 interface ProductModalProps {
   product: Product | null;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Plus, Minus, Trash2 } from 'lucide-react';
-import { useCart } from '../contexts/CartContext';
+import { useCart } from '../context/CartContext';
 
 interface CartProps {
   isOpen: boolean;

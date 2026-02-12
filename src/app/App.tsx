@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
-import { CartProvider } from './contexts/CartContext';
-import { ThemeProvider } from './contexts/ThemeContext';
-import Header from './components/Header';
-import ProductCard from './components/ProductCard';
-import Cart from './components/Cart';
-import Checkout from './components/Checkout';
-import ProductModal from './components/ProductModal';
-import SearchModal from './components/SearchModal';
-import { Product } from './types/product';
-import { products } from './data/products';
+import { useState } from 'react';
+import { Cart, Checkout } from '../features/cart';
+import {
+  ProductCard,
+  ProductModal,
+  SearchModal,
+  products,
+  type Product,
+  type ProductCategory,
+} from '../features/catalog';
+import { Header } from '../features/layout';
+import { AppProviders } from '../shared/providers';
 
 function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -16,7 +17,7 @@ function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<'all' | 'basicas' | 'estampadas' | 'oversized'>('all');
+  const [activeCategory, setActiveCategory] = useState<'all' | ProductCategory>('all');
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
@@ -38,9 +39,8 @@ function App() {
     : products.filter(product => product.category === activeCategory);
 
   return (
-    <ThemeProvider>
-      <CartProvider>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <AppProviders>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
           <Header 
             onMenuToggle={() => {}} 
             onCartToggle={() => setIsCartOpen(true)}
@@ -165,9 +165,8 @@ function App() {
             onClose={() => setIsSearchOpen(false)}
             onProductClick={handleProductClick}
           />
-        </div>
-      </CartProvider>
-    </ThemeProvider>
+      </div>
+    </AppProviders>
   );
 }
 
