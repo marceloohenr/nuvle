@@ -1,4 +1,11 @@
-import { ArrowLeft, ShieldCheck, ShoppingCart, Truck } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronDown,
+  ShieldCheck,
+  ShoppingCart,
+  Star,
+  Truck,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useCart } from '../../features/cart';
@@ -11,6 +18,42 @@ const categoryLabel: Record<Product['category'], string> = {
   oversized: 'Oversized',
 };
 
+const reviews = [
+  {
+    author: 'Cliente Nuvle',
+    rating: 5,
+    text: 'Malha muito boa, veste bem e chegou rapido.',
+  },
+  {
+    author: 'Comprador verificado',
+    rating: 5,
+    text: 'Caimento excelente, principalmente nos modelos oversized.',
+  },
+  {
+    author: 'Cliente recorrente',
+    rating: 4,
+    text: 'Atendimento rapido e troca sem burocracia.',
+  },
+];
+
+const faqItems = [
+  {
+    question: 'Como escolher o tamanho ideal?',
+    answer:
+      'Use a tabela de medidas nesta pagina e compare com uma camiseta que voce ja usa.',
+  },
+  {
+    question: 'Qual o prazo de envio?',
+    answer:
+      'O envio e combinado no atendimento via WhatsApp apos confirmacao do pagamento.',
+  },
+  {
+    question: 'Posso trocar se nao servir?',
+    answer:
+      'Sim. A loja aceita trocas em ate 30 dias para produtos sem sinais de uso.',
+  },
+];
+
 const ProductDetailsPage = () => {
   const { productId } = useParams();
   const { dispatch } = useCart();
@@ -21,6 +64,7 @@ const ProductDetailsPage = () => {
   );
 
   const [selectedSize, setSelectedSize] = useState('');
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   useEffect(() => {
     if (product?.sizes?.length) {
@@ -36,7 +80,7 @@ const ProductDetailsPage = () => {
 
   if (!product) {
     return (
-      <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-10 text-center">
+      <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-10 text-center animate-fade-in">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
           Produto nao encontrado
         </h1>
@@ -75,7 +119,7 @@ const ProductDetailsPage = () => {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 animate-fade-in">
       <div>
         <Link
           to="/produtos"
@@ -236,6 +280,73 @@ const ProductDetailsPage = () => {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Avaliacoes</h2>
+          <div className="mt-4 space-y-4">
+            {reviews.map((review) => (
+              <div
+                key={review.author + review.text}
+                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4"
+              >
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star
+                      key={`${review.author}-${index}`}
+                      size={14}
+                      className={
+                        index < review.rating
+                          ? 'text-amber-500 fill-amber-500'
+                          : 'text-slate-300 dark:text-slate-600'
+                      }
+                    />
+                  ))}
+                </div>
+                <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{review.text}</p>
+                <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {review.author}
+                </p>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">FAQ</h2>
+          <div className="mt-4 space-y-2">
+            {faqItems.map((item, index) => {
+              const isOpen = openFaqIndex === index;
+              return (
+                <div
+                  key={item.question}
+                  className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+                >
+                  <button
+                    onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                    className="w-full px-4 py-3 flex items-center justify-between text-left bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                      {item.question}
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      className={`text-slate-500 transition-transform ${
+                        isOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900">
+                      {item.answer}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </article>
       </section>
 
       {relatedProducts.length > 0 && (

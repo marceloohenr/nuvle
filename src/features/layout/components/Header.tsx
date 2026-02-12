@@ -12,6 +12,7 @@ interface HeaderProps {
 const navItems = [
   { to: '/', label: 'Home' },
   { to: '/produtos', label: 'Produtos' },
+  { to: '/carrinho', label: 'Carrinho' },
   { to: '/conta', label: 'Minha conta' },
   { to: '/pedidos', label: 'Pedidos' },
 ];

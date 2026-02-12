@@ -6,6 +6,8 @@ import { Footer, Header } from '../features/layout';
 import { AppProviders } from '../shared/providers';
 import {
   AccountPage,
+  CartPage,
+  CheckoutPage,
   HomePage,
   LoginPage,
   OrdersPage,
@@ -51,6 +53,8 @@ function App() {
                 path="/produtos"
                 element={<ProductsPage onProductClick={handleProductClick} />}
               />
+              <Route path="/carrinho" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/produto/:productId" element={<ProductDetailsPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/conta" element={<AccountPage />} />
