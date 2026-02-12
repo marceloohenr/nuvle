@@ -3,9 +3,9 @@ import { Filter, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import {
   ProductCard,
-  products,
   type Product,
   type ProductCategory,
+  useCatalog,
 } from '../../features/catalog';
 
 interface ProductsPageProps {
@@ -27,6 +27,7 @@ const isCategory = (value: string | null): value is ProductCategory => {
 };
 
 const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
+  const { products } = useCatalog();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | ProductCategory>('all');
@@ -49,7 +50,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
       product.sizes?.forEach((size) => sizes.add(size));
     });
     return Array.from(sizes);
-  }, []);
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     const byPrice = (price: number) => {
@@ -93,7 +94,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
       default:
         return result;
     }
-  }, [activeCategory, priceFilter, searchTerm, selectedSize, sortBy]);
+  }, [activeCategory, priceFilter, products, searchTerm, selectedSize, sortBy]);
 
   const updateCategory = (category: 'all' | ProductCategory) => {
     setActiveCategory(category);

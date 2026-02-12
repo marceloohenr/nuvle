@@ -27,8 +27,14 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : 0;
+  const isOutOfStock = product.stock <= 0;
 
   const handleAddToCart = () => {
+    if (isOutOfStock) {
+      alert('Produto sem estoque no momento.');
+      return;
+    }
+
     if (product.sizes && !selectedSize) {
       alert('Selecione um tamanho antes de adicionar ao carrinho.');
       return;
@@ -90,6 +96,17 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
                   {product.description}
                 </p>
               )}
+              <p
+                className={`mb-4 text-sm font-medium ${
+                  isOutOfStock
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-emerald-600 dark:text-emerald-400'
+                }`}
+              >
+                {isOutOfStock
+                  ? 'Sem estoque no momento'
+                  : `${product.stock} unidade(s) disponiveis`}
+              </p>
 
               {product.sizes && (
                 <div className="mb-6">
@@ -117,10 +134,11 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
               <div className="grid gap-2 mt-auto">
                 <button
                   onClick={handleAddToCart}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  disabled={isOutOfStock}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   <ShoppingCart size={18} />
-                  Adicionar ao carrinho
+                  {isOutOfStock ? 'Indisponivel' : 'Adicionar ao carrinho'}
                 </button>
 
                 <Link

@@ -1,7 +1,9 @@
 import { CheckCircle2, ChevronLeft, CreditCard, Smartphone } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { useAuth } from '../../features/auth';
 import { useCart } from '../../features/cart';
+import { useCatalog } from '../../features/catalog';
 import type { CheckoutForm } from '../../features/cart';
 import { addLocalOrder } from '../../features/orders';
 import type { OrderPaymentMethod, OrderStatus } from '../../features/orders';
@@ -87,12 +89,15 @@ const formatCardCvv = (value: string) => digitsOnly(value).slice(0, 4);
 
 const CheckoutPage = () => {
   const { state, dispatch } = useCart();
+  const { currentUser } = useAuth();
+  const { consumeProductStock } = useCatalog();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>(1);
   const [formData, setFormData] = useState<CheckoutForm>(initialForm);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
   const [cardData, setCardData] = useState<CardData>(initialCardData);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showStepError, setShowStepError] = useState(false);
+  const [stepErrorMessage, setStepErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState('');
 
@@ -185,6 +190,16 @@ const CheckoutPage = () => {
     }
   }, [acceptedTerms, currentStep, formData, orderId, paymentMethod]);
 
+  useEffect(() => {
+    if (!currentUser) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      name: prev.name || currentUser.name,
+      email: prev.email || currentUser.email,
+    }));
+  }, [currentUser]);
+
   if (state.items.length === 0 && !orderId) {
     return <Navigate to="/carrinho" replace />;
   }
@@ -215,30 +230,36 @@ const CheckoutPage = () => {
 
   const goNext = () => {
     if (currentStep === 1 && !isCustomerStepValid) {
+      setStepErrorMessage('Revise os dados de entrega antes de continuar.');
       setShowStepError(true);
       return;
     }
     if (currentStep === 2 && !isPaymentStepValid) {
+      setStepErrorMessage('Revise os dados de pagamento antes de continuar.');
       setShowStepError(true);
       return;
     }
 
+    setStepErrorMessage('');
     setShowStepError(false);
     setCurrentStep((prev) => (prev < 3 ? ((prev + 1) as CheckoutStep) : prev));
   };
 
   const goBack = () => {
+    setStepErrorMessage('');
     setShowStepError(false);
     setCurrentStep((prev) => (prev > 1 ? ((prev - 1) as CheckoutStep) : prev));
   };
 
   const handleSubmitOrder = () => {
     if (!canSubmit) {
+      setStepErrorMessage('Confirme os termos e revise os dados para concluir o pedido.');
       setShowStepError(true);
       return;
     }
 
     setShowStepError(false);
+    setStepErrorMessage('');
     setIsSubmitting(true);
     const orderItemsSnapshot = state.items.map((item) => ({
       id: item.id,
@@ -250,6 +271,21 @@ const CheckoutPage = () => {
     }));
     const customerSnapshot = { ...formData };
     const orderTotal = state.total;
+    const stockResult = consumeProductStock(
+      orderItemsSnapshot.map((item) => ({ id: item.id, quantity: item.quantity }))
+    );
+
+    if (!stockResult.success) {
+      const firstIssue = stockResult.issues?.[0];
+      setStepErrorMessage(
+        firstIssue
+          ? `Estoque insuficiente para ${firstIssue.productName}. Solicitado: ${firstIssue.requested}, disponivel: ${firstIssue.available}.`
+          : 'Nao foi possivel reservar estoque para este pedido.'
+      );
+      setShowStepError(true);
+      setIsSubmitting(false);
+      return;
+    }
 
     setTimeout(() => {
       const generatedOrder = `NV${Date.now().toString().slice(-8)}`;
@@ -258,6 +294,7 @@ const CheckoutPage = () => {
 
       addLocalOrder({
         id: generatedOrder,
+        userId: currentUser?.id,
         createdAt: new Date().toISOString(),
         paymentMethod,
         status: orderStatus,
@@ -288,14 +325,22 @@ const CheckoutPage = () => {
           Numero do pedido: <strong>#{orderId}</strong>
         </p>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Fluxo de checkout pronto para integrar pagamento real e backend.
+          {currentUser
+            ? 'Pedido vinculado a sua conta para acompanhamento.'
+            : 'Fluxo de checkout pronto para integrar pagamento real e backend.'}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
-            to="/pedidos"
+            to={`/pedidos/${orderId}`}
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
           >
-            Ir para meus pedidos
+            Ver pedido
+          </Link>
+          <Link
+            to="/pedidos"
+            className="border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-5 py-3 rounded-xl font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            Ver historico
           </Link>
           <Link
             to="/produtos"
@@ -579,7 +624,7 @@ const CheckoutPage = () => {
 
           {showStepError && (
             <p className="mt-5 text-sm text-red-600 dark:text-red-400">
-              Revise os campos obrigatorios antes de continuar.
+              {stepErrorMessage || 'Revise os campos obrigatorios antes de continuar.'}
             </p>
           )}
 

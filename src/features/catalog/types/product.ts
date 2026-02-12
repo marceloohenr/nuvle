@@ -9,4 +9,5 @@ export interface Product {
   category: ProductCategory;
   description?: string;
   sizes?: string[];
+  stock: number;
 }

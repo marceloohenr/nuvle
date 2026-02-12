@@ -19,6 +19,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
   const { dispatch } = useCart();
   const [isLiked, setIsLiked] = useState(false);
   const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] || '');
+  const isOutOfStock = product.stock <= 0;
 
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
@@ -27,6 +28,12 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
 
   const handleAddToCart = (event: React.MouseEvent) => {
     event.stopPropagation();
+
+    if (isOutOfStock) {
+      alert('Produto sem estoque no momento.');
+      return;
+    }
+
     if (product.sizes && !selectedSize) {
       alert('Selecione um tamanho antes de adicionar ao carrinho.');
       return;
@@ -82,6 +89,9 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white line-clamp-1">
           {product.name}
         </h3>
+        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+          {isOutOfStock ? 'Sem estoque' : `${product.stock} unidade(s) em estoque`}
+        </p>
 
         <div className="mt-3">
           {product.originalPrice && (
@@ -120,10 +130,11 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
         <div className="mt-4 grid grid-cols-2 gap-2">
           <button
             onClick={handleAddToCart}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            disabled={isOutOfStock}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <ShoppingCart size={16} />
-            Comprar
+            {isOutOfStock ? 'Indisponivel' : 'Comprar'}
           </button>
           <Link
             to={`/produto/${product.id}`}

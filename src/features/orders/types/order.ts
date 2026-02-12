@@ -29,6 +29,7 @@ export interface LocalOrderCustomer {
 
 export interface LocalOrder {
   id: string;
+  userId?: string;
   createdAt: string;
   status: OrderStatus;
   paymentMethod: OrderPaymentMethod;

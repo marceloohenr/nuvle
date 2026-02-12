@@ -1,12 +1,11 @@
 import { ArrowRight, BadgePercent, Shirt, Sparkles, Truck } from 'lucide-react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ProductCard, products, type Product } from '../../features/catalog';
+import { ProductCard, type Product, useCatalog } from '../../features/catalog';
 
 interface HomePageProps {
   onProductClick: (product: Product) => void;
 }
-
-const featuredProducts = products.slice(0, 8);
 
 const categoryHighlights = [
   {
@@ -36,6 +35,9 @@ const benefits = [
 ];
 
 const HomePage = ({ onProductClick }: HomePageProps) => {
+  const { products } = useCatalog();
+  const featuredProducts = useMemo(() => products.slice(0, 8), [products]);
+
   return (
     <div className="space-y-16">
       <section className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 shadow-soft p-8 md:p-12">

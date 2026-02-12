@@ -1,4 +1,12 @@
-export { addLocalOrder, clearLocalOrders, getLocalOrders } from './storage/localOrders';
+export {
+  addLocalOrder,
+  advanceLocalOrderStatus,
+  clearLocalOrders,
+  getLocalOrderById,
+  getLocalOrders,
+  removeLocalOrder,
+  updateLocalOrderStatus,
+} from './storage/localOrders';
 export type {
   LocalOrder,
   LocalOrderCustomer,
@@ -6,3 +14,4 @@ export type {
   OrderPaymentMethod,
   OrderStatus,
 } from './types/order';
+export { orderPaymentLabel, orderStatusLabel, orderStatusTimeline } from './types/statusMeta';

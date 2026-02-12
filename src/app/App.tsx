@@ -1,19 +1,56 @@
-import { useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { type ReactElement, useState } from 'react';
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
+import { useAuth } from '../features/auth';
 import { Cart } from '../features/cart';
 import { ProductModal, SearchModal, type Product } from '../features/catalog';
 import { Footer, Header } from '../features/layout';
 import { AppProviders } from '../shared/providers';
 import {
   AccountPage,
+  AdminPage,
   CartPage,
   CheckoutPage,
   HomePage,
   LoginPage,
+  OrderDetailsPage,
   OrdersPage,
   ProductDetailsPage,
   ProductsPage,
 } from './pages';
+
+const ProtectedRoute = ({ children }: { children: ReactElement }) => {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    const redirect = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />;
+  }
+
+  return children;
+};
+
+const AdminRoute = ({ children }: { children: ReactElement }) => {
+  const { isAuthenticated, isAdmin } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    const redirect = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/conta" replace />;
+  }
+
+  return children;
+};
 
 function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -46,8 +83,38 @@ function App() {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/produto/:productId" element={<ProductDetailsPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/conta" element={<AccountPage />} />
-              <Route path="/pedidos" element={<OrdersPage />} />
+              <Route
+                path="/conta"
+                element={(
+                  <ProtectedRoute>
+                    <AccountPage />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/pedidos"
+                element={(
+                  <ProtectedRoute>
+                    <OrdersPage />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/pedidos/:orderId"
+                element={(
+                  <ProtectedRoute>
+                    <OrderDetailsPage />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/admin"
+                element={(
+                  <AdminRoute>
+                    <AdminPage />
+                  </AdminRoute>
+                )}
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

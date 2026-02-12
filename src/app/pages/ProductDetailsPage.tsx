@@ -9,7 +9,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useCart } from '../../features/cart';
-import { products } from '../../features/catalog';
+import { useCatalog } from '../../features/catalog';
 import type { Product } from '../../features/catalog';
 
 const categoryLabel: Record<Product['category'], string> = {
@@ -57,10 +57,11 @@ const faqItems = [
 const ProductDetailsPage = () => {
   const { productId } = useParams();
   const { dispatch } = useCart();
+  const { products } = useCatalog();
 
   const product = useMemo(
     () => products.find((item) => item.id === productId),
-    [productId]
+    [productId, products]
   );
 
   const [selectedSize, setSelectedSize] = useState('');
@@ -101,12 +102,18 @@ const ProductDetailsPage = () => {
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : 0;
+  const isOutOfStock = product.stock <= 0;
   const installment = (product.price / 3).toFixed(2);
   const relatedProducts = products
     .filter((item) => item.category === product.category && item.id !== product.id)
     .slice(0, 4);
 
   const addToCart = () => {
+    if (isOutOfStock) {
+      alert('Produto sem estoque no momento.');
+      return;
+    }
+
     if (product.sizes && !selectedSize) {
       alert('Selecione um tamanho antes de adicionar ao carrinho.');
       return;
@@ -148,6 +155,15 @@ const ProductDetailsPage = () => {
           </h1>
           <p className="mt-3 text-slate-600 dark:text-slate-300">
             {product.description || 'Peca premium com acabamento de alta qualidade.'}
+          </p>
+          <p
+            className={`mt-3 text-sm font-medium ${
+              isOutOfStock
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-emerald-600 dark:text-emerald-400'
+            }`}
+          >
+            {isOutOfStock ? 'Sem estoque no momento' : `${product.stock} unidade(s) disponiveis`}
           </p>
 
           <div className="mt-6">
@@ -197,10 +213,11 @@ const ProductDetailsPage = () => {
           <div className="mt-7 grid gap-3">
             <button
               onClick={addToCart}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors inline-flex items-center justify-center gap-2"
+              disabled={isOutOfStock}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 rounded-xl transition-colors inline-flex items-center justify-center gap-2"
             >
               <ShoppingCart size={18} />
-              Adicionar ao carrinho
+              {isOutOfStock ? 'Indisponivel' : 'Adicionar ao carrinho'}
             </button>
             <a
               href="https://linktr.ee/nuvle"

@@ -1,6 +1,6 @@
 import { Product } from '../types/product';
 
-export const products: Product[] = [
+const rawProducts: Array<Omit<Product, 'stock'>> = [
   // Camisetas Oversized
   {
     id: 'oversized-branca',
@@ -185,3 +185,9 @@ export const products: Product[] = [
     sizes: ['P', 'M', 'G', 'GG']
   }
 ];
+
+export const products: Product[] = rawProducts.map((product) => ({
+  ...product,
+  stock: 20,
+}));
+

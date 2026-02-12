@@ -20,6 +20,11 @@ const calculateTotal = (items: CartItem[]) => {
   return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 };
 
+const normalizeStock = (value: unknown) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.round(value));
+};
+
 const normalizeStoredItems = (value: unknown): CartItem[] => {
   if (!Array.isArray(value)) return [];
 
@@ -28,6 +33,7 @@ const normalizeStoredItems = (value: unknown): CartItem[] => {
     .map((item) => ({
       ...item,
       quantity: Math.max(1, Number(item.quantity) || 1),
+      stock: normalizeStock(item.stock),
     }));
 };
 
@@ -55,11 +61,17 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_TO_CART': {
       const { product, size } = action.payload;
+      if (product.stock <= 0) return state;
+
       const existingItem = state.items.find(
         (item) => item.id === product.id && item.size === size
       );
 
       if (existingItem) {
+        if (existingItem.quantity >= existingItem.stock) {
+          return state;
+        }
+
         const updatedItems = state.items.map((item) =>
           item.id === product.id && item.size === size
             ? { ...item, quantity: item.quantity + 1 }
@@ -82,11 +94,15 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
     case 'UPDATE_QUANTITY': {
       const { id, quantity } = action.payload;
       const nextItems = state.items
-        .map((item) =>
-          `${item.id}-${item.size}` === id
-            ? { ...item, quantity: Math.max(0, quantity) }
-            : item
-        )
+        .map((item) => {
+          if (`${item.id}-${item.size}` !== id) return item;
+
+          const maxQuantity = Math.max(0, item.stock);
+          return {
+            ...item,
+            quantity: Math.max(0, Math.min(quantity, maxQuantity)),
+          };
+        })
         .filter((item) => item.quantity > 0);
 
       return { items: nextItems, total: calculateTotal(nextItems) };
