@@ -1,5 +1,6 @@
 import { Heart, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useCart } from '../../cart/context/CartContext';
 import { Product } from '../types/product';
 
@@ -116,13 +117,22 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           </div>
         )}
 
-        <button
-          onClick={handleAddToCart}
-          className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
-        >
-          <ShoppingCart size={16} />
-          Adicionar ao carrinho
-        </button>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button
+            onClick={handleAddToCart}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            <ShoppingCart size={16} />
+            Comprar
+          </button>
+          <Link
+            to={`/produto/${product.id}`}
+            onClick={(event) => event.stopPropagation()}
+            className="border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-2.5 px-4 rounded-xl transition-colors text-center hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            Detalhes
+          </Link>
+        </div>
       </div>
     </article>
   );

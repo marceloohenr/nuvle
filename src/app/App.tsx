@@ -9,6 +9,7 @@ import {
   HomePage,
   LoginPage,
   OrdersPage,
+  ProductDetailsPage,
   ProductsPage,
 } from './pages';
 
@@ -50,6 +51,7 @@ function App() {
                 path="/produtos"
                 element={<ProductsPage onProductClick={handleProductClick} />}
               />
+              <Route path="/produto/:productId" element={<ProductDetailsPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/conta" element={<AccountPage />} />
               <Route path="/pedidos" element={<OrdersPage />} />
