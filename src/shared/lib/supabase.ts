@@ -9,11 +9,11 @@ const PRODUCTION_FALLBACK = {
 
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
-  (import.meta.env.PROD ? PRODUCTION_FALLBACK.url : '');
+  (!import.meta.env.DEV ? PRODUCTION_FALLBACK.url : '');
 
 const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  (import.meta.env.PROD ? PRODUCTION_FALLBACK.anonKey : '');
+  (!import.meta.env.DEV ? PRODUCTION_FALLBACK.anonKey : '');
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
