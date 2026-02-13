@@ -1,7 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// In Vite, env vars are injected at build time. On some hosting setups they may be missing,
+// so we keep a production fallback to avoid breaking the live storefront.
+const PRODUCTION_FALLBACK = {
+  url: 'https://nkhbmqqvbfmadhfngfvn.supabase.co',
+  anonKey: 'sb_publishable_MKhxeHGld_ooVQlANRGvqg_Z3_6emRO',
+} as const;
+
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  (import.meta.env.PROD ? PRODUCTION_FALLBACK.url : '');
+
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  (import.meta.env.PROD ? PRODUCTION_FALLBACK.anonKey : '');
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
