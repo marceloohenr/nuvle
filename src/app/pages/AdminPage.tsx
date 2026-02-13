@@ -11,6 +11,10 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import { useCatalog } from '../../features/catalog';
 import {
+  type SocialPlatform,
+  useStoreSettings,
+} from '../../features/settings';
+import {
   getLocalOrders,
   orderPaymentLabel,
   orderStatusLabel,
@@ -19,7 +23,7 @@ import {
 } from '../../features/orders';
 import type { LocalOrder, OrderStatus } from '../../features/orders';
 
-type AdminTab = 'products' | 'orders' | 'customers';
+type AdminTab = 'products' | 'orders' | 'customers' | 'settings';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -39,8 +43,18 @@ const statusOptions: OrderStatus[] = [
   'delivered',
 ];
 
+const socialPlatforms: Array<{ id: SocialPlatform; label: string }> = [
+  { id: 'tiktok', label: 'TikTok' },
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'x', label: 'X' },
+  { id: 'facebook', label: 'Facebook' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'linkedin', label: 'LinkedIn' },
+];
+
 const AdminPage = () => {
   const { currentUser, isAdmin, users } = useAuth();
+  const { settings, setSettings } = useStoreSettings();
   const {
     products,
     categories,
@@ -49,7 +63,7 @@ const AdminPage = () => {
     removeCategory,
     getCategoryLabel,
     updateProduct,
-    adjustProductStock,
+    adjustProductStockBySize,
     removeProduct,
   } = useCatalog();
 
@@ -61,15 +75,23 @@ const AdminPage = () => {
   const [productEditMessage, setProductEditMessage] = useState('');
   const [categoryMessage, setCategoryMessage] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [settingsMessage, setSettingsMessage] = useState('');
+  const [contactDraft, setContactDraft] = useState(settings.contact);
+  const [socialDraft, setSocialDraft] = useState(settings.socialLinks);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingProductName, setEditingProductName] = useState('');
   const [editingProductDescription, setEditingProductDescription] = useState('');
+  const [editingProductBasePrice, setEditingProductBasePrice] = useState('');
+  const [editingProductDiscount, setEditingProductDiscount] = useState('');
+  const [editingProductSizeGuide, setEditingProductSizeGuide] = useState<
+    Record<string, { widthCm: string; lengthCm: string; sleeveCm: string }>
+  >({});
   const [newProduct, setNewProduct] = useState({
     name: '',
     image: '',
     category: '',
-    price: '',
-    originalPrice: '',
+    basePrice: '',
+    discountPercentage: '',
     stock: '20',
     sizes: 'P,M,G,GG',
     description: '',
@@ -82,6 +104,11 @@ const AdminPage = () => {
   useEffect(() => {
     refreshOrders();
   }, []);
+
+  useEffect(() => {
+    setContactDraft(settings.contact);
+    setSocialDraft(settings.socialLinks);
+  }, [settings]);
 
   useEffect(() => {
     setNewProduct((previous) => {
@@ -238,21 +265,110 @@ const AdminPage = () => {
     setCategoryMessage(`Categoria "${label}" removida.`);
   };
 
+  const handleContactDraftChange = (
+    field: keyof typeof contactDraft,
+    value: string
+  ) => {
+    setContactDraft((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const handleSocialDraftChange = (platform: SocialPlatform, value: string) => {
+    setSocialDraft((previous) => ({
+      ...previous,
+      [platform]: value,
+    }));
+  };
+
+  const handleSaveStoreSettings = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const sanitizedContact = {
+      whatsappLabel: contactDraft.whatsappLabel.trim(),
+      whatsappUrl: contactDraft.whatsappUrl.trim(),
+      email: contactDraft.email.trim(),
+      handle: contactDraft.handle.trim(),
+    };
+
+    const sanitizedSocial = socialPlatforms.reduce<typeof socialDraft>(
+      (accumulator, platform) => {
+        accumulator[platform.id] = socialDraft[platform.id].trim();
+        return accumulator;
+      },
+      {
+        tiktok: '',
+        instagram: '',
+        x: '',
+        facebook: '',
+        whatsapp: '',
+        linkedin: '',
+      }
+    );
+
+    if (sanitizedContact.whatsappLabel.length < 6) {
+      setSettingsMessage('Informe um telefone WhatsApp valido.');
+      return;
+    }
+
+    if (
+      sanitizedContact.email.length < 5 ||
+      !sanitizedContact.email.includes('@') ||
+      !sanitizedContact.email.includes('.')
+    ) {
+      setSettingsMessage('Informe um e-mail valido para contato.');
+      return;
+    }
+
+    if (sanitizedContact.handle.length < 3) {
+      setSettingsMessage('Informe um identificador de perfil valido (ex.: @nuvleoficial).');
+      return;
+    }
+
+    setSettings({
+      contact: sanitizedContact,
+      socialLinks: sanitizedSocial,
+    });
+
+    setSettingsMessage('Configuracoes de contato atualizadas com sucesso.');
+  };
+
   const handleCreateProduct = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const basePrice = Number(newProduct.basePrice);
+    const discountPercentage = Number(newProduct.discountPercentage || 0);
+    const normalizedSizes = newProduct.sizes
+      .split(',')
+      .map((size) => size.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (!Number.isFinite(basePrice) || basePrice <= 0) {
+      setFormMessage('Informe um preco base valido.');
+      return;
+    }
+
+    if (!Number.isFinite(discountPercentage) || discountPercentage < 0 || discountPercentage > 95) {
+      setFormMessage('O desconto precisa estar entre 0% e 95%.');
+      return;
+    }
+
+    if (normalizedSizes.length === 0) {
+      setFormMessage('Informe ao menos um tamanho para o produto.');
+      return;
+    }
 
     const result = addProduct({
       name: newProduct.name,
       image: newProduct.image,
       category: newProduct.category,
-      price: Number(newProduct.price),
-      originalPrice: newProduct.originalPrice ? Number(newProduct.originalPrice) : undefined,
+      price: basePrice,
+      originalPrice: basePrice,
+      discountPercentage,
       stock: Number(newProduct.stock),
       description: newProduct.description,
-      sizes: newProduct.sizes
-        .split(',')
-        .map((size) => size.trim().toUpperCase())
-        .filter(Boolean),
+      sizes: normalizedSizes,
     });
 
     if (!result.success) {
@@ -265,8 +381,8 @@ const AdminPage = () => {
       ...prev,
       name: '',
       image: '',
-      price: '',
-      originalPrice: '',
+      basePrice: '',
+      discountPercentage: '',
       description: '',
       stock: '20',
       sizes: 'P,M,G,GG',
@@ -274,13 +390,35 @@ const AdminPage = () => {
   };
 
   const startEditingProduct = (
-    productId: string,
-    currentName: string,
-    currentDescription?: string
+    product: {
+      id: string;
+      name: string;
+      description?: string;
+      originalPrice?: number;
+      price: number;
+      discountPercentage?: number;
+      sizeGuide?: Array<{ size: string; widthCm: number; lengthCm: number; sleeveCm: number }>;
+      sizes?: string[];
+    }
   ) => {
-    setEditingProductId(productId);
-    setEditingProductName(currentName);
-    setEditingProductDescription(currentDescription ?? '');
+    setEditingProductId(product.id);
+    setEditingProductName(product.name);
+    setEditingProductDescription(product.description ?? '');
+    setEditingProductBasePrice(String(product.originalPrice ?? product.price));
+    setEditingProductDiscount(String(product.discountPercentage ?? 0));
+    const sizes = product.sizes?.length ? product.sizes : ['UN'];
+    const guideBySize = sizes.reduce<
+      Record<string, { widthCm: string; lengthCm: string; sleeveCm: string }>
+    >((accumulator, size) => {
+      const currentGuide = product.sizeGuide?.find((row) => row.size === size);
+      accumulator[size] = {
+        widthCm: String(currentGuide?.widthCm ?? ''),
+        lengthCm: String(currentGuide?.lengthCm ?? ''),
+        sleeveCm: String(currentGuide?.sleeveCm ?? ''),
+      };
+      return accumulator;
+    }, {});
+    setEditingProductSizeGuide(guideBySize);
     setProductEditMessage('');
   };
 
@@ -288,20 +426,68 @@ const AdminPage = () => {
     setEditingProductId(null);
     setEditingProductName('');
     setEditingProductDescription('');
+    setEditingProductBasePrice('');
+    setEditingProductDiscount('');
+    setEditingProductSizeGuide({});
   };
 
-  const handleSaveProductEdit = (productId: string) => {
+  const handleGuideChange = (
+    size: string,
+    field: 'widthCm' | 'lengthCm' | 'sleeveCm',
+    value: string
+  ) => {
+    setEditingProductSizeGuide((previous) => ({
+      ...previous,
+      [size]: {
+        widthCm: previous[size]?.widthCm ?? '',
+        lengthCm: previous[size]?.lengthCm ?? '',
+        sleeveCm: previous[size]?.sleeveCm ?? '',
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveProductEdit = (
+    productId: string,
+    sizes: string[] | undefined,
+    stockBySize: Record<string, number> | undefined
+  ) => {
     const nextName = editingProductName.trim();
     const nextDescription = editingProductDescription.trim();
+    const basePrice = Number(editingProductBasePrice);
+    const discountPercentage = Number(editingProductDiscount || 0);
+    const sizeList = sizes?.length ? sizes : ['UN'];
 
     if (nextName.length < 3) {
       setProductEditMessage('Nome do produto precisa ter ao menos 3 caracteres.');
       return;
     }
 
+    if (!Number.isFinite(basePrice) || basePrice <= 0) {
+      setProductEditMessage('Preco base precisa ser maior que zero.');
+      return;
+    }
+
+    if (!Number.isFinite(discountPercentage) || discountPercentage < 0 || discountPercentage > 95) {
+      setProductEditMessage('Desconto deve estar entre 0% e 95%.');
+      return;
+    }
+
+    const nextGuide = sizeList.map((size) => ({
+      size,
+      widthCm: Number(editingProductSizeGuide[size]?.widthCm || 0),
+      lengthCm: Number(editingProductSizeGuide[size]?.lengthCm || 0),
+      sleeveCm: Number(editingProductSizeGuide[size]?.sleeveCm || 0),
+    }));
+
     const updated = updateProduct(productId, {
       name: nextName,
       description: nextDescription,
+      price: basePrice,
+      originalPrice: basePrice,
+      discountPercentage,
+      sizeGuide: nextGuide,
+      stockBySize,
     });
 
     if (!updated) {
@@ -390,7 +576,7 @@ const AdminPage = () => {
       </section>
 
       <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-4">
           <button
             onClick={() => setActiveTab('products')}
             className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
@@ -421,6 +607,16 @@ const AdminPage = () => {
           >
             Clientes cadastrados
           </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+              activeTab === 'settings'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+            }`}
+          >
+            Contato e redes
+          </button>
         </div>
       </section>
 
@@ -442,108 +638,189 @@ const AdminPage = () => {
             )}
 
             <div className="mt-4 space-y-3 max-h-[720px] overflow-y-auto pr-1">
-              {filteredProducts.map((product) => (
-                <article
-                  key={product.id}
-                  className="rounded-xl border border-slate-200 dark:border-slate-800 p-4"
-                >
-                  <div className="flex gap-3">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="h-16 w-16 rounded-lg object-cover"
-                    />
-                    <div className="flex-1">
-                      <p className="font-semibold text-slate-900 dark:text-white">{product.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {getCategoryLabel(product.category)} | {currencyFormatter.format(product.price)}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                        {product.description || 'Sem descricao cadastrada.'}
-                      </p>
+              {filteredProducts.map((product) => {
+                const productSizes = product.sizes?.length ? product.sizes : ['UN'];
+                const productDiscount =
+                  product.discountPercentage ??
+                  (product.originalPrice
+                    ? Math.round((1 - product.price / product.originalPrice) * 100)
+                    : 0);
 
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                          Estoque: {product.stock}
-                        </span>
-                        <button
-                          onClick={() => adjustProductStock(product.id, -10)}
-                          className="rounded-lg border border-slate-300 dark:border-slate-700 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200"
-                        >
-                          -10
-                        </button>
-                        <button
-                          onClick={() => adjustProductStock(product.id, -1)}
-                          className="rounded-lg border border-slate-300 dark:border-slate-700 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200"
-                        >
-                          -1
-                        </button>
-                        <button
-                          onClick={() => adjustProductStock(product.id, 1)}
-                          className="rounded-lg border border-slate-300 dark:border-slate-700 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200"
-                        >
-                          +1
-                        </button>
-                        <button
-                          onClick={() => adjustProductStock(product.id, 10)}
-                          className="rounded-lg border border-slate-300 dark:border-slate-700 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200"
-                        >
-                          +10
-                        </button>
-                        <button
-                          onClick={() =>
-                            startEditingProduct(product.id, product.name, product.description)
-                          }
-                          className="rounded-lg border border-blue-200 dark:border-blue-900 px-2 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                        >
-                          Editar
-                        </button>
-                      </div>
+                return (
+                  <article
+                    key={product.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 p-4"
+                  >
+                    <div className="flex gap-3">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="h-16 w-16 rounded-lg object-cover"
+                      />
+                      <div className="flex-1">
+                        <p className="font-semibold text-slate-900 dark:text-white">{product.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {getCategoryLabel(product.category)} | {currencyFormatter.format(product.price)}
+                          {productDiscount > 0 ? ` | ${productDiscount}% OFF` : ''}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                          {product.description || 'Sem descricao cadastrada.'}
+                        </p>
 
-                      {editingProductId === product.id && (
-                        <div className="mt-3 space-y-2 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-3">
-                          <input
-                            value={editingProductName}
-                            onChange={(event) => setEditingProductName(event.target.value)}
-                            placeholder="Novo nome"
-                            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
-                          />
-                          <textarea
-                            value={editingProductDescription}
-                            onChange={(event) =>
-                              setEditingProductDescription(event.target.value)
-                            }
-                            placeholder="Nova descricao"
-                            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 min-h-20"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleSaveProductEdit(product.id)}
-                              className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-xs font-semibold transition-colors"
-                            >
-                              Salvar
-                            </button>
-                            <button
-                              onClick={cancelEditingProduct}
-                              className="rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                            >
-                              Cancelar
-                            </button>
+                        <div className="mt-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3">
+                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                            Estoque por tamanho (total: {product.stock})
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {productSizes.map((size) => {
+                              const currentStock = Number(product.stockBySize?.[size] ?? 0);
+
+                              return (
+                                <div
+                                  key={`${product.id}-${size}`}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-700 px-2 py-1 text-xs"
+                                >
+                                  <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                    {size}
+                                  </span>
+                                  <button
+                                    onClick={() => adjustProductStockBySize(product.id, size, -1)}
+                                    className="h-5 w-5 rounded border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="min-w-5 text-center text-slate-700 dark:text-slate-200">
+                                    {currentStock}
+                                  </span>
+                                  <button
+                                    onClick={() => adjustProductStockBySize(product.id, size, 1)}
+                                    className="h-5 w-5 rounded border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
-                      )}
-                    </div>
 
-                    <button
-                      onClick={() => removeProduct(product.id)}
-                      className="h-9 w-9 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 grid place-items-center hover:bg-red-50 dark:hover:bg-red-950/30"
-                      aria-label={`Remover ${product.name}`}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </article>
-              ))}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => startEditingProduct(product)}
+                            className="rounded-lg border border-blue-200 dark:border-blue-900 px-2 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                          >
+                            Editar produto
+                          </button>
+                        </div>
+
+                        {editingProductId === product.id && (
+                          <div className="mt-3 space-y-3 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-3">
+                            <input
+                              value={editingProductName}
+                              onChange={(event) => setEditingProductName(event.target.value)}
+                              placeholder="Nome do produto"
+                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                            />
+                            <textarea
+                              value={editingProductDescription}
+                              onChange={(event) =>
+                                setEditingProductDescription(event.target.value)
+                              }
+                              placeholder="Descricao do produto"
+                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 min-h-20"
+                            />
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <input
+                                value={editingProductBasePrice}
+                                onChange={(event) => setEditingProductBasePrice(event.target.value)}
+                                placeholder="Preco base"
+                                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                              />
+                              <input
+                                value={editingProductDiscount}
+                                onChange={(event) => setEditingProductDiscount(event.target.value)}
+                                placeholder="Desconto (%)"
+                                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                              />
+                            </div>
+
+                            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                Guia rapido de caimento deste produto
+                              </p>
+                              <div className="mt-2 space-y-2">
+                                {productSizes.map((size) => (
+                                  <div
+                                    key={`guide-${product.id}-${size}`}
+                                    className="grid gap-2 sm:grid-cols-4 items-center"
+                                  >
+                                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                      {size}
+                                    </p>
+                                    <input
+                                      value={editingProductSizeGuide[size]?.widthCm ?? ''}
+                                      onChange={(event) =>
+                                        handleGuideChange(size, 'widthCm', event.target.value)
+                                      }
+                                      placeholder="Largura"
+                                      className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                                    />
+                                    <input
+                                      value={editingProductSizeGuide[size]?.lengthCm ?? ''}
+                                      onChange={(event) =>
+                                        handleGuideChange(size, 'lengthCm', event.target.value)
+                                      }
+                                      placeholder="Comprimento"
+                                      className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                                    />
+                                    <input
+                                      value={editingProductSizeGuide[size]?.sleeveCm ?? ''}
+                                      onChange={(event) =>
+                                        handleGuideChange(size, 'sleeveCm', event.target.value)
+                                      }
+                                      placeholder="Manga"
+                                      className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() =>
+                                  handleSaveProductEdit(
+                                    product.id,
+                                    product.sizes,
+                                    product.stockBySize
+                                  )
+                                }
+                                className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-xs font-semibold transition-colors"
+                              >
+                                Salvar
+                              </button>
+                              <button
+                                onClick={cancelEditingProduct}
+                                className="rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => removeProduct(product.id)}
+                        className="h-9 w-9 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 grid place-items-center hover:bg-red-50 dark:hover:bg-red-950/30"
+                        aria-label={`Remover ${product.name}`}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
 
               {filteredProducts.length === 0 && (
                 <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -633,19 +910,22 @@ const AdminPage = () => {
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <input
-                    value={newProduct.price}
+                    value={newProduct.basePrice}
                     onChange={(event) =>
-                      setNewProduct((prev) => ({ ...prev, price: event.target.value }))
+                      setNewProduct((prev) => ({ ...prev, basePrice: event.target.value }))
                     }
-                    placeholder="Preco"
+                    placeholder="Preco base"
                     className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                   <input
-                    value={newProduct.originalPrice}
+                    value={newProduct.discountPercentage}
                     onChange={(event) =>
-                      setNewProduct((prev) => ({ ...prev, originalPrice: event.target.value }))
+                      setNewProduct((prev) => ({
+                        ...prev,
+                        discountPercentage: event.target.value,
+                      }))
                     }
-                    placeholder="Preco original (opcional)"
+                    placeholder="Desconto (%)"
                     className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                 </div>
@@ -876,6 +1156,112 @@ const AdminPage = () => {
               </div>
             )}
           </div>
+        </section>
+      )}
+
+      {activeTab === 'settings' && (
+        <section className="grid gap-6 lg:grid-cols-2">
+          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+              Contato principal
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Esses dados aparecem no rodape da loja.
+            </p>
+
+            <form onSubmit={handleSaveStoreSettings} className="mt-4 space-y-3">
+              <input
+                value={contactDraft.whatsappLabel}
+                onChange={(event) =>
+                  handleContactDraftChange('whatsappLabel', event.target.value)
+                }
+                placeholder="WhatsApp exibido (ex.: (81) 98896-6556)"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+              />
+              <input
+                value={contactDraft.whatsappUrl}
+                onChange={(event) =>
+                  handleContactDraftChange('whatsappUrl', event.target.value)
+                }
+                placeholder="URL do WhatsApp (ex.: https://wa.me/5581988966556)"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+              />
+              <input
+                value={contactDraft.email}
+                onChange={(event) => handleContactDraftChange('email', event.target.value)}
+                placeholder="E-mail de contato"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+              />
+              <input
+                value={contactDraft.handle}
+                onChange={(event) => handleContactDraftChange('handle', event.target.value)}
+                placeholder="Perfil exibido (ex.: @nuvleoficial)"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+              />
+
+              {settingsMessage && (
+                <p className="text-sm text-slate-600 dark:text-slate-300">{settingsMessage}</p>
+              )}
+
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-sm font-semibold transition-colors"
+              >
+                Salvar contato e redes
+              </button>
+            </form>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+              Links sociais
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Preencha as URLs para habilitar os botoes na secao de contato.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              {socialPlatforms.map((platform) => (
+                <label key={platform.id} className="block">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    {platform.label}
+                  </span>
+                  <input
+                    value={socialDraft[platform.id]}
+                    onChange={(event) =>
+                      handleSocialDraftChange(platform.id, event.target.value)
+                    }
+                    placeholder={`URL ${platform.label}`}
+                    className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  />
+                </label>
+              ))}
+            </div>
+
+            <div className="mt-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Pre-visualizacao
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {socialPlatforms.map((platform) => {
+                  const hasUrl = socialDraft[platform.id].trim().length > 0;
+
+                  return (
+                    <span
+                      key={`preview-${platform.id}`}
+                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+                        hasUrl
+                          ? 'border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                          : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'
+                      }`}
+                    >
+                      {platform.label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </article>
         </section>
       )}
 

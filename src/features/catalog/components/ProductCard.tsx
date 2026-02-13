@@ -12,14 +12,15 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
   const { dispatch } = useCart();
-  const { getCategoryLabel } = useCatalog();
+  const { getCategoryLabel, getProductSizeStock } = useCatalog();
   const [isLiked, setIsLiked] = useState(false);
-  const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] || '');
-  const isOutOfStock = product.stock <= 0;
+  const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] ?? 'UN');
+  const selectedSizeStock = getProductSizeStock(product, selectedSize);
+  const isOutOfStock = selectedSizeStock <= 0;
 
-  const discount = product.originalPrice
-    ? Math.round((1 - product.price / product.originalPrice) * 100)
-    : 0;
+  const discount =
+    product.discountPercentage ??
+    (product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : 0);
   const installment = (product.price / 3).toFixed(2);
 
   const handleAddToCart = (event: React.MouseEvent) => {
@@ -86,7 +87,13 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           {product.name}
         </h3>
         <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-          {isOutOfStock ? 'Sem estoque' : `${product.stock} unidade(s) em estoque`}
+          {product.sizes?.length
+            ? isOutOfStock
+              ? `Sem estoque no tamanho ${selectedSize}`
+              : `${selectedSizeStock} unidade(s) no tamanho ${selectedSize}`
+            : isOutOfStock
+            ? 'Sem estoque'
+            : `${product.stock} unidade(s) em estoque`}
         </p>
 
         <div className="mt-3">
@@ -115,8 +122,12 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
               className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
             >
               {product.sizes.map((size) => (
-                <option key={size} value={size}>
-                  {size}
+                <option
+                  key={size}
+                  value={size}
+                  disabled={getProductSizeStock(product, size) <= 0}
+                >
+                  {size} ({getProductSizeStock(product, size)})
                 </option>
               ))}
             </select>

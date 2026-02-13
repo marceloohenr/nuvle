@@ -2,6 +2,7 @@ import { ShoppingCart, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../cart/context/CartContext';
+import { useCatalog } from '../context/CatalogContext';
 import { Product } from '../types/product';
 
 interface ProductModalProps {
@@ -12,6 +13,7 @@ interface ProductModalProps {
 
 const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
   const { dispatch } = useCart();
+  const { getProductSizeStock } = useCatalog();
   const [selectedSize, setSelectedSize] = useState('');
 
   useEffect(() => {
@@ -19,15 +21,22 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
       setSelectedSize('');
       return;
     }
-    setSelectedSize(product.sizes?.[0] || '');
-  }, [product]);
+    const firstAvailableSize =
+      product.sizes?.find((size) => getProductSizeStock(product, size) > 0) ??
+      product.sizes?.[0] ??
+      '';
+    setSelectedSize(firstAvailableSize);
+  }, [getProductSizeStock, product]);
 
   if (!isOpen || !product) return null;
 
-  const discount = product.originalPrice
-    ? Math.round((1 - product.price / product.originalPrice) * 100)
-    : 0;
-  const isOutOfStock = product.stock <= 0;
+  const discount =
+    product.discountPercentage ??
+    (product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : 0);
+  const selectedSizeStock = product.sizes?.length
+    ? getProductSizeStock(product, selectedSize)
+    : product.stock;
+  const isOutOfStock = selectedSizeStock <= 0;
 
   const handleAddToCart = () => {
     if (isOutOfStock) {
@@ -104,7 +113,11 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
                 }`}
               >
                 {isOutOfStock
-                  ? 'Sem estoque no momento'
+                  ? product.sizes?.length
+                    ? `Sem estoque no tamanho ${selectedSize}`
+                    : 'Sem estoque no momento'
+                  : product.sizes?.length
+                  ? `${selectedSizeStock} unidade(s) disponiveis no tamanho ${selectedSize}`
                   : `${product.stock} unidade(s) disponiveis`}
               </p>
 
@@ -118,13 +131,18 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
+                        disabled={getProductSizeStock(product, size) <= 0}
                         className={`py-2 px-3 border rounded-xl text-center text-sm font-semibold transition-colors ${
                           selectedSize === size
                             ? 'bg-blue-600 text-white border-blue-600'
                             : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-500'
+                        } ${
+                          getProductSizeStock(product, size) <= 0
+                            ? 'opacity-40 cursor-not-allowed'
+                            : ''
                         }`}
                       >
-                        {size}
+                        {size} ({getProductSizeStock(product, size)})
                       </button>
                     ))}
                   </div>

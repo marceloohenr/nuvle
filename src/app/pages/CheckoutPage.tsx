@@ -272,14 +272,20 @@ const CheckoutPage = () => {
     const customerSnapshot = { ...formData };
     const orderTotal = state.total;
     const stockResult = consumeProductStock(
-      orderItemsSnapshot.map((item) => ({ id: item.id, quantity: item.quantity }))
+      orderItemsSnapshot.map((item) => ({
+        id: item.id,
+        size: item.size,
+        quantity: item.quantity,
+      }))
     );
 
     if (!stockResult.success) {
       const firstIssue = stockResult.issues?.[0];
       setStepErrorMessage(
         firstIssue
-          ? `Estoque insuficiente para ${firstIssue.productName}. Solicitado: ${firstIssue.requested}, disponivel: ${firstIssue.available}.`
+          ? `Estoque insuficiente para ${firstIssue.productName}${
+              firstIssue.size ? ` (tam. ${firstIssue.size})` : ''
+            }. Solicitado: ${firstIssue.requested}, disponivel: ${firstIssue.available}.`
           : 'Nao foi possivel reservar estoque para este pedido.'
       );
       setShowStepError(true);

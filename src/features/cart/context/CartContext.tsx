@@ -20,6 +20,15 @@ const calculateTotal = (items: CartItem[]) => {
   return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 };
 
+const getAvailableStockForSelection = (product: Product, size?: string) => {
+  if (size && product.stockBySize) {
+    const normalizedSize = size.trim().toUpperCase();
+    return Math.max(0, Number(product.stockBySize[normalizedSize] ?? 0));
+  }
+
+  return Math.max(0, Number(product.stock ?? 0));
+};
+
 const normalizeStock = (value: unknown) => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
   return Math.max(0, Math.round(value));
@@ -61,14 +70,15 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_TO_CART': {
       const { product, size } = action.payload;
-      if (product.stock <= 0) return state;
+      const availableStock = getAvailableStockForSelection(product, size);
+      if (availableStock <= 0) return state;
 
       const existingItem = state.items.find(
         (item) => item.id === product.id && item.size === size
       );
 
       if (existingItem) {
-        if (existingItem.quantity >= existingItem.stock) {
+        if (existingItem.quantity >= availableStock) {
           return state;
         }
 
@@ -80,7 +90,15 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         return { items: updatedItems, total: calculateTotal(updatedItems) };
       }
 
-      const nextItems: CartItem[] = [...state.items, { ...product, quantity: 1, size }];
+      const nextItems: CartItem[] = [
+        ...state.items,
+        {
+          ...product,
+          quantity: 1,
+          size,
+          stock: availableStock,
+        },
+      ];
       return { items: nextItems, total: calculateTotal(nextItems) };
     }
 

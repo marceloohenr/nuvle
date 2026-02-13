@@ -9,27 +9,37 @@ import {
   useState,
 } from 'react';
 import { products as seedProducts } from '../data/products';
-import type { Product, ProductCategory, ProductCategoryMeta } from '../types/product';
+import type {
+  Product,
+  ProductCategory,
+  ProductCategoryMeta,
+  SizeGuideRow,
+} from '../types/product';
 
 interface ProductDraft {
   name: string;
   price: number;
   originalPrice?: number;
+  discountPercentage?: number;
   image: string;
   category: ProductCategory;
   description?: string;
   sizes?: string[];
   stock: number;
+  stockBySize?: Record<string, number>;
+  sizeGuide?: SizeGuideRow[];
 }
 
 interface StockItem {
   id: string;
+  size?: string;
   quantity: number;
 }
 
 interface ConsumeStockIssue {
   productId: string;
   productName: string;
+  size?: string;
   requested: number;
   available: number;
 }
@@ -55,10 +65,12 @@ interface CatalogContextValue {
   updateProduct: (productId: string, updates: Partial<Omit<Product, 'id'>>) => boolean;
   removeProduct: (productId: string) => void;
   adjustProductStock: (productId: string, delta: number) => void;
+  adjustProductStockBySize: (productId: string, size: string, delta: number) => void;
   consumeProductStock: (items: StockItem[]) => ConsumeStockResult;
   addCategory: (label: string) => CategoryActionResult;
   removeCategory: (categoryId: string) => CategoryActionResult;
   getCategoryLabel: (categoryId: string) => string;
+  getProductSizeStock: (product: Product, size?: string) => number;
   getProductById: (productId: string) => Product | undefined;
 }
 
@@ -67,11 +79,39 @@ const CATEGORIES_STORAGE_KEY = 'nuvle-categories-v1';
 const DEFAULT_STOCK = 20;
 const DEFAULT_SIZES = ['P', 'M', 'G', 'GG'];
 const DEFAULT_CREATED_AT = '2026-01-01T00:00:00.000Z';
+const PRICE_ROUND_FACTOR = 100;
 
 const defaultCategoryLabels: Record<string, string> = {
   basicas: 'Basicas',
   estampadas: 'Estampadas',
   oversized: 'Oversized',
+};
+
+const defaultSizeGuideBySize: Record<string, Omit<SizeGuideRow, 'size'>> = {
+  P: { widthCm: 53, lengthCm: 71, sleeveCm: 22 },
+  M: { widthCm: 56, lengthCm: 73, sleeveCm: 23 },
+  G: { widthCm: 59, lengthCm: 75, sleeveCm: 24 },
+  GG: { widthCm: 62, lengthCm: 77, sleeveCm: 25 },
+};
+
+const roundCurrency = (value: number) =>
+  Math.round(value * PRICE_ROUND_FACTOR) / PRICE_ROUND_FACTOR;
+
+const normalizeNumber = (value: unknown, fallback = 0) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return parsed;
+};
+
+const normalizePositiveInteger = (value: unknown) => {
+  const parsed = Math.round(normalizeNumber(value, 0));
+  return Math.max(0, parsed);
+};
+
+const normalizeSizeToken = (value: unknown) => {
+  if (typeof value !== 'string') return 'UN';
+  const token = value.trim().toUpperCase();
+  return token.length > 0 ? token : 'UN';
 };
 
 const slugify = (value: string) =>
@@ -112,10 +152,163 @@ const normalizeSizes = (value: unknown): string[] => {
   if (!Array.isArray(value)) return DEFAULT_SIZES;
 
   const sizes = value
-    .map((entry) => (typeof entry === 'string' ? entry.trim().toUpperCase() : ''))
+    .map((entry) => normalizeSizeToken(entry))
     .filter((entry) => entry.length > 0);
 
   return sizes.length > 0 ? Array.from(new Set(sizes)) : DEFAULT_SIZES;
+};
+
+const distributeStockAcrossSizes = (totalStock: number, sizes: string[]) => {
+  const safeSizes = sizes.length > 0 ? sizes : ['UN'];
+  const normalizedTotal = Math.max(0, Math.round(totalStock));
+
+  if (safeSizes.length === 1) {
+    return { [safeSizes[0]]: normalizedTotal };
+  }
+
+  const base = Math.floor(normalizedTotal / safeSizes.length);
+  const remainder = normalizedTotal % safeSizes.length;
+
+  return safeSizes.reduce<Record<string, number>>((accumulator, size, index) => {
+    accumulator[size] = base + (index < remainder ? 1 : 0);
+    return accumulator;
+  }, {});
+};
+
+const sumStockBySize = (stockBySize: Record<string, number>) =>
+  Object.values(stockBySize).reduce((sum, value) => sum + normalizePositiveInteger(value), 0);
+
+const normalizeStockBySize = (
+  value: unknown,
+  sizes: string[],
+  fallbackStock: number
+): Record<string, number> => {
+  const safeSizes = sizes.length > 0 ? sizes : ['UN'];
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return distributeStockAcrossSizes(fallbackStock, safeSizes);
+  }
+
+  const rawMap = value as Record<string, unknown>;
+  const next = safeSizes.reduce<Record<string, number>>((accumulator, size) => {
+    const rawValue = rawMap[size];
+    accumulator[size] = normalizePositiveInteger(rawValue);
+    return accumulator;
+  }, {});
+
+  const hasMeaningfulStock = Object.values(next).some((quantity) => quantity > 0);
+  if (!hasMeaningfulStock && fallbackStock > 0) {
+    return distributeStockAcrossSizes(fallbackStock, safeSizes);
+  }
+
+  return next;
+};
+
+const getDefaultGuideRow = (size: string): SizeGuideRow => {
+  const template = defaultSizeGuideBySize[size] ?? {
+    widthCm: 0,
+    lengthCm: 0,
+    sleeveCm: 0,
+  };
+
+  return {
+    size,
+    widthCm: template.widthCm,
+    lengthCm: template.lengthCm,
+    sleeveCm: template.sleeveCm,
+  };
+};
+
+const normalizeGuideNumber = (value: unknown, fallback: number) => {
+  const parsed = normalizeNumber(value, fallback);
+  if (parsed < 0) return fallback;
+  return roundCurrency(parsed);
+};
+
+const normalizeSizeGuide = (value: unknown, sizes: string[]): SizeGuideRow[] => {
+  const safeSizes = sizes.length > 0 ? sizes : ['UN'];
+
+  if (!Array.isArray(value)) {
+    return safeSizes.map((size) => getDefaultGuideRow(size));
+  }
+
+  const rowsBySize = new Map<string, SizeGuideRow>();
+
+  value.forEach((entry) => {
+    if (!entry || typeof entry !== 'object') return;
+
+    const row = entry as Partial<SizeGuideRow>;
+    const size = normalizeSizeToken(row.size);
+    const fallback = getDefaultGuideRow(size);
+
+    rowsBySize.set(size, {
+      size,
+      widthCm: normalizeGuideNumber(row.widthCm, fallback.widthCm),
+      lengthCm: normalizeGuideNumber(row.lengthCm, fallback.lengthCm),
+      sleeveCm: normalizeGuideNumber(row.sleeveCm, fallback.sleeveCm),
+    });
+  });
+
+  return safeSizes.map((size) => {
+    const row = rowsBySize.get(size);
+    return row ?? getDefaultGuideRow(size);
+  });
+};
+
+const normalizeDiscountPercentage = (value: unknown): number | undefined => {
+  const parsed = normalizeNumber(value, NaN);
+  if (!Number.isFinite(parsed)) return undefined;
+
+  const clamped = Math.min(95, Math.max(0, parsed));
+  return roundCurrency(clamped);
+};
+
+const resolvePricing = ({
+  price,
+  originalPrice,
+  discountPercentage,
+}: {
+  price: number;
+  originalPrice?: number;
+  discountPercentage?: number;
+}): { price: number; originalPrice?: number; discountPercentage?: number } | null => {
+  const normalizedPrice = roundCurrency(normalizeNumber(price, 0));
+  const normalizedOriginal =
+    typeof originalPrice === 'number' && Number.isFinite(originalPrice)
+      ? roundCurrency(Math.max(0, originalPrice))
+      : undefined;
+  const normalizedDiscount = normalizeDiscountPercentage(discountPercentage);
+
+  if (normalizedDiscount !== undefined && normalizedDiscount > 0) {
+    const baseOriginal = normalizedOriginal && normalizedOriginal > 0 ? normalizedOriginal : normalizedPrice;
+    if (!baseOriginal || baseOriginal <= 0) return null;
+
+    const discountedPrice = roundCurrency(baseOriginal * (1 - normalizedDiscount / 100));
+
+    return {
+      price: discountedPrice,
+      originalPrice: baseOriginal,
+      discountPercentage: normalizedDiscount,
+    };
+  }
+
+  if (normalizedPrice <= 0) return null;
+
+  const canShowOriginal =
+    normalizedOriginal !== undefined && normalizedOriginal > normalizedPrice
+      ? normalizedOriginal
+      : undefined;
+
+  const derivedDiscount =
+    canShowOriginal && canShowOriginal > normalizedPrice
+      ? roundCurrency((1 - normalizedPrice / canShowOriginal) * 100)
+      : undefined;
+
+  return {
+    price: normalizedPrice,
+    originalPrice: canShowOriginal,
+    discountPercentage: derivedDiscount && derivedDiscount > 0 ? derivedDiscount : undefined,
+  };
 };
 
 const normalizeCategoryMeta = (value: unknown): ProductCategoryMeta | null => {
@@ -161,46 +354,56 @@ const normalizeProduct = (value: unknown): Product | null => {
     return null;
   }
 
-  const normalizedPrice = Number(item.price);
-  if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) return null;
+  const sizes = normalizeSizes(item.sizes);
+  const stockBySize = normalizeStockBySize(item.stockBySize, sizes, item.stock ?? DEFAULT_STOCK);
+  const totalStock = sumStockBySize(stockBySize);
+  const sizeGuide = normalizeSizeGuide(item.sizeGuide, sizes);
 
-  const normalizedOriginalPrice =
-    typeof item.originalPrice === 'number' && Number.isFinite(item.originalPrice)
-      ? Math.max(item.originalPrice, normalizedPrice)
-      : undefined;
+  const pricing = resolvePricing({
+    price: item.price,
+    originalPrice: item.originalPrice,
+    discountPercentage: item.discountPercentage,
+  });
 
-  const normalizedStock =
-    typeof item.stock === 'number' && Number.isFinite(item.stock)
-      ? Math.max(0, Math.round(item.stock))
-      : DEFAULT_STOCK;
+  if (!pricing) return null;
 
   return {
     id: item.id,
     name: item.name,
     image: item.image,
     category: categoryId,
-    price: normalizedPrice,
-    originalPrice: normalizedOriginalPrice,
     description: typeof item.description === 'string' ? item.description : undefined,
-    sizes: normalizeSizes(item.sizes),
-    stock: normalizedStock,
+    sizes,
+    stockBySize,
+    sizeGuide,
+    stock: totalStock,
+    price: pricing.price,
+    originalPrice: pricing.originalPrice,
+    discountPercentage: pricing.discountPercentage,
   };
 };
 
 const normalizeProductDraft = (draft: ProductDraft): ProductDraft => {
+  const sizes = normalizeSizes(draft.sizes);
+  const stockBySize = normalizeStockBySize(draft.stockBySize, sizes, draft.stock);
+  const totalStock = sumStockBySize(stockBySize);
+
   return {
     ...draft,
     name: draft.name.trim(),
     image: draft.image.trim(),
     description: draft.description?.trim(),
     category: normalizeCategoryId(draft.category),
-    price: Number(draft.price),
+    sizes,
+    stockBySize,
+    stock: totalStock,
+    sizeGuide: normalizeSizeGuide(draft.sizeGuide, sizes),
+    price: normalizeNumber(draft.price, 0),
     originalPrice:
       typeof draft.originalPrice === 'number' && Number.isFinite(draft.originalPrice)
-        ? Number(draft.originalPrice)
+        ? draft.originalPrice
         : undefined,
-    sizes: normalizeSizes(draft.sizes),
-    stock: Math.max(0, Math.round(Number(draft.stock) || 0)),
+    discountPercentage: normalizeDiscountPercentage(draft.discountPercentage),
   };
 };
 
@@ -267,20 +470,24 @@ const areCategoriesEqual = (left: ProductCategoryMeta[], right: ProductCategoryM
   });
 };
 
+const normalizedSeedProducts: Product[] = seedProducts
+  .map((entry) => normalizeProduct(entry))
+  .filter((entry): entry is Product => Boolean(entry));
+
 const getInitialProducts = (): Product[] => {
-  if (typeof window === 'undefined') return seedProducts;
+  if (typeof window === 'undefined') return normalizedSeedProducts;
 
   try {
     const raw = localStorage.getItem(CATALOG_STORAGE_KEY);
     if (!raw) {
-      saveProducts(seedProducts);
-      return seedProducts;
+      saveProducts(normalizedSeedProducts);
+      return normalizedSeedProducts;
     }
 
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
-      saveProducts(seedProducts);
-      return seedProducts;
+      saveProducts(normalizedSeedProducts);
+      return normalizedSeedProducts;
     }
 
     const normalized = parsed
@@ -288,13 +495,13 @@ const getInitialProducts = (): Product[] => {
       .filter((entry): entry is Product => Boolean(entry));
 
     if (normalized.length === 0) {
-      saveProducts(seedProducts);
-      return seedProducts;
+      saveProducts(normalizedSeedProducts);
+      return normalizedSeedProducts;
     }
 
     return normalized;
   } catch {
-    return seedProducts;
+    return normalizedSeedProducts;
   }
 };
 
@@ -332,6 +539,32 @@ const getInitialCategories = (): ProductCategoryMeta[] => {
   }
 };
 
+const buildUpdatedStockBySize = (
+  currentProduct: Product,
+  overrides: {
+    sizes?: string[];
+    stockBySize?: Record<string, number>;
+    stock?: number;
+  }
+) => {
+  const nextSizes = overrides.sizes ?? currentProduct.sizes ?? DEFAULT_SIZES;
+  const fallbackStock =
+    typeof overrides.stock === 'number'
+      ? overrides.stock
+      : typeof currentProduct.stock === 'number'
+      ? currentProduct.stock
+      : 0;
+
+  const sourceStockMap = overrides.stockBySize ?? currentProduct.stockBySize;
+  const nextStockBySize = normalizeStockBySize(sourceStockMap, nextSizes, fallbackStock);
+
+  return {
+    sizes: nextSizes,
+    stockBySize: nextStockBySize,
+    stock: sumStockBySize(nextStockBySize),
+  };
+};
+
 const CatalogContext = createContext<CatalogContextValue | null>(null);
 
 export const CatalogProvider = ({ children }: { children: ReactNode }) => {
@@ -365,6 +598,16 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
     },
     [categories]
   );
+
+  const getProductSizeStock = useCallback((product: Product, size?: string) => {
+    if (size) {
+      const normalizedSize = normalizeSizeToken(size);
+      const stockBySize = product.stockBySize ?? {};
+      return Math.max(0, normalizePositiveInteger(stockBySize[normalizedSize]));
+    }
+
+    return Math.max(0, normalizePositiveInteger(product.stock));
+  }, []);
 
   const getProductById = useCallback(
     (productId: string) => products.find((product) => product.id === productId),
@@ -437,10 +680,6 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: 'Nome precisa ter ao menos 3 caracteres.' };
       }
 
-      if (normalized.price <= 0) {
-        return { success: false, error: 'Preco deve ser maior que zero.' };
-      }
-
       if (normalized.image.length < 8) {
         return { success: false, error: 'Informe uma URL de imagem valida.' };
       }
@@ -448,6 +687,16 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       const hasCategory = categories.some((category) => category.id === normalized.category);
       if (!hasCategory) {
         return { success: false, error: 'Selecione uma categoria valida.' };
+      }
+
+      const pricing = resolvePricing({
+        price: normalized.price,
+        originalPrice: normalized.originalPrice,
+        discountPercentage: normalized.discountPercentage,
+      });
+
+      if (!pricing) {
+        return { success: false, error: 'Informe um preco valido para o produto.' };
       }
 
       const baseId = slugify(normalized.name) || 'produto';
@@ -462,16 +711,16 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       const nextProduct: Product = {
         id: candidateId,
         name: normalized.name,
-        price: normalized.price,
-        originalPrice:
-          normalized.originalPrice && normalized.originalPrice > normalized.price
-            ? normalized.originalPrice
-            : undefined,
         image: normalized.image,
         category: normalized.category,
         description: normalized.description,
         sizes: normalized.sizes,
+        stockBySize: normalized.stockBySize,
+        sizeGuide: normalized.sizeGuide,
         stock: normalized.stock,
+        price: pricing.price,
+        originalPrice: pricing.originalPrice,
+        discountPercentage: pricing.discountPercentage,
       };
 
       setProducts((previous) => [nextProduct, ...previous]);
@@ -489,15 +738,9 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         previous.map((product) => {
           if (product.id !== productId) return product;
 
-          const nextPrice =
-            typeof updates.price === 'number' && updates.price > 0
-              ? updates.price
-              : product.price;
-
-          const nextStock =
-            typeof updates.stock === 'number'
-              ? Math.max(0, Math.round(updates.stock))
-              : product.stock;
+          const nextName = updates.name?.trim() || product.name;
+          const nextImage = updates.image?.trim() || product.image;
+          const nextDescription = updates.description?.trim() || product.description;
 
           const requestedCategoryId =
             typeof updates.category === 'string' ? normalizeCategoryId(updates.category) : null;
@@ -506,20 +749,62 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
             ? categories.some((category) => category.id === requestedCategoryId)
             : false;
 
+          const nextCategory = canUseRequestedCategory ? requestedCategoryId : product.category;
+
+          const normalizedSizes = updates.sizes ? normalizeSizes(updates.sizes) : product.sizes ?? DEFAULT_SIZES;
+          const stockSetup = buildUpdatedStockBySize(product, {
+            sizes: normalizedSizes,
+            stockBySize: updates.stockBySize,
+            stock: updates.stock,
+          });
+
+          const nextSizeGuide = updates.sizeGuide
+            ? normalizeSizeGuide(updates.sizeGuide, stockSetup.sizes)
+            : normalizeSizeGuide(product.sizeGuide, stockSetup.sizes);
+
+          const hasPricingUpdates =
+            typeof updates.price === 'number' ||
+            typeof updates.originalPrice === 'number' ||
+            typeof updates.discountPercentage === 'number';
+
+          const pricing = hasPricingUpdates
+            ? resolvePricing({
+                price:
+                  typeof updates.price === 'number' && Number.isFinite(updates.price)
+                    ? updates.price
+                    : product.price,
+                originalPrice:
+                  typeof updates.originalPrice === 'number' && Number.isFinite(updates.originalPrice)
+                    ? updates.originalPrice
+                    : product.originalPrice,
+                discountPercentage:
+                  typeof updates.discountPercentage === 'number' && Number.isFinite(updates.discountPercentage)
+                    ? updates.discountPercentage
+                    : product.discountPercentage,
+              })
+            : {
+                price: product.price,
+                originalPrice: product.originalPrice,
+                discountPercentage: product.discountPercentage,
+              };
+
+          if (!pricing) {
+            return product;
+          }
+
           return {
             ...product,
-            ...updates,
-            name: updates.name?.trim() || product.name,
-            image: updates.image?.trim() || product.image,
-            description: updates.description?.trim() || product.description,
-            sizes: updates.sizes ? normalizeSizes(updates.sizes) : product.sizes,
-            category: canUseRequestedCategory ? requestedCategoryId : product.category,
-            price: nextPrice,
-            originalPrice:
-              typeof updates.originalPrice === 'number' && updates.originalPrice > nextPrice
-                ? updates.originalPrice
-                : product.originalPrice,
-            stock: nextStock,
+            name: nextName,
+            image: nextImage,
+            description: nextDescription,
+            category: nextCategory,
+            sizes: stockSetup.sizes,
+            stockBySize: stockSetup.stockBySize,
+            stock: stockSetup.stock,
+            sizeGuide: nextSizeGuide,
+            price: pricing.price,
+            originalPrice: pricing.originalPrice,
+            discountPercentage: pricing.discountPercentage,
           };
         })
       );
@@ -537,45 +822,100 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
     if (!Number.isFinite(delta) || delta === 0) return;
 
     setProducts((previous) =>
-      previous.map((product) =>
-        product.id === productId
-          ? { ...product, stock: Math.max(0, product.stock + Math.round(delta)) }
-          : product
-      )
+      previous.map((product) => {
+        if (product.id !== productId) return product;
+
+        const sizeKey = normalizeSizeToken(product.sizes?.[0] ?? 'UN');
+        const current = product.stockBySize ?? distributeStockAcrossSizes(product.stock, product.sizes ?? ['UN']);
+        const nextStockBySize = {
+          ...current,
+          [sizeKey]: Math.max(0, normalizePositiveInteger(current[sizeKey]) + Math.round(delta)),
+        };
+
+        return {
+          ...product,
+          stockBySize: nextStockBySize,
+          stock: sumStockBySize(nextStockBySize),
+        };
+      })
+    );
+  }, []);
+
+  const adjustProductStockBySize = useCallback((productId: string, size: string, delta: number) => {
+    if (!Number.isFinite(delta) || delta === 0) return;
+
+    const normalizedSize = normalizeSizeToken(size);
+
+    setProducts((previous) =>
+      previous.map((product) => {
+        if (product.id !== productId) return product;
+
+        const sizes = product.sizes ?? DEFAULT_SIZES;
+        const currentStockBySize = normalizeStockBySize(product.stockBySize, sizes, product.stock);
+        const currentQuantity = normalizePositiveInteger(currentStockBySize[normalizedSize]);
+
+        const nextStockBySize = {
+          ...currentStockBySize,
+          [normalizedSize]: Math.max(0, currentQuantity + Math.round(delta)),
+        };
+
+        return {
+          ...product,
+          stockBySize: nextStockBySize,
+          stock: sumStockBySize(nextStockBySize),
+        };
+      })
     );
   }, []);
 
   const consumeProductStock = useCallback(
     (items: StockItem[]): ConsumeStockResult => {
-      const requestedByProduct = new Map<string, number>();
+      const requestedByKey = new Map<string, { id: string; size: string; quantity: number }>();
 
       items.forEach((item) => {
         if (!item || item.quantity <= 0) return;
-        const currentRequested = requestedByProduct.get(item.id) ?? 0;
-        requestedByProduct.set(item.id, currentRequested + item.quantity);
+
+        const normalizedSize = normalizeSizeToken(item.size ?? 'UN');
+        const key = `${item.id}::${normalizedSize}`;
+        const existing = requestedByKey.get(key);
+
+        if (existing) {
+          existing.quantity += item.quantity;
+          return;
+        }
+
+        requestedByKey.set(key, {
+          id: item.id,
+          size: normalizedSize,
+          quantity: item.quantity,
+        });
       });
 
       const issues: ConsumeStockIssue[] = [];
 
-      requestedByProduct.forEach((requested, productId) => {
-        const product = products.find((entry) => entry.id === productId);
+      requestedByKey.forEach((request) => {
+        const product = products.find((entry) => entry.id === request.id);
 
         if (!product) {
           issues.push({
-            productId,
+            productId: request.id,
             productName: 'Produto removido',
-            requested,
+            size: request.size,
+            requested: request.quantity,
             available: 0,
           });
           return;
         }
 
-        if (product.stock < requested) {
+        const available = getProductSizeStock(product, request.size);
+
+        if (available < request.quantity) {
           issues.push({
-            productId,
+            productId: product.id,
             productName: product.name,
-            requested,
-            available: product.stock,
+            size: request.size,
+            requested: request.quantity,
+            available,
           });
         }
       });
@@ -586,16 +926,31 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
 
       setProducts((previous) =>
         previous.map((product) => {
-          const requested = requestedByProduct.get(product.id);
-          if (!requested) return product;
+          const relevantRequests = Array.from(requestedByKey.values()).filter(
+            (request) => request.id === product.id
+          );
+          if (relevantRequests.length === 0) return product;
 
-          return { ...product, stock: Math.max(0, product.stock - requested) };
+          const sizes = product.sizes ?? DEFAULT_SIZES;
+          const stockBySize = normalizeStockBySize(product.stockBySize, sizes, product.stock);
+          const nextStockBySize = { ...stockBySize };
+
+          relevantRequests.forEach((request) => {
+            const currentQuantity = normalizePositiveInteger(nextStockBySize[request.size]);
+            nextStockBySize[request.size] = Math.max(0, currentQuantity - request.quantity);
+          });
+
+          return {
+            ...product,
+            stockBySize: nextStockBySize,
+            stock: sumStockBySize(nextStockBySize),
+          };
         })
       );
 
       return { success: true };
     },
-    [products]
+    [getProductSizeStock, products]
   );
 
   const value = useMemo<CatalogContextValue>(
@@ -606,10 +961,12 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       updateProduct,
       removeProduct,
       adjustProductStock,
+      adjustProductStockBySize,
       consumeProductStock,
       addCategory,
       removeCategory,
       getCategoryLabel,
+      getProductSizeStock,
       getProductById,
     }),
     [
@@ -619,10 +976,12 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       updateProduct,
       removeProduct,
       adjustProductStock,
+      adjustProductStockBySize,
       consumeProductStock,
       addCategory,
       removeCategory,
       getCategoryLabel,
+      getProductSizeStock,
       getProductById,
     ]
   );

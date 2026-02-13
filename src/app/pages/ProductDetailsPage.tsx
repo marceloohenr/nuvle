@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useCart } from '../../features/cart';
 import { useCatalog } from '../../features/catalog';
+import { useStoreSettings } from '../../features/settings';
 
 const reviews = [
   {
@@ -50,7 +51,8 @@ const faqItems = [
 const ProductDetailsPage = () => {
   const { productId } = useParams();
   const { dispatch } = useCart();
-  const { products, getCategoryLabel } = useCatalog();
+  const { products, getCategoryLabel, getProductSizeStock } = useCatalog();
+  const { settings } = useStoreSettings();
 
   const product = useMemo(
     () => products.find((item) => item.id === productId),
@@ -62,11 +64,14 @@ const ProductDetailsPage = () => {
 
   useEffect(() => {
     if (product?.sizes?.length) {
-      setSelectedSize(product.sizes[0]);
+      const firstAvailable =
+        product.sizes.find((size) => getProductSizeStock(product, size) > 0) ??
+        product.sizes[0];
+      setSelectedSize(firstAvailable);
       return;
     }
     setSelectedSize('');
-  }, [product]);
+  }, [getProductSizeStock, product]);
 
   if (!productId) {
     return <Navigate to="/produtos" replace />;
@@ -92,11 +97,21 @@ const ProductDetailsPage = () => {
     );
   }
 
-  const discount = product.originalPrice
-    ? Math.round((1 - product.price / product.originalPrice) * 100)
-    : 0;
-  const isOutOfStock = product.stock <= 0;
+  const discount =
+    product.discountPercentage ??
+    (product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : 0);
+  const selectedSizeStock = product.sizes?.length
+    ? getProductSizeStock(product, selectedSize)
+    : product.stock;
+  const isOutOfStock = selectedSizeStock <= 0;
   const installment = (product.price / 3).toFixed(2);
+  const whatsappUrl = settings.contact.whatsappUrl.trim() || settings.socialLinks.whatsapp.trim();
+  const whatsappHref =
+    whatsappUrl.startsWith('http://') || whatsappUrl.startsWith('https://')
+      ? whatsappUrl
+      : whatsappUrl
+      ? `https://${whatsappUrl}`
+      : 'https://wa.me/5581988966556';
   const relatedProducts = products
     .filter((item) => item.category === product.category && item.id !== product.id)
     .slice(0, 4);
@@ -156,7 +171,13 @@ const ProductDetailsPage = () => {
                 : 'text-emerald-600 dark:text-emerald-400'
             }`}
           >
-            {isOutOfStock ? 'Sem estoque no momento' : `${product.stock} unidade(s) disponiveis`}
+            {isOutOfStock
+              ? product.sizes?.length
+                ? `Sem estoque no tamanho ${selectedSize}`
+                : 'Sem estoque no momento'
+              : product.sizes?.length
+              ? `${selectedSizeStock} unidade(s) disponiveis no tamanho ${selectedSize}`
+              : `${product.stock} unidade(s) disponiveis`}
           </p>
 
           <div className="mt-6">
@@ -190,13 +211,18 @@ const ProductDetailsPage = () => {
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
+                    disabled={getProductSizeStock(product, size) <= 0}
                     className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${
                       selectedSize === size
                         ? 'border-blue-600 bg-blue-600 text-white'
                         : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-400'
+                    } ${
+                      getProductSizeStock(product, size) <= 0
+                        ? 'opacity-40 cursor-not-allowed'
+                        : ''
                     }`}
                   >
-                    {size}
+                    {size} ({getProductSizeStock(product, size)})
                   </button>
                 ))}
               </div>
@@ -213,7 +239,7 @@ const ProductDetailsPage = () => {
               {isOutOfStock ? 'Indisponivel' : 'Adicionar ao carrinho'}
             </button>
             <a
-              href="https://linktr.ee/nuvle"
+              href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold py-3 rounded-xl transition-colors inline-flex items-center justify-center"
@@ -250,7 +276,7 @@ const ProductDetailsPage = () => {
           Guia rapido de caimento
         </h2>
         <p className="text-slate-600 dark:text-slate-300 mt-2 text-sm">
-          Medidas aproximadas para te ajudar a escolher o tamanho ideal.
+          Medidas especificas deste produto para te ajudar a escolher o tamanho ideal.
         </p>
         <div className="mt-5 overflow-x-auto">
           <table className="w-full text-left text-sm min-w-[520px]">
@@ -263,30 +289,14 @@ const ProductDetailsPage = () => {
               </tr>
             </thead>
             <tbody className="text-slate-700 dark:text-slate-200">
-              <tr className="border-t border-slate-200 dark:border-slate-800">
-                <td className="py-2 font-medium">P</td>
-                <td className="py-2">53 cm</td>
-                <td className="py-2">71 cm</td>
-                <td className="py-2">22 cm</td>
-              </tr>
-              <tr className="border-t border-slate-200 dark:border-slate-800">
-                <td className="py-2 font-medium">M</td>
-                <td className="py-2">56 cm</td>
-                <td className="py-2">73 cm</td>
-                <td className="py-2">23 cm</td>
-              </tr>
-              <tr className="border-t border-slate-200 dark:border-slate-800">
-                <td className="py-2 font-medium">G</td>
-                <td className="py-2">59 cm</td>
-                <td className="py-2">75 cm</td>
-                <td className="py-2">24 cm</td>
-              </tr>
-              <tr className="border-t border-slate-200 dark:border-slate-800">
-                <td className="py-2 font-medium">GG</td>
-                <td className="py-2">62 cm</td>
-                <td className="py-2">77 cm</td>
-                <td className="py-2">25 cm</td>
-              </tr>
+              {(product.sizeGuide ?? []).map((row) => (
+                <tr key={row.size} className="border-t border-slate-200 dark:border-slate-800">
+                  <td className="py-2 font-medium">{row.size}</td>
+                  <td className="py-2">{row.widthCm} cm</td>
+                  <td className="py-2">{row.lengthCm} cm</td>
+                  <td className="py-2">{row.sleeveCm} cm</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

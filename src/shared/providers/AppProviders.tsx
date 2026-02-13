@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { AuthProvider, useAuth } from '../../features/auth';
 import { CartProvider } from '../../features/cart/context/CartContext';
 import { CatalogProvider } from '../../features/catalog';
+import { StoreSettingsProvider } from '../../features/settings';
 import { ThemeProvider } from '../../features/theme/context/ThemeContext';
 
 interface AppProvidersProps {
@@ -18,9 +19,11 @@ export const AppProviders = ({ children }: AppProvidersProps) => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <CatalogProvider>
-          <CartProviderGate>{children}</CartProviderGate>
-        </CatalogProvider>
+        <StoreSettingsProvider>
+          <CatalogProvider>
+            <CartProviderGate>{children}</CartProviderGate>
+          </CatalogProvider>
+        </StoreSettingsProvider>
       </AuthProvider>
     </ThemeProvider>
   );
