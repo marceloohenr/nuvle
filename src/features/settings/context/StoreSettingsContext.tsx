@@ -319,7 +319,10 @@ const isUndefinedColumnError = (error: unknown) => {
   const combined = `${payload.message ?? ''} ${payload.details ?? ''}`.toLowerCase();
   return (
     payload.code === '42703' ||
-    (combined.includes('column') && combined.includes('does not exist'))
+    payload.code === 'PGRST204' ||
+    (combined.includes('column') && combined.includes('does not exist')) ||
+    (combined.includes('schema cache') && combined.includes('column')) ||
+    (combined.includes('could not find') && combined.includes('column'))
   );
 };
 
