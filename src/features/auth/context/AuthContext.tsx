@@ -25,7 +25,9 @@ interface RegisterPayload {
 interface ActionResult {
   success: boolean;
   error?: string;
+  message?: string;
   role?: UserRole;
+  needsEmailConfirmation?: boolean;
 }
 
 interface AuthContextValue {
@@ -36,6 +38,7 @@ interface AuthContextValue {
   isAuthReady: boolean;
   login: (payload: LoginPayload) => Promise<ActionResult>;
   register: (payload: RegisterPayload) => Promise<ActionResult>;
+  resendSignupConfirmation: (email: string) => Promise<ActionResult>;
   logout: () => Promise<void>;
 }
 
@@ -444,9 +447,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (error || !data.user) {
+          const needsEmailConfirmation =
+            Boolean(error?.message) &&
+            error.message.toLowerCase().includes('email not confirmed');
+
           return {
             success: false,
             error: toFriendlySupabaseAuthError(error?.message),
+            needsEmailConfirmation,
           };
         }
 
@@ -518,7 +526,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (error) {
-          return { success: false, error: error.message };
+          return { success: false, error: toFriendlySupabaseAuthError(error.message) };
         }
 
         const authUser = data.user;
@@ -547,9 +555,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (authUser) {
           return {
-            success: false,
-            error:
-              'Conta criada. Confirme seu e-mail no link enviado e depois faca login.',
+            success: true,
+            needsEmailConfirmation: true,
+            message: 'Conta criada. Confirme seu e-mail no link enviado e depois faca login.',
           };
         }
 
@@ -580,6 +588,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
     [storedUsers]
   );
+
+  const resendSignupConfirmation = useCallback(async (email: string): Promise<ActionResult> => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return { success: false, error: 'Informe um e-mail valido.' };
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      return { success: false, error: 'Supabase nao configurado.' };
+    }
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: normalizedEmail,
+    });
+
+    if (error) {
+      return { success: false, error: toFriendlySupabaseAuthError(error.message) };
+    }
+
+    return {
+      success: true,
+      message: `E-mail de confirmacao reenviado para ${normalizedEmail}.`,
+    };
+  }, []);
 
   const logout = useCallback(async () => {
     if (isSupabaseConfigured && supabase) {
@@ -612,9 +646,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAuthReady,
       login,
       register,
+      resendSignupConfirmation,
       logout,
     }),
-    [currentUser, users, isAuthReady, login, register, logout]
+    [currentUser, users, isAuthReady, login, register, resendSignupConfirmation, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

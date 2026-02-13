@@ -9,7 +9,15 @@ type AuthMode = 'login' | 'register';
 const LoginPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { currentUser, isAuthenticated, isAdmin, login, register, logout } = useAuth();
+  const {
+    currentUser,
+    isAuthenticated,
+    isAdmin,
+    login,
+    register,
+    resendSignupConfirmation,
+    logout,
+  } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>('login');
   const [form, setForm] = useState({
@@ -18,6 +26,9 @@ const LoginPage = () => {
     password: '',
   });
   const [errorMessage, setErrorMessage] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
 
   const isLogin = mode === 'login';
   const hasName = form.name.trim().length >= 3;
@@ -33,11 +44,21 @@ const LoginPage = () => {
     if (!isValid) return;
 
     setErrorMessage('');
+    setInfoMessage('');
 
     if (isLogin) {
       const result = await login({ email: form.email, password: form.password });
 
       if (!result.success) {
+        if (result.needsEmailConfirmation) {
+          setPendingConfirmationEmail(form.email.trim().toLowerCase());
+          setInfoMessage(
+            result.error ??
+              'Seu e-mail ainda nao foi confirmado. Abra sua caixa de entrada e confirme para entrar.'
+          );
+          return;
+        }
+
         setErrorMessage(result.error ?? 'Nao foi possivel entrar agora.');
         return;
       }
@@ -59,6 +80,17 @@ const LoginPage = () => {
 
     if (!result.success) {
       setErrorMessage(result.error ?? 'Nao foi possivel criar sua conta agora.');
+      return;
+    }
+
+    if (result.needsEmailConfirmation) {
+      setPendingConfirmationEmail(form.email.trim().toLowerCase());
+      setInfoMessage(
+        result.message ??
+          'Conta criada. Confirme seu e-mail no link enviado e depois faca login.'
+      );
+      setMode('login');
+      setForm((prev) => ({ ...prev, password: '' }));
       return;
     }
 
@@ -124,6 +156,8 @@ const LoginPage = () => {
             onClick={() => {
               setMode('login');
               setErrorMessage('');
+              setInfoMessage('');
+              setPendingConfirmationEmail(null);
             }}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
               isLogin
@@ -137,6 +171,8 @@ const LoginPage = () => {
             onClick={() => {
               setMode('register');
               setErrorMessage('');
+              setInfoMessage('');
+              setPendingConfirmationEmail(null);
             }}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
               !isLogin
@@ -209,6 +245,36 @@ const LoginPage = () => {
               />
             </div>
           </label>
+
+          {infoMessage && (
+            <div className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30 p-3 text-sm text-blue-800 dark:text-blue-200 space-y-2">
+              <p>{infoMessage}</p>
+              {pendingConfirmationEmail && isSupabaseConfigured && (
+                <button
+                  type="button"
+                  disabled={isResending}
+                  onClick={() => {
+                    void (async () => {
+                      setIsResending(true);
+                      const resend = await resendSignupConfirmation(pendingConfirmationEmail);
+                      setIsResending(false);
+
+                      if (!resend.success) {
+                        setErrorMessage(resend.error ?? 'Nao foi possivel reenviar o e-mail agora.');
+                        return;
+                      }
+
+                      setErrorMessage('');
+                      setInfoMessage(resend.message ?? 'E-mail de confirmacao reenviado.');
+                    })();
+                  }}
+                  className="inline-flex items-center justify-center rounded-xl border border-blue-300 dark:border-blue-800 px-4 py-2 text-sm font-semibold text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors disabled:opacity-60"
+                >
+                  {isResending ? 'Reenviando...' : 'Reenviar e-mail de confirmacao'}
+                </button>
+              )}
+            </div>
+          )}
 
           {errorMessage && (
             <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-700 dark:text-red-300">
