@@ -25,7 +25,8 @@ values ('product-images', 'product-images', true)
 on conflict (id) do update
   set public = excluded.public;
 
-alter table storage.objects enable row level security;
+-- Supabase Storage already ships with RLS enabled on storage.objects.
+-- Trying to ALTER this table can fail with "must be owner of table objects".
 
 drop policy if exists "product_images_read" on storage.objects;
 create policy "product_images_read"
@@ -55,4 +56,3 @@ on storage.objects
 for delete
 to authenticated
 using (bucket_id = 'product-images' and public.is_admin());
-
