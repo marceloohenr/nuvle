@@ -218,6 +218,21 @@ const getFallbackNameFromEmail = (email: string) => {
     .join(' ');
 };
 
+const toFriendlySupabaseAuthError = (message: string | undefined) => {
+  if (!message) return 'Nao foi possivel autenticar agora.';
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('email not confirmed')) {
+    return 'Seu e-mail ainda nao foi confirmado. Abra sua caixa de entrada e confirme para entrar.';
+  }
+
+  if (normalized.includes('invalid login credentials')) {
+    return 'E-mail ou senha invalidos.';
+  }
+
+  return message;
+};
+
 const ensureSupabaseProfile = async (authUser: {
   id: string;
   email?: string;
@@ -431,7 +446,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error || !data.user) {
           return {
             success: false,
-            error: error?.message ?? 'E-mail ou senha invalidos.',
+            error: toFriendlySupabaseAuthError(error?.message),
           };
         }
 
