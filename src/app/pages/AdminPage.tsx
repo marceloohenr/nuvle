@@ -22,6 +22,7 @@ import {
   updateLocalOrderStatus,
 } from '../../features/orders';
 import type { LocalOrder, OrderStatus } from '../../features/orders';
+import { isSupabaseConfigured } from '../../shared/lib/supabase';
 
 type AdminTab = 'products' | 'orders' | 'customers' | 'settings';
 
@@ -1300,10 +1301,14 @@ const AdminPage = () => {
       <section className="rounded-2xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/20 p-5 text-sm text-emerald-700 dark:text-emerald-300">
         <p className="flex items-center gap-2 font-semibold">
           <ShieldCheck size={16} />
-          Ambiente administrativo local
+          {isSupabaseConfigured
+            ? 'Ambiente administrativo conectado ao banco'
+            : 'Ambiente administrativo local'}
         </p>
         <p className="mt-1">
-          Todas as alteracoes ficam salvas no navegador. Quando integrar backend, este painel pode reaproveitar o mesmo layout.
+          {isSupabaseConfigured
+            ? 'Alteracoes de catalogo, pedidos e contato sao persistidas no Supabase com controle por perfil admin.'
+            : 'Todas as alteracoes ficam salvas no navegador. Ao integrar backend, este painel pode reaproveitar o mesmo layout.'}
         </p>
       </section>
     </div>

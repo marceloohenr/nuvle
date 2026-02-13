@@ -33,6 +33,7 @@ interface AuthContextValue {
   users: AuthUser[];
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isAuthReady: boolean;
   login: (payload: LoginPayload) => Promise<ActionResult>;
   register: (payload: RegisterPayload) => Promise<ActionResult>;
   logout: () => Promise<void>;
@@ -49,19 +50,23 @@ interface ProfileRow {
 const USERS_STORAGE_KEY = 'nuvle-users-v1';
 const SESSION_STORAGE_KEY = 'nuvle-session-v1';
 
-export const demoAdminCredentials = {
+const demoAdminCredentials = {
   email: 'admin@nuvle.com',
   password: 'admin123',
 } as const;
 
-const adminSeedUser: StoredAuthUser = {
-  id: 'admin-root',
-  name: 'Administrador Nuvle',
-  email: demoAdminCredentials.email,
-  password: demoAdminCredentials.password,
-  role: 'admin',
-  createdAt: '2026-01-01T12:00:00.000Z',
-};
+const shouldSeedDemoAdmin = import.meta.env.DEV;
+
+const adminSeedUser: StoredAuthUser | null = shouldSeedDemoAdmin
+  ? {
+      id: 'admin-root',
+      name: 'Administrador Nuvle',
+      email: demoAdminCredentials.email,
+      password: demoAdminCredentials.password,
+      role: 'admin',
+      createdAt: '2026-01-01T12:00:00.000Z',
+    }
+  : null;
 
 const isRole = (value: unknown): value is UserRole => {
   return value === 'admin' || value === 'customer';
@@ -151,6 +156,8 @@ const saveUsers = (users: StoredAuthUser[]) => {
 };
 
 const ensureAdminUser = (users: StoredAuthUser[]): StoredAuthUser[] => {
+  if (!adminSeedUser) return users;
+
   const hasAdmin = users.some(
     (user) => user.email.toLowerCase() === adminSeedUser.email.toLowerCase()
   );
@@ -160,19 +167,21 @@ const ensureAdminUser = (users: StoredAuthUser[]): StoredAuthUser[] => {
 };
 
 const getInitialUsers = (): StoredAuthUser[] => {
-  if (typeof window === 'undefined') return [adminSeedUser];
+  if (typeof window === 'undefined') return adminSeedUser ? [adminSeedUser] : [];
+
+  const fallbackUsers = adminSeedUser ? [adminSeedUser] : [];
 
   try {
     const raw = localStorage.getItem(USERS_STORAGE_KEY);
     if (!raw) {
-      saveUsers([adminSeedUser]);
-      return [adminSeedUser];
+      saveUsers(fallbackUsers);
+      return fallbackUsers;
     }
 
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
-      saveUsers([adminSeedUser]);
-      return [adminSeedUser];
+      saveUsers(fallbackUsers);
+      return fallbackUsers;
     }
 
     const normalized = parsed
@@ -186,7 +195,7 @@ const getInitialUsers = (): StoredAuthUser[] => {
 
     return usersWithAdmin;
   } catch {
-    return [adminSeedUser];
+    return fallbackUsers;
   }
 };
 
@@ -285,6 +294,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const [supabaseCurrentUser, setSupabaseCurrentUser] = useState<AuthUser | null>(null);
   const [supabaseUsers, setSupabaseUsers] = useState<AuthUser[]>([]);
+  const [isAuthReady, setIsAuthReady] = useState(!isSupabaseConfigured);
 
   useEffect(() => {
     if (isSupabaseConfigured) return;
@@ -324,6 +334,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!isSupabaseConfigured || !supabase) return;
 
     let isMounted = true;
+    setIsAuthReady(false);
 
     const syncFromSession = async () => {
       const { data } = await supabase.auth.getSession();
@@ -333,6 +344,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!isMounted) return;
         setSupabaseCurrentUser(null);
         setSupabaseUsers([]);
+        setIsAuthReady(true);
         return;
       }
 
@@ -353,6 +365,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setSupabaseUsers(profile ? [profile] : []);
       }
+
+      if (isMounted) {
+        setIsAuthReady(true);
+      }
     };
 
     void syncFromSession();
@@ -363,6 +379,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!authUser) {
         setSupabaseCurrentUser(null);
         setSupabaseUsers([]);
+        setIsAuthReady(true);
         return;
       }
 
@@ -383,6 +400,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setSupabaseUsers(users);
         } else {
           setSupabaseUsers(profile ? [profile] : []);
+        }
+
+        if (isMounted) {
+          setIsAuthReady(true);
         }
       })();
     });
@@ -573,11 +594,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       users,
       isAuthenticated: Boolean(currentUser),
       isAdmin: currentUser?.role === 'admin',
+      isAuthReady,
       login,
       register,
       logout,
     }),
-    [currentUser, users, login, register, logout]
+    [currentUser, users, isAuthReady, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -11,6 +11,7 @@ import {
   removeLocalOrder,
 } from '../../features/orders';
 import type { LocalOrder } from '../../features/orders';
+import { isSupabaseConfigured } from '../../shared/lib/supabase';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -64,7 +65,9 @@ const OrderDetailsPage = () => {
           Pedido nao encontrado
         </h1>
         <p className="mt-2 text-slate-600 dark:text-slate-300">
-          O pedido informado nao existe no historico local.
+          {isSupabaseConfigured
+            ? 'O pedido informado nao existe ou voce nao tem acesso a ele.'
+            : 'O pedido informado nao existe no historico local.'}
         </p>
         <Link
           to="/pedidos"
@@ -228,7 +231,7 @@ const OrderDetailsPage = () => {
                 className="inline-flex items-center justify-center gap-2 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold py-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
               >
                 <PackageSearch size={14} />
-                Avancar status (demo)
+                Avancar status
               </button>
             )}
 

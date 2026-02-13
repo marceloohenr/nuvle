@@ -25,8 +25,18 @@ import {
 } from './pages';
 
 const ProtectedRoute = ({ children }: { children: ReactElement }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAuthReady } = useAuth();
   const location = useLocation();
+
+  if (!isAuthReady) {
+    return (
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Carregando sessao...
+        </p>
+      </section>
+    );
+  }
 
   if (!isAuthenticated) {
     const redirect = `${location.pathname}${location.search}`;
@@ -37,8 +47,18 @@ const ProtectedRoute = ({ children }: { children: ReactElement }) => {
 };
 
 const AdminRoute = ({ children }: { children: ReactElement }) => {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, isAuthReady } = useAuth();
   const location = useLocation();
+
+  if (!isAuthReady) {
+    return (
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Verificando permissoes da conta...
+        </p>
+      </section>
+    );
+  }
 
   if (!isAuthenticated) {
     const redirect = `${location.pathname}${location.search}`;

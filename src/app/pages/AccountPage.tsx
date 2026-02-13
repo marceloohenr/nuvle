@@ -33,7 +33,7 @@ const accountBlocks = [
   },
   {
     title: 'Seguranca',
-    description: 'Sessao local ativa neste dispositivo.',
+    description: 'Sessao da conta autenticada neste dispositivo.',
     icon: ShieldCheck,
   },
 ];
