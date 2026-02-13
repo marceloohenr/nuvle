@@ -62,14 +62,14 @@ interface CategoryActionResult extends ActionResult {
 interface CatalogContextValue {
   products: Product[];
   categories: ProductCategoryMeta[];
-  addProduct: (product: ProductDraft) => ActionResult;
-  updateProduct: (productId: string, updates: Partial<Omit<Product, 'id'>>) => boolean;
-  removeProduct: (productId: string) => void;
+  addProduct: (product: ProductDraft) => Promise<ActionResult>;
+  updateProduct: (productId: string, updates: Partial<Omit<Product, 'id'>>) => Promise<boolean>;
+  removeProduct: (productId: string) => Promise<boolean>;
   adjustProductStock: (productId: string, delta: number) => void;
   adjustProductStockBySize: (productId: string, size: string, delta: number) => void;
   consumeProductStock: (items: StockItem[]) => ConsumeStockResult;
-  addCategory: (label: string) => CategoryActionResult;
-  removeCategory: (categoryId: string) => CategoryActionResult;
+  addCategory: (label: string) => Promise<CategoryActionResult>;
+  removeCategory: (categoryId: string) => Promise<CategoryActionResult>;
   getCategoryLabel: (categoryId: string) => string;
   getProductSizeStock: (product: Product, size?: string) => number;
   getProductById: (productId: string) => Product | undefined;
@@ -540,7 +540,7 @@ const productToSizeRows = (product: Product): ProductSizeRow[] => {
 const upsertCategoryRemote = async (category: ProductCategoryMeta) => {
   if (!isSupabaseConfigured || !supabase) return;
 
-  await supabase.from('categories').upsert(
+  const { error } = await supabase.from('categories').upsert(
     {
       id: category.id,
       label: category.label,
@@ -548,29 +548,49 @@ const upsertCategoryRemote = async (category: ProductCategoryMeta) => {
     },
     { onConflict: 'id' }
   );
+
+  if (error) {
+    throw new Error(error.message);
+  }
 };
 
 const removeCategoryRemote = async (categoryId: string) => {
   if (!isSupabaseConfigured || !supabase) return;
-  await supabase.from('categories').delete().eq('id', categoryId);
+  const { error } = await supabase.from('categories').delete().eq('id', categoryId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
 };
 
 const upsertProductRemote = async (product: Product) => {
   if (!isSupabaseConfigured || !supabase) return;
 
-  await supabase.from('products').upsert(productToRow(product), { onConflict: 'id' });
+  const { error: productError } = await supabase
+    .from('products')
+    .upsert(productToRow(product), { onConflict: 'id' });
+  if (productError) {
+    throw new Error(productError.message);
+  }
 
   const sizeRows = productToSizeRows(product);
   if (sizeRows.length > 0) {
-    await supabase
+    const { error: sizeUpsertError } = await supabase
       .from('product_sizes')
       .upsert(sizeRows, { onConflict: 'product_id,size' });
+    if (sizeUpsertError) {
+      throw new Error(sizeUpsertError.message);
+    }
   }
 
-  const { data: existingSizeRows } = await supabase
+  const { data: existingSizeRows, error: existingSizeError } = await supabase
     .from('product_sizes')
     .select('size')
     .eq('product_id', product.id);
+
+  if (existingSizeError) {
+    throw new Error(existingSizeError.message);
+  }
 
   if (!Array.isArray(existingSizeRows)) return;
 
@@ -580,17 +600,24 @@ const upsertProductRemote = async (product: Product) => {
     .filter((size) => !nextSizes.has(size));
 
   if (obsoleteSizes.length > 0) {
-    await supabase
+    const { error: sizeDeleteError } = await supabase
       .from('product_sizes')
       .delete()
       .eq('product_id', product.id)
       .in('size', obsoleteSizes);
+    if (sizeDeleteError) {
+      throw new Error(sizeDeleteError.message);
+    }
   }
 };
 
 const removeProductRemote = async (productId: string) => {
   if (!isSupabaseConfigured || !supabase) return;
-  await supabase.from('products').delete().eq('id', productId);
+  const { error } = await supabase.from('products').delete().eq('id', productId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
 };
 
 const syncProductStocksRemote = async (product: Product) => {
@@ -599,7 +626,7 @@ const syncProductStocksRemote = async (product: Product) => {
   const sizes = product.sizes?.length ? product.sizes : ['UN'];
   const stockBySize = normalizeStockBySize(product.stockBySize, sizes, product.stock);
 
-  await Promise.all(
+  const results = await Promise.all(
     sizes.map((size) =>
       supabase
         .from('product_sizes')
@@ -608,6 +635,11 @@ const syncProductStocksRemote = async (product: Product) => {
         .eq('size', size)
     )
   );
+
+  const failed = results.find((result) => result.error);
+  if (failed?.error) {
+    throw new Error(failed.error.message);
+  }
 };
 
 const fetchRemoteCatalog = async (): Promise<{
@@ -624,6 +656,14 @@ const fetchRemoteCatalog = async (): Promise<{
       ),
     supabase.from('categories').select('id, label, created_at'),
   ]);
+
+  if (productsResponse.error) {
+    throw new Error(productsResponse.error.message);
+  }
+
+  if (categoriesResponse.error) {
+    throw new Error(categoriesResponse.error.message);
+  }
 
   const productsData = Array.isArray(productsResponse.data) ? productsResponse.data : [];
   const categoriesData = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
@@ -818,34 +858,38 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
     let active = true;
 
     void (async () => {
-      const remote = await fetchRemoteCatalog();
-      if (!remote || !active) return;
+      try {
+        const remote = await fetchRemoteCatalog();
+        if (!remote || !active) return;
 
-      const hasRemoteData = remote.products.length > 0 || remote.categories.length > 0;
+        const hasRemoteData = remote.products.length > 0 || remote.categories.length > 0;
 
-      if (!hasRemoteData) {
-        const seedCategories = deriveCategoriesFromProducts(normalizedSeedProducts);
+        if (!hasRemoteData) {
+          const seedCategories = deriveCategoriesFromProducts(normalizedSeedProducts);
 
-        await Promise.all(seedCategories.map((category) => upsertCategoryRemote(category)));
-        await Promise.all(normalizedSeedProducts.map((product) => upsertProductRemote(product)));
+          await Promise.all(seedCategories.map((category) => upsertCategoryRemote(category)));
+          await Promise.all(normalizedSeedProducts.map((product) => upsertProductRemote(product)));
 
-        if (!active) return;
-        setProducts(normalizedSeedProducts);
-        setCategories(seedCategories);
-        return;
-      }
+          if (!active) return;
+          setProducts(normalizedSeedProducts);
+          setCategories(seedCategories);
+          return;
+        }
 
-      if (remote.products.length > 0) {
-        setProducts(remote.products);
-      }
+        if (remote.products.length > 0) {
+          setProducts(remote.products);
+        }
 
-      const derivedFromProducts = deriveCategoriesFromProducts(
-        remote.products.length > 0 ? remote.products : normalizedSeedProducts
-      );
-      const mergedCategories = mergeCategories(remote.categories, derivedFromProducts);
+        const derivedFromProducts = deriveCategoriesFromProducts(
+          remote.products.length > 0 ? remote.products : normalizedSeedProducts
+        );
+        const mergedCategories = mergeCategories(remote.categories, derivedFromProducts);
 
-      if (mergedCategories.length > 0) {
-        setCategories(mergedCategories);
+        if (mergedCategories.length > 0) {
+          setCategories(mergedCategories);
+        }
+      } catch {
+        // Keep in-memory state available even if remote bootstrap fails.
       }
     })();
 
@@ -890,7 +934,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const addCategory = useCallback(
-    (label: string): CategoryActionResult => {
+    async (label: string): Promise<CategoryActionResult> => {
       const cleanedLabel = toTitleCase(label);
       if (cleanedLabel.length < 2) {
         return { success: false, error: 'Nome da categoria precisa ter ao menos 2 caracteres.' };
@@ -912,15 +956,21 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         createdAt: new Date().toISOString(),
       };
 
+      try {
+        await upsertCategoryRemote(nextCategory);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Falha ao salvar categoria.';
+        return { success: false, error: message };
+      }
+
       setCategories((previous) => [...previous, nextCategory]);
-      void upsertCategoryRemote(nextCategory);
       return { success: true, category: nextCategory };
     },
     [categories]
   );
 
   const removeCategory = useCallback(
-    (categoryId: string): CategoryActionResult => {
+    async (categoryId: string): Promise<CategoryActionResult> => {
       const normalizedId = normalizeCategoryId(categoryId);
 
       if (!normalizedId) {
@@ -942,15 +992,21 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         };
       }
 
+      try {
+        await removeCategoryRemote(normalizedId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Falha ao remover categoria.';
+        return { success: false, error: message };
+      }
+
       setCategories((previous) => previous.filter((category) => category.id !== normalizedId));
-      void removeCategoryRemote(normalizedId);
       return { success: true };
     },
     [categories.length, products]
   );
 
   const addProduct = useCallback(
-    (draft: ProductDraft): ActionResult => {
+    async (draft: ProductDraft): Promise<ActionResult> => {
       const normalized = normalizeProductDraft(draft);
 
       if (normalized.name.length < 3) {
@@ -1000,108 +1056,117 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         discountPercentage: pricing.discountPercentage,
       };
 
+      try {
+        await upsertProductRemote(nextProduct);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Falha ao salvar produto.';
+        return { success: false, error: message };
+      }
+
       setProducts((previous) => [nextProduct, ...previous]);
-      void upsertProductRemote(nextProduct);
       return { success: true };
     },
     [categories, products]
   );
 
   const updateProduct = useCallback(
-    (productId: string, updates: Partial<Omit<Product, 'id'>>): boolean => {
+    async (productId: string, updates: Partial<Omit<Product, 'id'>>): Promise<boolean> => {
       const target = products.find((product) => product.id === productId);
       if (!target) return false;
-      let updatedProduct: Product | null = null;
 
-      setProducts((previous) =>
-        previous.map((product) => {
-          if (product.id !== productId) return product;
+      const nextName = updates.name?.trim() || target.name;
+      const nextImage = updates.image?.trim() || target.image;
+      const nextDescription = updates.description?.trim() || target.description;
 
-          const nextName = updates.name?.trim() || product.name;
-          const nextImage = updates.image?.trim() || product.image;
-          const nextDescription = updates.description?.trim() || product.description;
+      const requestedCategoryId =
+        typeof updates.category === 'string' ? normalizeCategoryId(updates.category) : null;
 
-          const requestedCategoryId =
-            typeof updates.category === 'string' ? normalizeCategoryId(updates.category) : null;
+      const canUseRequestedCategory = requestedCategoryId
+        ? categories.some((category) => category.id === requestedCategoryId)
+        : false;
 
-          const canUseRequestedCategory = requestedCategoryId
-            ? categories.some((category) => category.id === requestedCategoryId)
-            : false;
+      const nextCategory = canUseRequestedCategory ? requestedCategoryId : target.category;
 
-          const nextCategory = canUseRequestedCategory ? requestedCategoryId : product.category;
+      const normalizedSizes = updates.sizes ? normalizeSizes(updates.sizes) : target.sizes ?? DEFAULT_SIZES;
+      const stockSetup = buildUpdatedStockBySize(target, {
+        sizes: normalizedSizes,
+        stockBySize: updates.stockBySize,
+        stock: updates.stock,
+      });
 
-          const normalizedSizes = updates.sizes ? normalizeSizes(updates.sizes) : product.sizes ?? DEFAULT_SIZES;
-          const stockSetup = buildUpdatedStockBySize(product, {
-            sizes: normalizedSizes,
-            stockBySize: updates.stockBySize,
-            stock: updates.stock,
-          });
+      const nextSizeGuide = updates.sizeGuide
+        ? normalizeSizeGuide(updates.sizeGuide, stockSetup.sizes)
+        : normalizeSizeGuide(target.sizeGuide, stockSetup.sizes);
 
-          const nextSizeGuide = updates.sizeGuide
-            ? normalizeSizeGuide(updates.sizeGuide, stockSetup.sizes)
-            : normalizeSizeGuide(product.sizeGuide, stockSetup.sizes);
+      const hasPricingUpdates =
+        typeof updates.price === 'number' ||
+        typeof updates.originalPrice === 'number' ||
+        typeof updates.discountPercentage === 'number';
 
-          const hasPricingUpdates =
-            typeof updates.price === 'number' ||
-            typeof updates.originalPrice === 'number' ||
-            typeof updates.discountPercentage === 'number';
-
-          const pricing = hasPricingUpdates
-            ? resolvePricing({
-                price:
-                  typeof updates.price === 'number' && Number.isFinite(updates.price)
-                    ? updates.price
-                    : product.price,
-                originalPrice:
-                  typeof updates.originalPrice === 'number' && Number.isFinite(updates.originalPrice)
-                    ? updates.originalPrice
-                    : product.originalPrice,
-                discountPercentage:
-                  typeof updates.discountPercentage === 'number' && Number.isFinite(updates.discountPercentage)
-                    ? updates.discountPercentage
-                    : product.discountPercentage,
-              })
-            : {
-                price: product.price,
-                originalPrice: product.originalPrice,
-                discountPercentage: product.discountPercentage,
-              };
-
-          if (!pricing) {
-            return product;
-          }
-
-          updatedProduct = {
-            ...product,
-            name: nextName,
-            image: nextImage,
-            description: nextDescription,
-            category: nextCategory,
-            sizes: stockSetup.sizes,
-            stockBySize: stockSetup.stockBySize,
-            stock: stockSetup.stock,
-            sizeGuide: nextSizeGuide,
-            price: pricing.price,
-            originalPrice: pricing.originalPrice,
-            discountPercentage: pricing.discountPercentage,
+      const pricing = hasPricingUpdates
+        ? resolvePricing({
+            price:
+              typeof updates.price === 'number' && Number.isFinite(updates.price)
+                ? updates.price
+                : target.price,
+            originalPrice:
+              typeof updates.originalPrice === 'number' && Number.isFinite(updates.originalPrice)
+                ? updates.originalPrice
+                : target.originalPrice,
+            discountPercentage:
+              typeof updates.discountPercentage === 'number' && Number.isFinite(updates.discountPercentage)
+                ? updates.discountPercentage
+                : target.discountPercentage,
+          })
+        : {
+            price: target.price,
+            originalPrice: target.originalPrice,
+            discountPercentage: target.discountPercentage,
           };
 
-          return updatedProduct;
-        })
-      );
-
-      if (updatedProduct) {
-        void upsertProductRemote(updatedProduct);
+      if (!pricing) {
+        return false;
       }
+
+      const updatedProduct: Product = {
+        ...target,
+        name: nextName,
+        image: nextImage,
+        description: nextDescription,
+        category: nextCategory,
+        sizes: stockSetup.sizes,
+        stockBySize: stockSetup.stockBySize,
+        stock: stockSetup.stock,
+        sizeGuide: nextSizeGuide,
+        price: pricing.price,
+        originalPrice: pricing.originalPrice,
+        discountPercentage: pricing.discountPercentage,
+      };
+
+      try {
+        await upsertProductRemote(updatedProduct);
+      } catch {
+        return false;
+      }
+
+      setProducts((previous) =>
+        previous.map((product) => (product.id === productId ? updatedProduct : product))
+      );
 
       return true;
     },
     [categories, products]
   );
 
-  const removeProduct = useCallback((productId: string) => {
+  const removeProduct = useCallback(async (productId: string): Promise<boolean> => {
+    try {
+      await removeProductRemote(productId);
+    } catch {
+      return false;
+    }
+
     setProducts((previous) => previous.filter((product) => product.id !== productId));
-    void removeProductRemote(productId);
+    return true;
   }, []);
 
   const adjustProductStock = useCallback((productId: string, delta: number) => {
@@ -1130,7 +1195,9 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
     );
 
     if (updatedProduct) {
-      void syncProductStocksRemote(updatedProduct);
+      void syncProductStocksRemote(updatedProduct).catch(() => {
+        // Ignore sync failures here; admin can retry stock adjustments.
+      });
     }
   }, []);
 
@@ -1164,7 +1231,9 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
     );
 
     if (updatedProduct) {
-      void syncProductStocksRemote(updatedProduct);
+      void syncProductStocksRemote(updatedProduct).catch(() => {
+        // Ignore sync failures here; admin can retry stock adjustments.
+      });
     }
   }, []);
 
@@ -1254,7 +1323,11 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       );
 
       if (touchedProducts.length > 0) {
-        void Promise.all(touchedProducts.map((product) => syncProductStocksRemote(product)));
+        void Promise.all(touchedProducts.map((product) => syncProductStocksRemote(product))).catch(
+          () => {
+            // Ignore sync failures in local checkout fallback mode.
+          }
+        );
       }
 
       return { success: true };

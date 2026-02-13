@@ -241,9 +241,9 @@ const AdminPage = () => {
     };
   }, [orders]);
 
-  const handleCreateCategory = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateCategory = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const result = addCategory(newCategoryName);
+    const result = await addCategory(newCategoryName);
 
     if (!result.success) {
       setCategoryMessage(result.error ?? 'Nao foi possivel criar a categoria.');
@@ -254,9 +254,9 @@ const AdminPage = () => {
     setNewCategoryName('');
   };
 
-  const handleRemoveCategory = (categoryId: string) => {
+  const handleRemoveCategory = async (categoryId: string) => {
     const label = getCategoryLabel(categoryId);
-    const result = removeCategory(categoryId);
+    const result = await removeCategory(categoryId);
 
     if (!result.success) {
       setCategoryMessage(result.error ?? 'Nao foi possivel remover a categoria.');
@@ -335,7 +335,7 @@ const AdminPage = () => {
     setSettingsMessage('Configuracoes de contato atualizadas com sucesso.');
   };
 
-  const handleCreateProduct = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateProduct = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const basePrice = Number(newProduct.basePrice);
@@ -360,7 +360,7 @@ const AdminPage = () => {
       return;
     }
 
-    const result = addProduct({
+    const result = await addProduct({
       name: newProduct.name,
       image: newProduct.image,
       category: newProduct.category,
@@ -448,7 +448,7 @@ const AdminPage = () => {
     }));
   };
 
-  const handleSaveProductEdit = (
+  const handleSaveProductEdit = async (
     productId: string,
     sizes: string[] | undefined,
     stockBySize: Record<string, number> | undefined
@@ -481,7 +481,7 @@ const AdminPage = () => {
       sleeveCm: Number(editingProductSizeGuide[size]?.sleeveCm || 0),
     }));
 
-    const updated = updateProduct(productId, {
+    const updated = await updateProduct(productId, {
       name: nextName,
       description: nextDescription,
       price: basePrice,
@@ -792,7 +792,7 @@ const AdminPage = () => {
                             <div className="flex gap-2">
                               <button
                                 onClick={() =>
-                                  handleSaveProductEdit(
+                                  void handleSaveProductEdit(
                                     product.id,
                                     product.sizes,
                                     product.stockBySize
@@ -814,7 +814,14 @@ const AdminPage = () => {
                       </div>
 
                       <button
-                        onClick={() => removeProduct(product.id)}
+                        onClick={() => {
+                          void (async () => {
+                            const removed = await removeProduct(product.id);
+                            if (!removed) {
+                              setProductEditMessage('Nao foi possivel remover este produto.');
+                            }
+                          })();
+                        }}
                         className="h-9 w-9 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 grid place-items-center hover:bg-red-50 dark:hover:bg-red-950/30"
                         aria-label={`Remover ${product.name}`}
                       >
@@ -872,7 +879,9 @@ const AdminPage = () => {
                       </p>
                     </div>
                     <button
-                      onClick={() => handleRemoveCategory(category.id)}
+                      onClick={() => {
+                        void handleRemoveCategory(category.id);
+                      }}
                       className="inline-flex items-center justify-center rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 px-2.5 py-1.5 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/30"
                     >
                       Remover
