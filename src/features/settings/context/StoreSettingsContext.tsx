@@ -30,6 +30,7 @@ export type StoreSocialLinks = Record<SocialPlatform, string>;
 export interface StoreSettings {
   contact: StoreContactSettings;
   socialLinks: StoreSocialLinks;
+  showSocialIcons: boolean;
 }
 
 interface StoreSettingsContextValue {
@@ -44,6 +45,7 @@ interface StoreSettingsRow {
   whatsapp_url: string;
   contact_email: string;
   contact_handle: string;
+  show_social_icons?: boolean;
   tiktok_url: string;
   instagram_url: string;
   x_url: string;
@@ -55,6 +57,7 @@ interface StoreSettingsRow {
 const STORE_SETTINGS_STORAGE_KEY = 'nuvle-store-settings-v1';
 
 const defaultSettings: StoreSettings = {
+  showSocialIcons: true,
   contact: {
     whatsappLabel: '(81) 98896-6556',
     whatsappUrl: 'https://wa.me/5581988966556',
@@ -74,6 +77,11 @@ const defaultSettings: StoreSettings = {
 const normalizeText = (value: unknown) => {
   if (typeof value !== 'string') return '';
   return value.trim();
+};
+
+const normalizeBoolean = (value: unknown, fallback: boolean) => {
+  if (typeof value === 'boolean') return value;
+  return fallback;
 };
 
 const normalizeContact = (value: unknown): StoreContactSettings => {
@@ -119,6 +127,10 @@ const normalizeSettings = (value: unknown): StoreSettings => {
   return {
     contact: normalizeContact(payload.contact),
     socialLinks: normalizeSocialLinks(payload.socialLinks),
+    showSocialIcons: normalizeBoolean(
+      payload.showSocialIcons,
+      defaultSettings.showSocialIcons
+    ),
   };
 };
 
@@ -142,10 +154,28 @@ const normalizeSettingsRow = (value: unknown): StoreSettings | null => {
       whatsapp: row.whatsapp_social_url,
       linkedin: row.linkedin_url,
     },
+    showSocialIcons: row.show_social_icons,
   });
 };
 
 const settingsToRow = (settings: StoreSettings): StoreSettingsRow => ({
+  id: 1,
+  whatsapp_label: settings.contact.whatsappLabel,
+  whatsapp_url: settings.contact.whatsappUrl,
+  contact_email: settings.contact.email,
+  contact_handle: settings.contact.handle,
+  show_social_icons: settings.showSocialIcons,
+  tiktok_url: settings.socialLinks.tiktok,
+  instagram_url: settings.socialLinks.instagram,
+  x_url: settings.socialLinks.x,
+  facebook_url: settings.socialLinks.facebook,
+  whatsapp_social_url: settings.socialLinks.whatsapp,
+  linkedin_url: settings.socialLinks.linkedin,
+});
+
+type StoreSettingsRowLegacy = Omit<StoreSettingsRow, 'show_social_icons'>;
+
+const settingsToRowLegacy = (settings: StoreSettings): StoreSettingsRowLegacy => ({
   id: 1,
   whatsapp_label: settings.contact.whatsappLabel,
   whatsapp_url: settings.contact.whatsappUrl,
@@ -158,6 +188,26 @@ const settingsToRow = (settings: StoreSettings): StoreSettingsRow => ({
   whatsapp_social_url: settings.socialLinks.whatsapp,
   linkedin_url: settings.socialLinks.linkedin,
 });
+
+type PostgrestLikeError = {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+};
+
+const isUndefinedColumnError = (error: unknown, column: string) => {
+  if (!error || typeof error !== 'object') return false;
+  const payload = error as PostgrestLikeError;
+  const combined = `${payload.message ?? ''} ${payload.details ?? ''}`.toLowerCase();
+  const needle = column.toLowerCase();
+  return payload.code === '42703' || combined.includes(needle);
+};
+
+const STORE_SETTINGS_SELECT_V1 =
+  'id, whatsapp_label, whatsapp_url, contact_email, contact_handle, tiktok_url, instagram_url, x_url, facebook_url, whatsapp_social_url, linkedin_url';
+
+const STORE_SETTINGS_SELECT_V2 = `${STORE_SETTINGS_SELECT_V1}, show_social_icons`;
 
 const saveSettingsLocal = (settings: StoreSettings) => {
   if (typeof window === 'undefined') return;
@@ -200,27 +250,41 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
     let active = true;
 
     void (async () => {
-      const { data, error } = await supabase
-        .from('store_settings')
-        .select(
-          'id, whatsapp_label, whatsapp_url, contact_email, contact_handle, tiktok_url, instagram_url, x_url, facebook_url, whatsapp_social_url, linkedin_url'
-        )
-        .eq('id', 1)
-        .maybeSingle();
+      const fetchRow = async (columns: string) =>
+        supabase
+          .from('store_settings')
+          .select(columns)
+          .eq('id', 1)
+          .maybeSingle();
+
+      const { data, error } = await fetchRow(STORE_SETTINGS_SELECT_V2);
+      const fallback =
+        error && isUndefinedColumnError(error, 'show_social_icons')
+          ? await fetchRow(STORE_SETTINGS_SELECT_V1)
+          : null;
+
+      const resolvedData = fallback?.data ?? data;
+      const resolvedError = fallback?.error ?? error;
 
       if (!active) return;
 
-      if (error || !data) {
+      if (resolvedError || !resolvedData) {
         const next = normalizeSettings(defaultSettings);
         setSettingsState(next);
-        await supabase
+        const { error: upsertError } = await supabase
           .from('store_settings')
           .upsert(settingsToRow(next), { onConflict: 'id' });
+
+        if (upsertError && isUndefinedColumnError(upsertError, 'show_social_icons')) {
+          await supabase
+            .from('store_settings')
+            .upsert(settingsToRowLegacy(next), { onConflict: 'id' });
+        }
         setIsHydrated(true);
         return;
       }
 
-      const fromDatabase = normalizeSettingsRow(data);
+      const fromDatabase = normalizeSettingsRow(resolvedData);
       setSettingsState(fromDatabase ?? defaultSettings);
       setIsHydrated(true);
     })();
@@ -234,9 +298,17 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
     if (!isHydrated) return;
 
     if (isSupabaseConfigured && supabase) {
-      void supabase
-        .from('store_settings')
-        .upsert(settingsToRow(settings), { onConflict: 'id' });
+      void (async () => {
+        const { error } = await supabase
+          .from('store_settings')
+          .upsert(settingsToRow(settings), { onConflict: 'id' });
+
+        if (error && isUndefinedColumnError(error, 'show_social_icons')) {
+          await supabase
+            .from('store_settings')
+            .upsert(settingsToRowLegacy(settings), { onConflict: 'id' });
+        }
+      })();
       return;
     }
 
@@ -250,6 +322,7 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
   const updateSettings = useCallback((updates: Partial<StoreSettings>) => {
     setSettingsState((previous) => {
       const merged: StoreSettings = {
+        showSocialIcons: updates.showSocialIcons ?? previous.showSocialIcons,
         contact: {
           ...previous.contact,
           ...(updates.contact ?? {}),

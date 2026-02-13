@@ -184,6 +184,7 @@ create table if not exists public.store_settings (
   whatsapp_url text not null,
   contact_email text not null,
   contact_handle text not null,
+  show_social_icons boolean not null default true,
   tiktok_url text not null default '',
   instagram_url text not null default '',
   x_url text not null default '',
@@ -191,6 +192,10 @@ create table if not exists public.store_settings (
   whatsapp_social_url text not null default '',
   linkedin_url text not null default ''
 );
+
+-- Ensure new columns exist in projects created before this version.
+alter table public.store_settings
+  add column if not exists show_social_icons boolean not null default true;
 
 alter table public.store_settings enable row level security;
 

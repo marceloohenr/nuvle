@@ -143,39 +143,41 @@ const Footer = () => {
               </li>
             </ul>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {socialPlatforms.map((platform) => {
-                const href = normalizeExternalHref(settings.socialLinks[platform.id]);
+            {settings.showSocialIcons && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {socialPlatforms.map((platform) => {
+                  const href = normalizeExternalHref(settings.socialLinks[platform.id]);
 
-                if (!href) {
+                  if (!href) {
+                    return (
+                      <span
+                        key={platform.id}
+                        title={platform.label}
+                        className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-400 dark:text-slate-500"
+                      >
+                        <platform.Icon size={18} />
+                        <span className="sr-only">{platform.label}</span>
+                      </span>
+                    );
+                  }
+
                   return (
-                    <span
+                    <a
                       key={platform.id}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={platform.label}
                       title={platform.label}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-400 dark:text-slate-500"
+                      className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
                       <platform.Icon size={18} />
                       <span className="sr-only">{platform.label}</span>
-                    </span>
+                    </a>
                   );
-                }
-
-                return (
-                  <a
-                    key={platform.id}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={platform.label}
-                    title={platform.label}
-                    className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  >
-                    <platform.Icon size={18} />
-                    <span className="sr-only">{platform.label}</span>
-                  </a>
-                );
-              })}
-            </div>
+                })}
+              </div>
+            )}
           </div>
         </div>
 

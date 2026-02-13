@@ -131,6 +131,7 @@ const AdminPage = () => {
   const [settingsMessage, setSettingsMessage] = useState('');
   const [contactDraft, setContactDraft] = useState(settings.contact);
   const [socialDraft, setSocialDraft] = useState(settings.socialLinks);
+  const [showSocialIconsDraft, setShowSocialIconsDraft] = useState(settings.showSocialIcons);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingProductName, setEditingProductName] = useState('');
   const [editingProductDescription, setEditingProductDescription] = useState('');
@@ -174,6 +175,7 @@ const AdminPage = () => {
   useEffect(() => {
     setContactDraft(settings.contact);
     setSocialDraft(settings.socialLinks);
+    setShowSocialIconsDraft(settings.showSocialIcons);
   }, [settings]);
 
   useEffect(() => {
@@ -395,6 +397,7 @@ const AdminPage = () => {
     setSettings({
       contact: sanitizedContact,
       socialLinks: sanitizedSocial,
+      showSocialIcons: showSocialIconsDraft,
     });
 
     setSettingsMessage('Configuracoes de contato atualizadas com sucesso.');
@@ -1662,6 +1665,33 @@ const AdminPage = () => {
                 placeholder="Perfil exibido (ex.: nuvleoficial)"
                 className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
               />
+
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    Exibir icones de redes no rodape
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Quando desativado, os botoes com icones somem do rodape.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showSocialIconsDraft}
+                  aria-label="Alternar exibicao dos icones de redes no rodape"
+                  onClick={() => setShowSocialIconsDraft((previous) => !previous)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    showSocialIconsDraft ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      showSocialIconsDraft ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
 
               {settingsMessage && (
                 <p className="text-sm text-slate-600 dark:text-slate-300">{settingsMessage}</p>
