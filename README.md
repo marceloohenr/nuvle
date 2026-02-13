@@ -1,6 +1,6 @@
 # Nuvle Store
 
-Projeto React + Vite + TypeScript organizado por dominio para ficar mais facil de entender e evoluir.
+Projeto React + Vite + TypeScript de loja virtual com painel administrativo.
 
 ## Comandos
 
@@ -11,64 +11,55 @@ npm run build
 npm run lint
 ```
 
+## Supabase (obrigatorio para modo banco)
+
+1. Copie `.env.example` para `.env.local`.
+2. Preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+3. No Supabase SQL Editor, execute `supabase/schema.sql`.
+4. Crie um usuario no Auth e depois marque o perfil como admin:
+
+```sql
+update public.profiles set role = 'admin' where email = 'seu-email@dominio.com';
+```
+
+Sem essas variaveis, o projeto funciona em modo local (`localStorage`) para desenvolvimento.
+
 ## Estrutura
 
 ```text
 src/
   app/
-    App.tsx                  # Rotas principais da aplicacao
-    pages/                   # Paginas (home, produtos, carrinho, checkout, pedidos...)
+    App.tsx
+    pages/
   features/
+    auth/
+      context/AuthContext.tsx      # Auth local + Supabase
     catalog/
-      components/            # Card, modal e busca de produtos
-      data/products.ts       # Base de produtos
-      types/product.ts       # Tipos do catalogo
-      index.ts               # API publica do catalogo
+      context/CatalogContext.tsx   # Catalogo/estoque local + Supabase
     cart/
-      components/            # Carrinho lateral
-      context/CartContext.tsx# Estado global do carrinho
-      types/                 # Tipos do carrinho e checkout
-      index.ts               # API publica do carrinho
+      context/CartContext.tsx
     orders/
-      storage/localOrders.ts # Persistencia local do historico de pedidos
-      types/                 # Tipos e metadados de status
-      index.ts               # API publica de pedidos
+      storage/localOrders.ts       # Pedidos local + Supabase
+    settings/
+      context/StoreSettingsContext.tsx # Contato/redes local + Supabase
     layout/
-      components/Header.tsx
-      index.ts
     theme/
-      context/ThemeContext.tsx
-      index.ts
   shared/
-    providers/AppProviders.tsx # Providers globais da aplicacao
-  main.tsx
-  index.css
+    lib/supabase.ts                # Client e flag de configuracao
+    providers/AppProviders.tsx
+supabase/
+  schema.sql                       # Tabelas, funcoes e politicas RLS
 ```
 
-## Fluxo da aplicacao
-
-1. `src/main.tsx` inicializa o React.
-2. `src/app/App.tsx` monta layout global e as rotas.
-3. `src/shared/providers/AppProviders.tsx` aplica `ThemeProvider` e `CartProvider`.
-4. `src/features/cart/context/CartContext.tsx` persiste carrinho em `localStorage`.
-5. `src/features/orders/storage/localOrders.ts` persiste historico de pedidos em `localStorage`.
-
-## Onde editar cada parte
-
-- Produtos: `src/features/catalog/data/products.ts`
-- Regras do carrinho: `src/features/cart/context/CartContext.tsx`
-- Regras de pedidos locais: `src/features/orders/storage/localOrders.ts`
-- Header e navegacao: `src/features/layout/components/Header.tsx`
-- Tema claro/escuro: `src/features/theme/context/ThemeContext.tsx`
-
-## Rotas atuais
+## Rotas
 
 - `/` home
 - `/produtos` catalogo
 - `/produto/:productId` detalhe do produto
-- `/carrinho` carrinho em pagina
-- `/checkout` checkout em etapas
-- `/pedidos` historico de pedidos local
+- `/carrinho` carrinho
+- `/checkout` checkout
+- `/pedidos` historico de pedidos
 - `/pedidos/:orderId` detalhe do pedido
-- `/login` area de login visual
-- `/conta` area de conta visual
+- `/login` login/cadastro
+- `/conta` area da conta
+- `/admin` painel administrativo

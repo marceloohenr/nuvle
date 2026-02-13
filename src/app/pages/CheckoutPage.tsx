@@ -7,6 +7,7 @@ import { useCatalog } from '../../features/catalog';
 import type { CheckoutForm } from '../../features/cart';
 import { addLocalOrder } from '../../features/orders';
 import type { OrderPaymentMethod, OrderStatus } from '../../features/orders';
+import { isSupabaseConfigured } from '../../shared/lib/supabase';
 
 type PaymentMethod = OrderPaymentMethod;
 type CheckoutStep = 1 | 2 | 3;
@@ -204,6 +205,10 @@ const CheckoutPage = () => {
     return <Navigate to="/carrinho" replace />;
   }
 
+  if (isSupabaseConfigured && !currentUser) {
+    return <Navigate to="/login?redirect=/checkout" replace />;
+  }
+
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -294,27 +299,35 @@ const CheckoutPage = () => {
     }
 
     setTimeout(() => {
-      const generatedOrder = `NV${Date.now().toString().slice(-8)}`;
-      const orderStatus: OrderStatus =
-        paymentMethod === 'pix' ? 'pending_payment' : 'paid';
+      void (async () => {
+        try {
+          const generatedOrder = `NV${Date.now().toString().slice(-8)}`;
+          const orderStatus: OrderStatus =
+            paymentMethod === 'pix' ? 'pending_payment' : 'paid';
 
-      addLocalOrder({
-        id: generatedOrder,
-        userId: currentUser?.id,
-        createdAt: new Date().toISOString(),
-        paymentMethod,
-        status: orderStatus,
-        total: orderTotal,
-        items: orderItemsSnapshot,
-        customer: customerSnapshot,
-      });
+          await addLocalOrder({
+            id: generatedOrder,
+            userId: currentUser?.id,
+            createdAt: new Date().toISOString(),
+            paymentMethod,
+            status: orderStatus,
+            total: orderTotal,
+            items: orderItemsSnapshot,
+            customer: customerSnapshot,
+          });
 
-      setOrderId(generatedOrder);
-      dispatch({ type: 'CLEAR_CART' });
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(CHECKOUT_DRAFT_KEY);
-      }
-      setIsSubmitting(false);
+          setOrderId(generatedOrder);
+          dispatch({ type: 'CLEAR_CART' });
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(CHECKOUT_DRAFT_KEY);
+          }
+          setIsSubmitting(false);
+        } catch {
+          setStepErrorMessage('Nao foi possivel registrar o pedido no banco.');
+          setShowStepError(true);
+          setIsSubmitting(false);
+        }
+      })();
     }, 1200);
   };
 

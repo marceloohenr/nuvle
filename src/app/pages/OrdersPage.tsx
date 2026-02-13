@@ -49,9 +49,10 @@ const OrdersPage = () => {
   const [orders, setOrders] = useState<LocalOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
+  const [actionError, setActionError] = useState('');
 
-  const refreshOrders = useCallback(() => {
-    const allOrders = getLocalOrders();
+  const refreshOrders = useCallback(async () => {
+    const allOrders = await getLocalOrders();
     const visibleOrders = allOrders.filter((order) =>
       canAccessOrder(order, currentUser?.id, currentUser?.email, isAdmin)
     );
@@ -60,7 +61,7 @@ const OrdersPage = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    refreshOrders();
+    void refreshOrders();
   }, [isAuthenticated, refreshOrders]);
 
   const filteredOrders = useMemo(() => {
@@ -80,33 +81,51 @@ const OrdersPage = () => {
   const hasOrders = orders.length > 0;
   const hasResults = filteredOrders.length > 0;
 
-  const handleAdvanceStatus = (orderId: string) => {
+  const handleAdvanceStatus = async (orderId: string) => {
     const targetOrder = orders.find((order) => order.id === orderId);
     if (!targetOrder) return;
 
-    advanceLocalOrderStatus(orderId);
-    refreshOrders();
+    try {
+      await advanceLocalOrderStatus(orderId);
+      await refreshOrders();
+      setActionError('');
+    } catch {
+      setActionError('Nao foi possivel atualizar o status do pedido no banco.');
+    }
   };
 
-  const handleRemoveOrder = (orderId: string) => {
+  const handleRemoveOrder = async (orderId: string) => {
     const targetOrder = orders.find((order) => order.id === orderId);
     if (!targetOrder) return;
 
-    removeLocalOrder(orderId);
-    refreshOrders();
+    try {
+      await removeLocalOrder(orderId);
+      await refreshOrders();
+      setActionError('');
+    } catch {
+      setActionError('Nao foi possivel remover o pedido no banco.');
+    }
   };
 
-  const handleClearOrders = () => {
+  const handleClearOrders = async () => {
     if (isAdmin) {
-      clearLocalOrders();
-      refreshOrders();
+      try {
+        await clearLocalOrders();
+        await refreshOrders();
+        setActionError('');
+      } catch {
+        setActionError('Nao foi possivel limpar o historico no banco.');
+      }
       return;
     }
 
-    orders.forEach((order) => {
-      removeLocalOrder(order.id);
-    });
-    refreshOrders();
+    try {
+      await Promise.all(orders.map((order) => removeLocalOrder(order.id)));
+      await refreshOrders();
+      setActionError('');
+    } catch {
+      setActionError('Nao foi possivel limpar o historico no banco.');
+    }
   };
 
   if (!isAuthenticated) {
@@ -148,7 +167,9 @@ const OrdersPage = () => {
 
           {hasOrders && (
             <button
-              onClick={handleClearOrders}
+              onClick={() => {
+                void handleClearOrders();
+              }}
               className="inline-flex items-center justify-center gap-2 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 px-4 py-2.5 rounded-xl font-semibold hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
             >
               <Trash2 size={15} />
@@ -157,6 +178,12 @@ const OrdersPage = () => {
           )}
         </div>
       </section>
+
+      {actionError && (
+        <section className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-700 dark:text-red-300">
+          {actionError}
+        </section>
+      )}
 
       {!hasOrders && (
         <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center">
@@ -361,7 +388,9 @@ const OrdersPage = () => {
                       </Link>
                       {canAdvance && isAdmin && (
                         <button
-                          onClick={() => handleAdvanceStatus(order.id)}
+                          onClick={() => {
+                            void handleAdvanceStatus(order.id);
+                          }}
                           className="inline-flex items-center justify-center border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
                         >
                           Avancar status (demo)
@@ -369,7 +398,9 @@ const OrdersPage = () => {
                       )}
                       {isAdmin && (
                         <button
-                          onClick={() => handleRemoveOrder(order.id)}
+                          onClick={() => {
+                            void handleRemoveOrder(order.id);
+                          }}
                           className="inline-flex items-center justify-center border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                         >
                           Remover

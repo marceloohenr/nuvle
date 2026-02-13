@@ -2,6 +2,7 @@ import { Lock, Mail, ShieldCheck, User } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { demoAdminCredentials, useAuth } from '../../features/auth';
+import { isSupabaseConfigured } from '../../shared/lib/supabase';
 
 type AuthMode = 'login' | 'register';
 
@@ -27,14 +28,14 @@ const LoginPage = () => {
   const redirectParam = searchParams.get('redirect');
   const safeRedirect = redirectParam && redirectParam.startsWith('/') ? redirectParam : null;
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isValid) return;
 
     setErrorMessage('');
 
     if (isLogin) {
-      const result = login({ email: form.email, password: form.password });
+      const result = await login({ email: form.email, password: form.password });
 
       if (!result.success) {
         setErrorMessage(result.error ?? 'Nao foi possivel entrar agora.');
@@ -50,7 +51,7 @@ const LoginPage = () => {
       return;
     }
 
-    const result = register({
+    const result = await register({
       name: form.name,
       email: form.email,
       password: form.password,
@@ -91,7 +92,9 @@ const LoginPage = () => {
             Ver pedidos
           </Link>
           <button
-            onClick={logout}
+            onClick={() => {
+              void logout();
+            }}
             className="inline-flex items-center justify-center border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 px-5 py-3 rounded-xl font-semibold hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
             Sair da conta
@@ -111,7 +114,9 @@ const LoginPage = () => {
           {isLogin ? 'Entrar na sua conta' : 'Criar conta'}
         </h1>
         <p className="mt-3 text-slate-600 dark:text-slate-300">
-          Login local ativo para cliente e administrador.
+          {isSupabaseConfigured
+            ? 'Autenticacao conectada ao Supabase.'
+            : 'Login local ativo para cliente e administrador.'}
         </p>
 
         <div className="mt-6 rounded-xl bg-slate-100 dark:bg-slate-800 p-1 inline-flex">
@@ -224,17 +229,27 @@ const LoginPage = () => {
       <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-100 p-8 md:p-10">
         <h2 className="text-2xl font-bold">Acesso administrativo de teste</h2>
         <p className="mt-3 text-slate-300 text-sm">
-          Use este usuario para abrir o painel administrativo local e gerenciar produtos,
-          estoque, pedidos e clientes.
+          {isSupabaseConfigured
+            ? 'No Supabase, marque um perfil com role=admin para liberar o painel administrativo.'
+            : 'Use este usuario para abrir o painel administrativo local e gerenciar produtos, estoque, pedidos e clientes.'}
         </p>
 
         <div className="mt-5 rounded-2xl bg-slate-800 p-4 border border-slate-700 space-y-2 text-sm">
-          <p>
-            <strong>E-mail:</strong> {demoAdminCredentials.email}
-          </p>
-          <p>
-            <strong>Senha:</strong> {demoAdminCredentials.password}
-          </p>
+          {isSupabaseConfigured ? (
+            <p>
+              Defina o admin no banco: tabela <strong>profiles</strong>, coluna{' '}
+              <strong>role='admin'</strong>.
+            </p>
+          ) : (
+            <>
+              <p>
+                <strong>E-mail:</strong> {demoAdminCredentials.email}
+              </p>
+              <p>
+                <strong>Senha:</strong> {demoAdminCredentials.password}
+              </p>
+            </>
+          )}
         </div>
 
         <ul className="mt-6 space-y-3 text-slate-300 text-sm">

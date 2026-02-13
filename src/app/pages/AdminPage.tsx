@@ -71,6 +71,7 @@ const AdminPage = () => {
   const [orders, setOrders] = useState<LocalOrder[]>([]);
   const [orderSearch, setOrderSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
+  const [orderMessage, setOrderMessage] = useState('');
   const [formMessage, setFormMessage] = useState('');
   const [productEditMessage, setProductEditMessage] = useState('');
   const [categoryMessage, setCategoryMessage] = useState('');
@@ -97,12 +98,12 @@ const AdminPage = () => {
     description: '',
   });
 
-  const refreshOrders = () => {
-    setOrders(getLocalOrders());
+  const refreshOrders = async () => {
+    setOrders(await getLocalOrders());
   };
 
   useEffect(() => {
-    refreshOrders();
+    void refreshOrders();
   }, []);
 
   useEffect(() => {
@@ -537,7 +538,9 @@ const AdminPage = () => {
           </div>
 
           <button
-            onClick={refreshOrders}
+            onClick={() => {
+              void refreshOrders();
+            }}
             className="inline-flex items-center gap-2 border border-slate-300 dark:border-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <RefreshCw size={15} />
@@ -1008,7 +1011,9 @@ const AdminPage = () => {
               />
             </div>
             <button
-              onClick={refreshOrders}
+              onClick={() => {
+                void refreshOrders();
+              }}
               className="inline-flex items-center gap-2 border border-slate-300 dark:border-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <RefreshCw size={14} />
@@ -1017,6 +1022,10 @@ const AdminPage = () => {
           </div>
 
           <div className="mt-4 space-y-3">
+            {orderMessage && (
+              <p className="text-sm text-slate-600 dark:text-slate-300">{orderMessage}</p>
+            )}
+
             {filteredOrders.map((order) => (
               <article
                 key={order.id}
@@ -1051,8 +1060,15 @@ const AdminPage = () => {
                     value={order.status}
                     onChange={(event) => {
                       const nextStatus = event.target.value as OrderStatus;
-                      updateLocalOrderStatus(order.id, nextStatus);
-                      refreshOrders();
+                      void (async () => {
+                        try {
+                          await updateLocalOrderStatus(order.id, nextStatus);
+                          await refreshOrders();
+                          setOrderMessage('Status do pedido atualizado.');
+                        } catch {
+                          setOrderMessage('Nao foi possivel atualizar o status no banco.');
+                        }
+                      })();
                     }}
                     className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                   >
@@ -1072,8 +1088,15 @@ const AdminPage = () => {
 
                   <button
                     onClick={() => {
-                      removeLocalOrder(order.id);
-                      refreshOrders();
+                      void (async () => {
+                        try {
+                          await removeLocalOrder(order.id);
+                          await refreshOrders();
+                          setOrderMessage('Pedido removido com sucesso.');
+                        } catch {
+                          setOrderMessage('Nao foi possivel remover o pedido no banco.');
+                        }
+                      })();
                     }}
                     className="inline-flex items-center justify-center rounded-xl border border-red-200 dark:border-red-900 px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                   >

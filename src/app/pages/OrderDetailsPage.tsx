@@ -27,17 +27,18 @@ const OrderDetailsPage = () => {
   const { currentUser, isAdmin, isAuthenticated } = useAuth();
   const [order, setOrder] = useState<LocalOrder | null>(null);
   const [isRemoved, setIsRemoved] = useState(false);
+  const [actionError, setActionError] = useState('');
 
-  const refreshOrder = useCallback(() => {
+  const refreshOrder = useCallback(async () => {
     if (!orderId) {
       setOrder(null);
       return;
     }
-    setOrder(getLocalOrderById(orderId));
+    setOrder(await getLocalOrderById(orderId));
   }, [orderId]);
 
   useEffect(() => {
-    refreshOrder();
+    void refreshOrder();
   }, [refreshOrder]);
 
   const activeIndex = useMemo(() => {
@@ -214,8 +215,15 @@ const OrderDetailsPage = () => {
             {canAdvanceStatus && isAdmin && (
               <button
                 onClick={() => {
-                  advanceLocalOrderStatus(order.id);
-                  refreshOrder();
+                  void (async () => {
+                    try {
+                      await advanceLocalOrderStatus(order.id);
+                      await refreshOrder();
+                      setActionError('');
+                    } catch {
+                      setActionError('Nao foi possivel atualizar o status no banco.');
+                    }
+                  })();
                 }}
                 className="inline-flex items-center justify-center gap-2 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold py-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
               >
@@ -227,8 +235,15 @@ const OrderDetailsPage = () => {
             {isAdmin && (
               <button
                 onClick={() => {
-                  removeLocalOrder(order.id);
-                  setIsRemoved(true);
+                  void (async () => {
+                    try {
+                      await removeLocalOrder(order.id);
+                      setIsRemoved(true);
+                      setActionError('');
+                    } catch {
+                      setActionError('Nao foi possivel remover o pedido no banco.');
+                    }
+                  })();
                 }}
                 className="inline-flex items-center justify-center gap-2 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 font-semibold py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
               >
@@ -239,12 +254,18 @@ const OrderDetailsPage = () => {
           </div>
 
           <button
-            onClick={() => refreshOrder()}
+            onClick={() => {
+              void refreshOrder();
+            }}
             className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           >
             <RotateCcw size={13} />
             Atualizar dados
           </button>
+
+          {actionError && (
+            <p className="text-xs text-red-600 dark:text-red-400">{actionError}</p>
+          )}
         </aside>
       </section>
     </div>

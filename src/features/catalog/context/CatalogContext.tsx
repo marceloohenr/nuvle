@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { isSupabaseConfigured, supabase } from '../../../shared/lib/supabase';
 import { products as seedProducts } from '../data/products';
 import type {
   Product,
@@ -93,6 +94,33 @@ const defaultSizeGuideBySize: Record<string, Omit<SizeGuideRow, 'size'>> = {
   G: { widthCm: 59, lengthCm: 75, sleeveCm: 24 },
   GG: { widthCm: 62, lengthCm: 77, sleeveCm: 25 },
 };
+
+interface CategoryRow {
+  id: string;
+  label: string;
+  created_at: string;
+}
+
+interface ProductSizeRow {
+  product_id: string;
+  size: string;
+  stock: number;
+  width_cm: number;
+  length_cm: number;
+  sleeve_cm: number;
+}
+
+interface ProductRow {
+  id: string;
+  name: string;
+  price: number;
+  original_price: number | null;
+  discount_percentage: number | null;
+  image: string;
+  category_id: string;
+  description: string | null;
+  product_sizes?: ProductSizeRow[];
+}
 
 const roundCurrency = (value: number) =>
   Math.round(value * PRICE_ROUND_FACTOR) / PRICE_ROUND_FACTOR;
@@ -407,6 +435,209 @@ const normalizeProductDraft = (draft: ProductDraft): ProductDraft => {
   };
 };
 
+const categoryRowToMeta = (value: unknown): ProductCategoryMeta | null => {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Partial<CategoryRow>;
+
+  return normalizeCategoryMeta({
+    id: row.id,
+    label: row.label,
+    createdAt: row.created_at,
+  });
+};
+
+const productRowToProduct = (value: unknown): Product | null => {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Partial<ProductRow>;
+
+  if (
+    !row.id ||
+    !row.name ||
+    !row.image ||
+    !row.category_id ||
+    typeof row.id !== 'string' ||
+    typeof row.name !== 'string' ||
+    typeof row.image !== 'string' ||
+    typeof row.category_id !== 'string'
+  ) {
+    return null;
+  }
+
+  const sizeRows = Array.isArray(row.product_sizes) ? row.product_sizes : [];
+  const sizes = sizeRows.map((entry) => normalizeSizeToken(entry.size));
+  const uniqueSizes = sizes.length > 0 ? Array.from(new Set(sizes)) : DEFAULT_SIZES;
+
+  const stockBySize = uniqueSizes.reduce<Record<string, number>>((accumulator, size) => {
+    const matching = sizeRows.find((entry) => normalizeSizeToken(entry.size) === size);
+    accumulator[size] = normalizePositiveInteger(matching?.stock ?? 0);
+    return accumulator;
+  }, {});
+
+  const sizeGuide = uniqueSizes.map((size) => {
+    const matching = sizeRows.find((entry) => normalizeSizeToken(entry.size) === size);
+    const fallback = getDefaultGuideRow(size);
+
+    return {
+      size,
+      widthCm: normalizeGuideNumber(matching?.width_cm, fallback.widthCm),
+      lengthCm: normalizeGuideNumber(matching?.length_cm, fallback.lengthCm),
+      sleeveCm: normalizeGuideNumber(matching?.sleeve_cm, fallback.sleeveCm),
+    };
+  });
+
+  return normalizeProduct({
+    id: row.id,
+    name: row.name,
+    image: row.image,
+    category: row.category_id,
+    description: row.description ?? undefined,
+    sizes: uniqueSizes,
+    stockBySize,
+    sizeGuide,
+    stock: sumStockBySize(stockBySize),
+    price: normalizeNumber(row.price, 0),
+    originalPrice:
+      typeof row.original_price === 'number' && Number.isFinite(row.original_price)
+        ? row.original_price
+        : undefined,
+    discountPercentage:
+      typeof row.discount_percentage === 'number' && Number.isFinite(row.discount_percentage)
+        ? row.discount_percentage
+        : undefined,
+  });
+};
+
+const productToRow = (product: Product) => ({
+  id: product.id,
+  name: product.name,
+  price: product.price,
+  original_price: product.originalPrice ?? null,
+  discount_percentage: product.discountPercentage ?? null,
+  image: product.image,
+  category_id: product.category,
+  description: product.description ?? null,
+});
+
+const productToSizeRows = (product: Product): ProductSizeRow[] => {
+  const sizes = product.sizes?.length ? product.sizes : ['UN'];
+  const stockBySize = normalizeStockBySize(product.stockBySize, sizes, product.stock);
+  const guide = normalizeSizeGuide(product.sizeGuide, sizes);
+
+  return sizes.map((size) => {
+    const guideRow = guide.find((entry) => entry.size === size) ?? getDefaultGuideRow(size);
+
+    return {
+      product_id: product.id,
+      size,
+      stock: normalizePositiveInteger(stockBySize[size]),
+      width_cm: normalizeGuideNumber(guideRow.widthCm, guideRow.widthCm),
+      length_cm: normalizeGuideNumber(guideRow.lengthCm, guideRow.lengthCm),
+      sleeve_cm: normalizeGuideNumber(guideRow.sleeveCm, guideRow.sleeveCm),
+    };
+  });
+};
+
+const upsertCategoryRemote = async (category: ProductCategoryMeta) => {
+  if (!isSupabaseConfigured || !supabase) return;
+
+  await supabase.from('categories').upsert(
+    {
+      id: category.id,
+      label: category.label,
+      created_at: category.createdAt,
+    },
+    { onConflict: 'id' }
+  );
+};
+
+const removeCategoryRemote = async (categoryId: string) => {
+  if (!isSupabaseConfigured || !supabase) return;
+  await supabase.from('categories').delete().eq('id', categoryId);
+};
+
+const upsertProductRemote = async (product: Product) => {
+  if (!isSupabaseConfigured || !supabase) return;
+
+  await supabase.from('products').upsert(productToRow(product), { onConflict: 'id' });
+
+  const sizeRows = productToSizeRows(product);
+  if (sizeRows.length > 0) {
+    await supabase
+      .from('product_sizes')
+      .upsert(sizeRows, { onConflict: 'product_id,size' });
+  }
+
+  const { data: existingSizeRows } = await supabase
+    .from('product_sizes')
+    .select('size')
+    .eq('product_id', product.id);
+
+  if (!Array.isArray(existingSizeRows)) return;
+
+  const nextSizes = new Set(sizeRows.map((entry) => entry.size));
+  const obsoleteSizes = existingSizeRows
+    .map((entry) => normalizeSizeToken((entry as { size?: string }).size))
+    .filter((size) => !nextSizes.has(size));
+
+  if (obsoleteSizes.length > 0) {
+    await supabase
+      .from('product_sizes')
+      .delete()
+      .eq('product_id', product.id)
+      .in('size', obsoleteSizes);
+  }
+};
+
+const removeProductRemote = async (productId: string) => {
+  if (!isSupabaseConfigured || !supabase) return;
+  await supabase.from('products').delete().eq('id', productId);
+};
+
+const syncProductStocksRemote = async (product: Product) => {
+  if (!isSupabaseConfigured || !supabase) return;
+
+  const sizes = product.sizes?.length ? product.sizes : ['UN'];
+  const stockBySize = normalizeStockBySize(product.stockBySize, sizes, product.stock);
+
+  await Promise.all(
+    sizes.map((size) =>
+      supabase
+        .from('product_sizes')
+        .update({ stock: normalizePositiveInteger(stockBySize[size]) })
+        .eq('product_id', product.id)
+        .eq('size', size)
+    )
+  );
+};
+
+const fetchRemoteCatalog = async (): Promise<{
+  products: Product[];
+  categories: ProductCategoryMeta[];
+} | null> => {
+  if (!isSupabaseConfigured || !supabase) return null;
+
+  const [productsResponse, categoriesResponse] = await Promise.all([
+    supabase
+      .from('products')
+      .select(
+        'id, name, price, original_price, discount_percentage, image, category_id, description, product_sizes (product_id, size, stock, width_cm, length_cm, sleeve_cm)'
+      ),
+    supabase.from('categories').select('id, label, created_at'),
+  ]);
+
+  const productsData = Array.isArray(productsResponse.data) ? productsResponse.data : [];
+  const categoriesData = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
+
+  const products = productsData
+    .map((entry) => productRowToProduct(entry))
+    .filter((entry): entry is Product => Boolean(entry));
+  const categories = categoriesData
+    .map((entry) => categoryRowToMeta(entry))
+    .filter((entry): entry is ProductCategoryMeta => Boolean(entry));
+
+  return { products, categories };
+};
+
 const saveProducts = (products: Product[]) => {
   if (typeof window === 'undefined') return;
 
@@ -572,12 +803,56 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
   const [categories, setCategories] = useState<ProductCategoryMeta[]>(getInitialCategories);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     saveProducts(products);
   }, [products]);
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     saveCategories(categories);
   }, [categories]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    let active = true;
+
+    void (async () => {
+      const remote = await fetchRemoteCatalog();
+      if (!remote || !active) return;
+
+      const hasRemoteData = remote.products.length > 0 || remote.categories.length > 0;
+
+      if (!hasRemoteData) {
+        const seedCategories = deriveCategoriesFromProducts(normalizedSeedProducts);
+
+        await Promise.all(seedCategories.map((category) => upsertCategoryRemote(category)));
+        await Promise.all(normalizedSeedProducts.map((product) => upsertProductRemote(product)));
+
+        if (!active) return;
+        setProducts(normalizedSeedProducts);
+        setCategories(seedCategories);
+        return;
+      }
+
+      if (remote.products.length > 0) {
+        setProducts(remote.products);
+      }
+
+      const derivedFromProducts = deriveCategoriesFromProducts(
+        remote.products.length > 0 ? remote.products : normalizedSeedProducts
+      );
+      const mergedCategories = mergeCategories(remote.categories, derivedFromProducts);
+
+      if (mergedCategories.length > 0) {
+        setCategories(mergedCategories);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     setCategories((previous) => {
@@ -638,6 +913,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       };
 
       setCategories((previous) => [...previous, nextCategory]);
+      void upsertCategoryRemote(nextCategory);
       return { success: true, category: nextCategory };
     },
     [categories]
@@ -667,6 +943,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setCategories((previous) => previous.filter((category) => category.id !== normalizedId));
+      void removeCategoryRemote(normalizedId);
       return { success: true };
     },
     [categories.length, products]
@@ -724,6 +1001,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       };
 
       setProducts((previous) => [nextProduct, ...previous]);
+      void upsertProductRemote(nextProduct);
       return { success: true };
     },
     [categories, products]
@@ -733,6 +1011,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
     (productId: string, updates: Partial<Omit<Product, 'id'>>): boolean => {
       const target = products.find((product) => product.id === productId);
       if (!target) return false;
+      let updatedProduct: Product | null = null;
 
       setProducts((previous) =>
         previous.map((product) => {
@@ -792,7 +1071,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
             return product;
           }
 
-          return {
+          updatedProduct = {
             ...product,
             name: nextName,
             image: nextImage,
@@ -806,8 +1085,14 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
             originalPrice: pricing.originalPrice,
             discountPercentage: pricing.discountPercentage,
           };
+
+          return updatedProduct;
         })
       );
+
+      if (updatedProduct) {
+        void upsertProductRemote(updatedProduct);
+      }
 
       return true;
     },
@@ -816,10 +1101,12 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
 
   const removeProduct = useCallback((productId: string) => {
     setProducts((previous) => previous.filter((product) => product.id !== productId));
+    void removeProductRemote(productId);
   }, []);
 
   const adjustProductStock = useCallback((productId: string, delta: number) => {
     if (!Number.isFinite(delta) || delta === 0) return;
+    let updatedProduct: Product | null = null;
 
     setProducts((previous) =>
       previous.map((product) => {
@@ -832,19 +1119,26 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
           [sizeKey]: Math.max(0, normalizePositiveInteger(current[sizeKey]) + Math.round(delta)),
         };
 
-        return {
+        updatedProduct = {
           ...product,
           stockBySize: nextStockBySize,
           stock: sumStockBySize(nextStockBySize),
         };
+
+        return updatedProduct;
       })
     );
+
+    if (updatedProduct) {
+      void syncProductStocksRemote(updatedProduct);
+    }
   }, []);
 
   const adjustProductStockBySize = useCallback((productId: string, size: string, delta: number) => {
     if (!Number.isFinite(delta) || delta === 0) return;
 
     const normalizedSize = normalizeSizeToken(size);
+    let updatedProduct: Product | null = null;
 
     setProducts((previous) =>
       previous.map((product) => {
@@ -859,13 +1153,19 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
           [normalizedSize]: Math.max(0, currentQuantity + Math.round(delta)),
         };
 
-        return {
+        updatedProduct = {
           ...product,
           stockBySize: nextStockBySize,
           stock: sumStockBySize(nextStockBySize),
         };
+
+        return updatedProduct;
       })
     );
+
+    if (updatedProduct) {
+      void syncProductStocksRemote(updatedProduct);
+    }
   }, []);
 
   const consumeProductStock = useCallback(
@@ -924,6 +1224,8 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, issues };
       }
 
+      const touchedProducts: Product[] = [];
+
       setProducts((previous) =>
         previous.map((product) => {
           const relevantRequests = Array.from(requestedByKey.values()).filter(
@@ -940,13 +1242,20 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
             nextStockBySize[request.size] = Math.max(0, currentQuantity - request.quantity);
           });
 
-          return {
+          const updatedProduct: Product = {
             ...product,
             stockBySize: nextStockBySize,
             stock: sumStockBySize(nextStockBySize),
           };
+
+          touchedProducts.push(updatedProduct);
+          return updatedProduct;
         })
       );
+
+      if (touchedProducts.length > 0) {
+        void Promise.all(touchedProducts.map((product) => syncProductStocksRemote(product)));
+      }
 
       return { success: true };
     },

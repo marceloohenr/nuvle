@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { isSupabaseConfigured, supabase } from '../../../shared/lib/supabase';
 
 export type SocialPlatform =
   | 'tiktok'
@@ -35,6 +36,20 @@ interface StoreSettingsContextValue {
   settings: StoreSettings;
   setSettings: (nextSettings: StoreSettings) => void;
   updateSettings: (updates: Partial<StoreSettings>) => void;
+}
+
+interface StoreSettingsRow {
+  id: number;
+  whatsapp_label: string;
+  whatsapp_url: string;
+  contact_email: string;
+  contact_handle: string;
+  tiktok_url: string;
+  instagram_url: string;
+  x_url: string;
+  facebook_url: string;
+  whatsapp_social_url: string;
+  linkedin_url: string;
 }
 
 const STORE_SETTINGS_STORAGE_KEY = 'nuvle-store-settings-v1';
@@ -106,7 +121,44 @@ const normalizeSettings = (value: unknown): StoreSettings => {
   };
 };
 
-const saveSettings = (settings: StoreSettings) => {
+const normalizeSettingsRow = (value: unknown): StoreSettings | null => {
+  if (!value || typeof value !== 'object') return null;
+
+  const row = value as Partial<StoreSettingsRow>;
+
+  return normalizeSettings({
+    contact: {
+      whatsappLabel: row.whatsapp_label,
+      whatsappUrl: row.whatsapp_url,
+      email: row.contact_email,
+      handle: row.contact_handle,
+    },
+    socialLinks: {
+      tiktok: row.tiktok_url,
+      instagram: row.instagram_url,
+      x: row.x_url,
+      facebook: row.facebook_url,
+      whatsapp: row.whatsapp_social_url,
+      linkedin: row.linkedin_url,
+    },
+  });
+};
+
+const settingsToRow = (settings: StoreSettings): StoreSettingsRow => ({
+  id: 1,
+  whatsapp_label: settings.contact.whatsappLabel,
+  whatsapp_url: settings.contact.whatsappUrl,
+  contact_email: settings.contact.email,
+  contact_handle: settings.contact.handle,
+  tiktok_url: settings.socialLinks.tiktok,
+  instagram_url: settings.socialLinks.instagram,
+  x_url: settings.socialLinks.x,
+  facebook_url: settings.socialLinks.facebook,
+  whatsapp_social_url: settings.socialLinks.whatsapp,
+  linkedin_url: settings.socialLinks.linkedin,
+});
+
+const saveSettingsLocal = (settings: StoreSettings) => {
   if (typeof window === 'undefined') return;
 
   try {
@@ -122,13 +174,12 @@ const getInitialSettings = (): StoreSettings => {
   try {
     const raw = localStorage.getItem(STORE_SETTINGS_STORAGE_KEY);
     if (!raw) {
-      saveSettings(defaultSettings);
+      saveSettingsLocal(defaultSettings);
       return defaultSettings;
     }
 
     const parsed = JSON.parse(raw);
-    const normalized = normalizeSettings(parsed);
-    return normalized;
+    return normalizeSettings(parsed);
   } catch {
     return defaultSettings;
   }
@@ -137,11 +188,59 @@ const getInitialSettings = (): StoreSettings => {
 const StoreSettingsContext = createContext<StoreSettingsContextValue | null>(null);
 
 export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [settings, setSettingsState] = useState<StoreSettings>(getInitialSettings);
+  const [settings, setSettingsState] = useState<StoreSettings>(
+    isSupabaseConfigured ? defaultSettings : getInitialSettings
+  );
+  const [isHydrated, setIsHydrated] = useState(!isSupabaseConfigured);
 
   useEffect(() => {
-    saveSettings(settings);
-  }, [settings]);
+    if (!isSupabaseConfigured || !supabase) return;
+
+    let active = true;
+
+    void (async () => {
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select(
+          'id, whatsapp_label, whatsapp_url, contact_email, contact_handle, tiktok_url, instagram_url, x_url, facebook_url, whatsapp_social_url, linkedin_url'
+        )
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (!active) return;
+
+      if (error || !data) {
+        const next = normalizeSettings(defaultSettings);
+        setSettingsState(next);
+        await supabase
+          .from('store_settings')
+          .upsert(settingsToRow(next), { onConflict: 'id' });
+        setIsHydrated(true);
+        return;
+      }
+
+      const fromDatabase = normalizeSettingsRow(data);
+      setSettingsState(fromDatabase ?? defaultSettings);
+      setIsHydrated(true);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    if (isSupabaseConfigured && supabase) {
+      void supabase
+        .from('store_settings')
+        .upsert(settingsToRow(settings), { onConflict: 'id' });
+      return;
+    }
+
+    saveSettingsLocal(settings);
+  }, [isHydrated, settings]);
 
   const setSettings = useCallback((nextSettings: StoreSettings) => {
     setSettingsState(normalizeSettings(nextSettings));

@@ -1,5 +1,5 @@
-﻿import { CreditCard, LogOut, MapPin, ShieldCheck, UserCircle2 } from 'lucide-react';
-import { useMemo } from 'react';
+import { CreditCard, LogOut, MapPin, ShieldCheck, UserCircle2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import { getLocalOrders, orderStatusLabel } from '../../features/orders';
@@ -45,12 +45,28 @@ const canAccessOrder = (order: LocalOrder, userId: string, email: string) => {
 
 const AccountPage = () => {
   const { currentUser, isAdmin, isAuthenticated, logout } = useAuth();
-  const userOrders = useMemo(() => {
-    if (!currentUser || isAdmin) return [];
+  const [userOrders, setUserOrders] = useState<LocalOrder[]>([]);
 
-    return getLocalOrders().filter((order) =>
-      canAccessOrder(order, currentUser.id, currentUser.email)
-    );
+  useEffect(() => {
+    if (!currentUser || isAdmin) {
+      setUserOrders([]);
+      return;
+    }
+
+    let active = true;
+
+    void (async () => {
+      const allOrders = await getLocalOrders();
+      if (!active) return;
+
+      setUserOrders(
+        allOrders.filter((order) => canAccessOrder(order, currentUser.id, currentUser.email))
+      );
+    })();
+
+    return () => {
+      active = false;
+    };
   }, [currentUser, isAdmin]);
 
   if (!isAuthenticated || !currentUser) {
@@ -86,7 +102,9 @@ const AccountPage = () => {
             Ver pedidos
           </Link>
           <button
-            onClick={logout}
+            onClick={() => {
+              void logout();
+            }}
             className="inline-flex items-center justify-center gap-2 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 px-5 py-3 rounded-xl font-semibold hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
             <LogOut size={15} />
@@ -124,7 +142,9 @@ const AccountPage = () => {
             Ver meus pedidos
           </Link>
           <button
-            onClick={logout}
+            onClick={() => {
+              void logout();
+            }}
             className="inline-flex items-center justify-center gap-2 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 px-5 py-3 rounded-xl font-semibold hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
             <LogOut size={15} />
@@ -243,4 +263,5 @@ const AccountPage = () => {
 };
 
 export default AccountPage;
+
 
