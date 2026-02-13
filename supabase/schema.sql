@@ -67,7 +67,10 @@ create policy profiles_insert_self
 on public.profiles
 for insert
 to authenticated
-with check (id = auth.uid());
+with check (
+  id = auth.uid()
+  and role = 'customer'
+);
 
 drop policy if exists profiles_update_own_or_admin on public.profiles;
 create policy profiles_update_own_or_admin
@@ -75,7 +78,13 @@ on public.profiles
 for update
 to authenticated
 using (id = auth.uid() or public.is_admin())
-with check (id = auth.uid() or public.is_admin());
+with check (
+  public.is_admin()
+  or (
+    id = auth.uid()
+    and role = 'customer'
+  )
+);
 
 -- ---------------------------------------------------------------------------
 -- Catalog
