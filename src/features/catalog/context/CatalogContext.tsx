@@ -23,6 +23,7 @@ interface ProductDraft {
   originalPrice?: number;
   discountPercentage?: number;
   image: string;
+  images?: string[];
   category: ProductCategory;
   description?: string;
   sizes?: string[];
@@ -117,6 +118,7 @@ interface ProductRow {
   original_price: number | null;
   discount_percentage: number | null;
   image: string;
+  images?: string[] | null;
   category_id: string;
   description: string | null;
   product_sizes?: ProductSizeRow[];
@@ -140,6 +142,29 @@ const normalizeSizeToken = (value: unknown) => {
   if (typeof value !== 'string') return 'UN';
   const token = value.trim().toUpperCase();
   return token.length > 0 ? token : 'UN';
+};
+
+const normalizeImageUrl = (value: unknown) => {
+  if (typeof value !== 'string') return '';
+  return value.trim();
+};
+
+const normalizeImageList = (value: unknown, fallback: string) => {
+  const primary = normalizeImageUrl(fallback);
+  const raw = Array.isArray(value) ? value : [];
+  const normalized = raw.map((entry) => normalizeImageUrl(entry)).filter(Boolean);
+  const ordered = primary ? [primary, ...normalized] : normalized;
+
+  const unique: string[] = [];
+  const seen = new Set<string>();
+
+  ordered.forEach((url) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    unique.push(url);
+  });
+
+  return unique.length > 0 ? unique : primary ? [primary] : [];
 };
 
 const slugify = (value: string) =>
@@ -386,6 +411,7 @@ const normalizeProduct = (value: unknown): Product | null => {
   const stockBySize = normalizeStockBySize(item.stockBySize, sizes, item.stock ?? DEFAULT_STOCK);
   const totalStock = sumStockBySize(stockBySize);
   const sizeGuide = normalizeSizeGuide(item.sizeGuide, sizes);
+  const images = normalizeImageList(item.images, item.image);
 
   const pricing = resolvePricing({
     price: item.price,
@@ -399,6 +425,7 @@ const normalizeProduct = (value: unknown): Product | null => {
     id: item.id,
     name: item.name,
     image: item.image,
+    images,
     category: categoryId,
     description: typeof item.description === 'string' ? item.description : undefined,
     sizes,
@@ -415,11 +442,15 @@ const normalizeProductDraft = (draft: ProductDraft): ProductDraft => {
   const sizes = normalizeSizes(draft.sizes);
   const stockBySize = normalizeStockBySize(draft.stockBySize, sizes, draft.stock);
   const totalStock = sumStockBySize(stockBySize);
+  const trimmedImage = draft.image.trim();
+  const images = normalizeImageList(draft.images, trimmedImage);
+  const primaryImage = images[0] ?? trimmedImage;
 
   return {
     ...draft,
     name: draft.name.trim(),
-    image: draft.image.trim(),
+    image: primaryImage,
+    images,
     description: draft.description?.trim(),
     category: normalizeCategoryId(draft.category),
     sizes,
@@ -489,6 +520,7 @@ const productRowToProduct = (value: unknown): Product | null => {
     id: row.id,
     name: row.name,
     image: row.image,
+    images: row.images ?? undefined,
     category: row.category_id,
     description: row.description ?? undefined,
     sizes: uniqueSizes,
@@ -507,16 +539,26 @@ const productRowToProduct = (value: unknown): Product | null => {
   });
 };
 
-const productToRow = (product: Product) => ({
-  id: product.id,
-  name: product.name,
-  price: product.price,
-  original_price: product.originalPrice ?? null,
-  discount_percentage: product.discountPercentage ?? null,
-  image: product.image,
-  category_id: product.category,
-  description: product.description ?? null,
-});
+const productToRow = (product: Product, options?: { includeImages?: boolean }) => {
+  const includeImages = Boolean(options?.includeImages);
+  const images = includeImages
+    ? product.images?.length
+      ? product.images
+      : [product.image]
+    : undefined;
+
+  return {
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    original_price: product.originalPrice ?? null,
+    discount_percentage: product.discountPercentage ?? null,
+    image: product.image,
+    ...(includeImages ? { images } : {}),
+    category_id: product.category,
+    description: product.description ?? null,
+  };
+};
 
 const productToSizeRows = (product: Product): ProductSizeRow[] => {
   const sizes = product.sizes?.length ? product.sizes : ['UN'];
@@ -568,9 +610,25 @@ const upsertProductRemote = async (product: Product) => {
 
   const { error: productError } = await supabase
     .from('products')
-    .upsert(productToRow(product), { onConflict: 'id' });
+    .upsert(productToRow(product, { includeImages: true }), { onConflict: 'id' });
+
   if (productError) {
-    throw new Error(productError.message);
+    const message = productError.message.toLowerCase();
+    const missingImagesColumn =
+      message.includes('images') &&
+      (message.includes('schema cache') || message.includes('column') || message.includes('products'));
+
+    if (!missingImagesColumn) {
+      throw new Error(productError.message);
+    }
+
+    const { error: retryError } = await supabase
+      .from('products')
+      .upsert(productToRow(product, { includeImages: false }), { onConflict: 'id' });
+
+    if (retryError) {
+      throw new Error(retryError.message);
+    }
   }
 
   const sizeRows = productToSizeRows(product);
@@ -652,7 +710,7 @@ const fetchRemoteCatalog = async (): Promise<{
     supabase
       .from('products')
       .select(
-        'id, name, price, original_price, discount_percentage, image, category_id, description, product_sizes (product_id, size, stock, width_cm, length_cm, sleeve_cm)'
+        '*, product_sizes (product_id, size, stock, width_cm, length_cm, sleeve_cm)'
       ),
     supabase.from('categories').select('id, label, created_at'),
   ]);
@@ -1045,6 +1103,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         id: candidateId,
         name: normalized.name,
         image: normalized.image,
+        images: normalized.images,
         category: normalized.category,
         description: normalized.description,
         sizes: normalized.sizes,
@@ -1075,7 +1134,11 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       if (!target) return false;
 
       const nextName = updates.name?.trim() || target.name;
-      const nextImage = updates.image?.trim() || target.image;
+      const basePrimaryImage = updates.image?.trim() || target.image;
+      const nextImages = updates.images
+        ? normalizeImageList(updates.images, basePrimaryImage)
+        : normalizeImageList(target.images, basePrimaryImage);
+      const nextImage = nextImages[0] ?? basePrimaryImage;
       const nextDescription = updates.description?.trim() || target.description;
 
       const requestedCategoryId =
@@ -1132,6 +1195,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
         ...target,
         name: nextName,
         image: nextImage,
+        images: nextImages,
         description: nextDescription,
         category: nextCategory,
         sizes: stockSetup.sizes,

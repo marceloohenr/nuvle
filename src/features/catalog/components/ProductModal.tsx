@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../cart/context/CartContext';
 import { useCatalog } from '../context/CatalogContext';
 import { Product } from '../types/product';
+import { useToast } from '../../../shared/providers';
 
 interface ProductModalProps {
   product: Product | null;
@@ -13,6 +14,7 @@ interface ProductModalProps {
 
 const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
   const { dispatch } = useCart();
+  const { showToast } = useToast();
   const { getProductSizeStock } = useCatalog();
   const [selectedSize, setSelectedSize] = useState('');
 
@@ -53,6 +55,7 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
       type: 'ADD_TO_CART',
       payload: { product, size: selectedSize },
     });
+    showToast(`${product.name} adicionado ao carrinho.`, { variant: 'success' });
     onClose();
   };
 
@@ -73,7 +76,7 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
           <div className="grid md:grid-cols-2 gap-6 p-6">
             <div className="relative">
               <img
-                src={product.image}
+                src={product.images?.[0] ?? product.image}
                 alt={product.name}
                 className="w-full h-80 object-cover rounded-xl"
               />

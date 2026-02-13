@@ -16,6 +16,7 @@ npm run lint
 1. Copie `.env.example` para `.env.local`.
 2. Preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
 3. No Supabase SQL Editor, execute `supabase/schema.sql`.
+   Ele tambem cria o bucket `product-images` (publico) para upload das imagens no painel admin e adiciona suporte a multiplas imagens em `public.products.images`.
 4. O SQL ja inclui a funcao transacional `create_order_with_stock` (pedido + baixa de estoque por tamanho).
    Sempre que eu atualizar esse arquivo, reexecute no SQL Editor para aplicar novas funcoes/policies.
 5. Crie um usuario no Auth e depois marque o perfil como admin:

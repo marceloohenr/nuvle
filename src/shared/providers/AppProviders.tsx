@@ -4,6 +4,7 @@ import { CartProvider } from '../../features/cart/context/CartContext';
 import { CatalogProvider } from '../../features/catalog';
 import { StoreSettingsProvider } from '../../features/settings';
 import { ThemeProvider } from '../../features/theme/context/ThemeContext';
+import { ToastProvider } from './ToastProvider';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -18,13 +19,15 @@ const CartProviderGate = ({ children }: { children: ReactNode }) => {
 export const AppProviders = ({ children }: AppProvidersProps) => {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <StoreSettingsProvider>
-          <CatalogProvider>
-            <CartProviderGate>{children}</CartProviderGate>
-          </CatalogProvider>
-        </StoreSettingsProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <StoreSettingsProvider>
+            <CatalogProvider>
+              <CartProviderGate>{children}</CartProviderGate>
+            </CatalogProvider>
+          </StoreSettingsProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 };

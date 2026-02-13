@@ -1,14 +1,24 @@
-import { AtSign, Mail, PhoneCall } from 'lucide-react';
+import {
+  AtSign,
+  Facebook,
+  Instagram,
+  Linkedin,
+  Mail,
+  MessageCircle,
+  Music2,
+  PhoneCall,
+  X,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStoreSettings } from '../../settings';
 
 const socialPlatforms = [
-  { id: 'tiktok', label: 'TikTok' },
-  { id: 'instagram', label: 'Instagram' },
-  { id: 'x', label: 'X' },
-  { id: 'facebook', label: 'Facebook' },
-  { id: 'whatsapp', label: 'WhatsApp' },
-  { id: 'linkedin', label: 'LinkedIn' },
+  { id: 'tiktok', label: 'TikTok', Icon: Music2 },
+  { id: 'instagram', label: 'Instagram', Icon: Instagram },
+  { id: 'x', label: 'X', Icon: X },
+  { id: 'facebook', label: 'Facebook', Icon: Facebook },
+  { id: 'whatsapp', label: 'WhatsApp', Icon: MessageCircle },
+  { id: 'linkedin', label: 'LinkedIn', Icon: Linkedin },
 ] as const;
 
 const normalizeExternalHref = (value: string) => {
@@ -141,9 +151,11 @@ const Footer = () => {
                   return (
                     <span
                       key={platform.id}
-                      className="inline-flex items-center rounded-full border border-slate-300 dark:border-slate-700 px-3 py-1 text-xs font-semibold text-slate-400 dark:text-slate-500"
+                      title={platform.label}
+                      className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-400 dark:text-slate-500"
                     >
-                      {platform.label}
+                      <platform.Icon size={18} />
+                      <span className="sr-only">{platform.label}</span>
                     </span>
                   );
                 }
@@ -154,9 +166,12 @@ const Footer = () => {
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center rounded-full border border-slate-300 dark:border-slate-700 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    aria-label={platform.label}
+                    title={platform.label}
+                    className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
-                    {platform.label}
+                    <platform.Icon size={18} />
+                    <span className="sr-only">{platform.label}</span>
                   </a>
                 );
               })}

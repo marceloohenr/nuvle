@@ -11,6 +11,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { useCart } from '../../features/cart';
 import { useCatalog } from '../../features/catalog';
 import { useStoreSettings } from '../../features/settings';
+import { useToast } from '../../shared/providers';
 
 const reviews = [
   {
@@ -51,6 +52,7 @@ const faqItems = [
 const ProductDetailsPage = () => {
   const { productId } = useParams();
   const { dispatch } = useCart();
+  const { showToast } = useToast();
   const { products, getCategoryLabel, getProductSizeStock } = useCatalog();
   const { settings } = useStoreSettings();
 
@@ -61,6 +63,22 @@ const ProductDetailsPage = () => {
 
   const [selectedSize, setSelectedSize] = useState('');
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const productImages = useMemo(() => {
+    const raw = product?.images?.length ? product.images : product?.image ? [product.image] : [];
+    const unique: string[] = [];
+    const seen = new Set<string>();
+
+    raw.forEach((entry) => {
+      const url = entry.trim();
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      unique.push(url);
+    });
+
+    return unique;
+  }, [product]);
 
   useEffect(() => {
     if (product?.sizes?.length) {
@@ -72,6 +90,10 @@ const ProductDetailsPage = () => {
     }
     setSelectedSize('');
   }, [getProductSizeStock, product]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [product?.id]);
 
   if (!productId) {
     return <Navigate to="/produtos" replace />;
@@ -131,6 +153,7 @@ const ProductDetailsPage = () => {
       type: 'ADD_TO_CART',
       payload: { product, size: selectedSize },
     });
+    showToast(`${product.name} adicionado ao carrinho.`, { variant: 'success' });
   };
 
   return (
@@ -148,10 +171,29 @@ const ProductDetailsPage = () => {
       <section className="grid gap-8 lg:grid-cols-2">
         <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
           <img
-            src={product.image}
+            src={productImages[activeImageIndex] ?? product.image}
             alt={product.name}
             className="w-full h-[520px] object-cover rounded-2xl"
           />
+          {productImages.length > 1 && (
+            <div className="mt-3 grid grid-cols-5 gap-2">
+              {productImages.map((url, index) => (
+                <button
+                  key={`${product.id}-thumb-${url}`}
+                  type="button"
+                  onClick={() => setActiveImageIndex(index)}
+                  className={`rounded-xl border overflow-hidden transition-colors ${
+                    index === activeImageIndex
+                      ? 'border-blue-600'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-blue-400'
+                  }`}
+                  aria-label={`Ver imagem ${index + 1} do produto`}
+                >
+                  <img src={url} alt="" className="h-16 w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">

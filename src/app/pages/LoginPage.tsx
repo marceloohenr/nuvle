@@ -1,4 +1,4 @@
-import { Lock, Mail, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
@@ -29,6 +29,7 @@ const LoginPage = () => {
   const [infoMessage, setInfoMessage] = useState('');
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const isLogin = mode === 'login';
   const hasName = form.name.trim().length >= 3;
@@ -52,10 +53,10 @@ const LoginPage = () => {
       if (!result.success) {
         if (result.needsEmailConfirmation) {
           setPendingConfirmationEmail(form.email.trim().toLowerCase());
-          setInfoMessage(
+          const baseMessage =
             result.error ??
-              'Seu e-mail ainda nao foi confirmado. Abra sua caixa de entrada e confirme para entrar.'
-          );
+            'Seu e-mail ainda nao foi confirmado. Abra sua caixa de entrada e confirme para entrar.';
+          setInfoMessage(`${baseMessage} Se nao encontrar, verifique a caixa de spam.`);
           return;
         }
 
@@ -85,10 +86,9 @@ const LoginPage = () => {
 
     if (result.needsEmailConfirmation) {
       setPendingConfirmationEmail(form.email.trim().toLowerCase());
-      setInfoMessage(
-        result.message ??
-          'Conta criada. Confirme seu e-mail no link enviado e depois faca login.'
-      );
+      const baseMessage =
+        result.message ?? 'Conta criada. Confirme seu e-mail no link enviado e depois faca login.';
+      setInfoMessage(`${baseMessage} Se nao encontrar, verifique a caixa de spam.`);
       setMode('login');
       setForm((prev) => ({ ...prev, password: '' }));
       return;
@@ -146,9 +146,7 @@ const LoginPage = () => {
           {isLogin ? 'Entrar na sua conta' : 'Criar conta'}
         </h1>
         <p className="mt-3 text-slate-600 dark:text-slate-300">
-          {isSupabaseConfigured
-            ? 'Autenticacao conectada ao Supabase.'
-            : 'Login local ativo para clientes.'}
+          Entre para acompanhar seus pedidos e comprar mais rapido.
         </p>
 
         <div className="mt-6 rounded-xl bg-slate-100 dark:bg-slate-800 p-1 inline-flex">
@@ -235,14 +233,22 @@ const LoginPage = () => {
                 size={18}
               />
               <input
-                type="password"
+                type={isPasswordVisible ? 'text' : 'password'}
                 value={form.password}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, password: event.target.value }))
                 }
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 pl-10 pr-4 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 pl-10 pr-12 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Minimo de 6 caracteres"
               />
+              <button
+                type="button"
+                onClick={() => setIsPasswordVisible((previous) => !previous)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white"
+                aria-label={isPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </label>
 

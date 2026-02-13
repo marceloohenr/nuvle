@@ -59,7 +59,7 @@ const defaultSettings: StoreSettings = {
     whatsappLabel: '(81) 98896-6556',
     whatsappUrl: 'https://wa.me/5581988966556',
     email: 'nuvleoficial@gmail.com',
-    handle: '@nuvleoficial',
+    handle: 'nuvleoficial',
   },
   socialLinks: {
     tiktok: '',
@@ -87,7 +87,8 @@ const normalizeContact = (value: unknown): StoreContactSettings => {
     whatsappLabel: normalizeText(payload.whatsappLabel) || defaultSettings.contact.whatsappLabel,
     whatsappUrl: normalizeText(payload.whatsappUrl) || defaultSettings.contact.whatsappUrl,
     email: normalizeText(payload.email) || defaultSettings.contact.email,
-    handle: normalizeText(payload.handle) || defaultSettings.contact.handle,
+    handle:
+      normalizeText(payload.handle).replace(/^@+/, '') || defaultSettings.contact.handle,
   };
 };
 

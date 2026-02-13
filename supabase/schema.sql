@@ -93,10 +93,19 @@ create table if not exists public.products (
   original_price numeric(12,2),
   discount_percentage numeric(5,2) check (discount_percentage is null or (discount_percentage >= 0 and discount_percentage <= 95)),
   image text not null,
+  images text[],
   category_id text not null references public.categories(id),
   description text,
   created_at timestamptz not null default timezone('utc', now())
 );
+
+-- Ensure new columns exist in projects created before this version.
+alter table public.products
+  add column if not exists images text[];
+
+update public.products
+set images = array[image]
+where images is null;
 
 create table if not exists public.product_sizes (
   product_id text not null references public.products(id) on delete cascade,
@@ -209,7 +218,7 @@ values (
   '(81) 98896-6556',
   'https://wa.me/5581988966556',
   'nuvleoficial@gmail.com',
-  '@nuvleoficial',
+  'nuvleoficial',
   '',
   'https://instagram.com/nuvleoficial',
   '',
@@ -218,6 +227,50 @@ values (
   ''
 )
 on conflict (id) do nothing;
+
+-- Remove leading "@" if the project was seeded with an old handle format.
+update public.store_settings
+set contact_handle = regexp_replace(contact_handle, '^@+', '')
+where id = 1;
+
+-- ---------------------------------------------------------------------------
+-- Storage (product images)
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('product-images', 'product-images', true)
+on conflict (id) do update
+  set public = excluded.public;
+
+alter table storage.objects enable row level security;
+
+drop policy if exists "product_images_read" on storage.objects;
+create policy "product_images_read"
+on storage.objects
+for select
+to anon, authenticated
+using (bucket_id = 'product-images');
+
+drop policy if exists "product_images_insert_admin" on storage.objects;
+create policy "product_images_insert_admin"
+on storage.objects
+for insert
+to authenticated
+with check (bucket_id = 'product-images' and public.is_admin());
+
+drop policy if exists "product_images_update_admin" on storage.objects;
+create policy "product_images_update_admin"
+on storage.objects
+for update
+to authenticated
+using (bucket_id = 'product-images' and public.is_admin())
+with check (bucket_id = 'product-images' and public.is_admin());
+
+drop policy if exists "product_images_delete_admin" on storage.objects;
+create policy "product_images_delete_admin"
+on storage.objects
+for delete
+to authenticated
+using (bucket_id = 'product-images' and public.is_admin());
 
 -- ---------------------------------------------------------------------------
 -- Orders

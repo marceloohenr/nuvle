@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../cart/context/CartContext';
 import { Product } from '../types/product';
 import { useCatalog } from '../context/CatalogContext';
+import { useToast } from '../../../shared/providers';
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
   const { dispatch } = useCart();
+  const { showToast } = useToast();
   const { getCategoryLabel, getProductSizeStock } = useCatalog();
   const [isLiked, setIsLiked] = useState(false);
   const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] ?? 'UN');
@@ -39,6 +41,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
       type: 'ADD_TO_CART',
       payload: { product, size: selectedSize },
     });
+    showToast(`${product.name} adicionado ao carrinho.`, { variant: 'success' });
   };
 
   const handleLike = (event: React.MouseEvent) => {
@@ -53,7 +56,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
     >
       <div className="relative">
         <img
-          src={product.image}
+          src={product.images?.[0] ?? product.image}
           alt={product.name}
           className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
         />

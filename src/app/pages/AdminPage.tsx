@@ -1,10 +1,16 @@
 import {
+  Facebook,
+  Instagram,
+  Linkedin,
+  MessageCircle,
+  Music2,
   PlusCircle,
   RefreshCw,
   Search,
   ShieldCheck,
   Trash2,
   UserCircle2,
+  X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
@@ -23,6 +29,7 @@ import {
 } from '../../features/orders';
 import type { LocalOrder, OrderStatus } from '../../features/orders';
 import { isSupabaseConfigured } from '../../shared/lib/supabase';
+import { uploadProductImages } from '../../shared/lib/storage';
 
 type AdminTab = 'products' | 'orders' | 'customers' | 'settings';
 
@@ -36,6 +43,50 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   timeStyle: 'short',
 });
 
+const uniqueValues = (values: string[]) => {
+  const unique: string[] = [];
+  const seen = new Set<string>();
+
+  values.forEach((value) => {
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    unique.push(trimmed);
+  });
+
+  return unique;
+};
+
+const parseImageUrls = (value: string) => uniqueValues(value.split(/[\n,]+/));
+
+const slugify = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+const roundCurrency = (value: number) => Math.round(value * 100) / 100;
+
+const parseNumericInput = (value: string) => Number(value.replace(',', '.'));
+
+const clampDiscountPercentage = (value: number) => Math.min(95, Math.max(0, value));
+
+const resolveFinalPriceFromDiscount = (basePrice: number, discountPercentage: number) => {
+  if (!Number.isFinite(basePrice) || basePrice <= 0) return 0;
+  const safeDiscount = clampDiscountPercentage(discountPercentage);
+  return roundCurrency(basePrice * (1 - safeDiscount / 100));
+};
+
+const resolveDiscountFromFinalPrice = (basePrice: number, finalPrice: number) => {
+  if (!Number.isFinite(basePrice) || basePrice <= 0) return 0;
+  if (!Number.isFinite(finalPrice) || finalPrice <= 0) return 0;
+
+  if (finalPrice >= basePrice) return 0;
+  return clampDiscountPercentage(roundCurrency((1 - finalPrice / basePrice) * 100));
+};
+
 const statusOptions: OrderStatus[] = [
   'pending_payment',
   'paid',
@@ -44,13 +95,13 @@ const statusOptions: OrderStatus[] = [
   'delivered',
 ];
 
-const socialPlatforms: Array<{ id: SocialPlatform; label: string }> = [
-  { id: 'tiktok', label: 'TikTok' },
-  { id: 'instagram', label: 'Instagram' },
-  { id: 'x', label: 'X' },
-  { id: 'facebook', label: 'Facebook' },
-  { id: 'whatsapp', label: 'WhatsApp' },
-  { id: 'linkedin', label: 'LinkedIn' },
+const socialPlatforms: Array<{ id: SocialPlatform; label: string; Icon: typeof Instagram }> = [
+  { id: 'tiktok', label: 'TikTok', Icon: Music2 },
+  { id: 'instagram', label: 'Instagram', Icon: Instagram },
+  { id: 'x', label: 'X', Icon: X },
+  { id: 'facebook', label: 'Facebook', Icon: Facebook },
+  { id: 'whatsapp', label: 'WhatsApp', Icon: MessageCircle },
+  { id: 'linkedin', label: 'LinkedIn', Icon: Linkedin },
 ];
 
 const AdminPage = () => {
@@ -85,19 +136,32 @@ const AdminPage = () => {
   const [editingProductDescription, setEditingProductDescription] = useState('');
   const [editingProductBasePrice, setEditingProductBasePrice] = useState('');
   const [editingProductDiscount, setEditingProductDiscount] = useState('');
+  const [editingProductFinalPrice, setEditingProductFinalPrice] = useState('');
+  const [editingProductPricingMode, setEditingProductPricingMode] = useState<
+    'discount' | 'final'
+  >('discount');
+  const [editingProductImagesText, setEditingProductImagesText] = useState('');
+  const [editingProductFiles, setEditingProductFiles] = useState<File[]>([]);
+  const [editingProductFileInputKey, setEditingProductFileInputKey] = useState(0);
   const [editingProductSizeGuide, setEditingProductSizeGuide] = useState<
     Record<string, { widthCm: string; lengthCm: string; sleeveCm: string }>
   >({});
   const [newProduct, setNewProduct] = useState({
     name: '',
-    image: '',
+    imageUrls: '',
     category: '',
     basePrice: '',
     discountPercentage: '',
+    finalPrice: '',
     stock: '20',
     sizes: 'P,M,G,GG',
     description: '',
   });
+  const [newProductPricingMode, setNewProductPricingMode] = useState<'discount' | 'final'>(
+    'discount'
+  );
+  const [newProductFiles, setNewProductFiles] = useState<File[]>([]);
+  const [newProductFileInputKey, setNewProductFileInputKey] = useState(0);
 
   const refreshOrders = async () => {
     setOrders(await getLocalOrders());
@@ -273,7 +337,7 @@ const AdminPage = () => {
   ) => {
     setContactDraft((previous) => ({
       ...previous,
-      [field]: value,
+      [field]: field === 'handle' ? value.replace(/^@+/, '') : value,
     }));
   };
 
@@ -291,7 +355,7 @@ const AdminPage = () => {
       whatsappLabel: contactDraft.whatsappLabel.trim(),
       whatsappUrl: contactDraft.whatsappUrl.trim(),
       email: contactDraft.email.trim(),
-      handle: contactDraft.handle.trim(),
+      handle: contactDraft.handle.trim().replace(/^@+/, ''),
     };
 
     const sanitizedSocial = socialPlatforms.reduce<typeof socialDraft>(
@@ -324,7 +388,7 @@ const AdminPage = () => {
     }
 
     if (sanitizedContact.handle.length < 3) {
-      setSettingsMessage('Informe um identificador de perfil valido (ex.: @nuvleoficial).');
+      setSettingsMessage('Informe um identificador de perfil valido (ex.: nuvleoficial).');
       return;
     }
 
@@ -339,21 +403,45 @@ const AdminPage = () => {
   const handleCreateProduct = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const basePrice = Number(newProduct.basePrice);
-    const discountPercentage = Number(newProduct.discountPercentage || 0);
+    const basePrice = parseNumericInput(newProduct.basePrice);
+    const discountPercentage = parseNumericInput(newProduct.discountPercentage || '0');
+    const finalPrice = parseNumericInput(newProduct.finalPrice || '0');
     const normalizedSizes = newProduct.sizes
       .split(',')
       .map((size) => size.trim().toUpperCase())
       .filter(Boolean);
+    const manualUrls = parseImageUrls(newProduct.imageUrls);
 
     if (!Number.isFinite(basePrice) || basePrice <= 0) {
       setFormMessage('Informe um preco base valido.');
       return;
     }
 
-    if (!Number.isFinite(discountPercentage) || discountPercentage < 0 || discountPercentage > 95) {
-      setFormMessage('O desconto precisa estar entre 0% e 95%.');
-      return;
+    const wantsFinalPrice = newProductPricingMode === 'final';
+    const rawDiscountFromFinal = wantsFinalPrice
+      ? roundCurrency((1 - finalPrice / basePrice) * 100)
+      : 0;
+
+    if (wantsFinalPrice) {
+      if (!Number.isFinite(finalPrice) || finalPrice <= 0) {
+        setFormMessage('Informe um preco final valido.');
+        return;
+      }
+
+      if (finalPrice > basePrice) {
+        setFormMessage('O preco final deve ser menor ou igual ao preco base.');
+        return;
+      }
+
+      if (rawDiscountFromFinal > 95) {
+        setFormMessage('O desconto maximo permitido e 95%. Ajuste o preco final.');
+        return;
+      }
+    } else {
+      if (!Number.isFinite(discountPercentage) || discountPercentage < 0 || discountPercentage > 95) {
+        setFormMessage('O desconto precisa estar entre 0% e 95%.');
+        return;
+      }
     }
 
     if (normalizedSizes.length === 0) {
@@ -361,13 +449,30 @@ const AdminPage = () => {
       return;
     }
 
+    const uploadFolder = `draft-${slugify(newProduct.name) || 'produto'}-${Date.now()}`;
+    const uploadResult = newProductFiles.length
+      ? await uploadProductImages({ productId: uploadFolder, files: newProductFiles })
+      : { urls: [], errors: [] };
+
+    const images = uniqueValues([...manualUrls, ...uploadResult.urls]);
+
+    if (images.length === 0) {
+      setFormMessage(
+        uploadResult.errors.length > 0
+          ? `Nao foi possivel enviar imagens: ${uploadResult.errors[0]}`
+          : 'Informe ao menos uma imagem (URL ou upload).'
+      );
+      return;
+    }
+
     const result = await addProduct({
       name: newProduct.name,
-      image: newProduct.image,
+      image: images[0],
+      images,
       category: newProduct.category,
-      price: basePrice,
+      price: wantsFinalPrice ? finalPrice : basePrice,
       originalPrice: basePrice,
-      discountPercentage,
+      discountPercentage: wantsFinalPrice ? undefined : discountPercentage,
       stock: Number(newProduct.stock),
       description: newProduct.description,
       sizes: normalizedSizes,
@@ -378,17 +483,27 @@ const AdminPage = () => {
       return;
     }
 
-    setFormMessage('Produto cadastrado com sucesso.');
+    if (uploadResult.errors.length > 0) {
+      setFormMessage(
+        `Produto cadastrado. Algumas imagens falharam no upload: ${uploadResult.errors[0]}`
+      );
+    } else {
+      setFormMessage('Produto cadastrado com sucesso.');
+    }
     setNewProduct((prev) => ({
       ...prev,
       name: '',
-      image: '',
+      imageUrls: '',
       basePrice: '',
       discountPercentage: '',
+      finalPrice: '',
       description: '',
       stock: '20',
       sizes: 'P,M,G,GG',
     }));
+    setNewProductFiles([]);
+    setNewProductFileInputKey((previous) => previous + 1);
+    setNewProductPricingMode('discount');
   };
 
   const startEditingProduct = (
@@ -399,6 +514,8 @@ const AdminPage = () => {
       originalPrice?: number;
       price: number;
       discountPercentage?: number;
+      image: string;
+      images?: string[];
       sizeGuide?: Array<{ size: string; widthCm: number; lengthCm: number; sleeveCm: number }>;
       sizes?: string[];
     }
@@ -408,6 +525,13 @@ const AdminPage = () => {
     setEditingProductDescription(product.description ?? '');
     setEditingProductBasePrice(String(product.originalPrice ?? product.price));
     setEditingProductDiscount(String(product.discountPercentage ?? 0));
+    setEditingProductFinalPrice(String(product.price));
+    setEditingProductPricingMode('discount');
+    setEditingProductImagesText(
+      uniqueValues(product.images?.length ? product.images : [product.image]).join('\n')
+    );
+    setEditingProductFiles([]);
+    setEditingProductFileInputKey((previous) => previous + 1);
     const sizes = product.sizes?.length ? product.sizes : ['UN'];
     const guideBySize = sizes.reduce<
       Record<string, { widthCm: string; lengthCm: string; sleeveCm: string }>
@@ -430,6 +554,11 @@ const AdminPage = () => {
     setEditingProductDescription('');
     setEditingProductBasePrice('');
     setEditingProductDiscount('');
+    setEditingProductFinalPrice('');
+    setEditingProductPricingMode('discount');
+    setEditingProductImagesText('');
+    setEditingProductFiles([]);
+    setEditingProductFileInputKey((previous) => previous + 1);
     setEditingProductSizeGuide({});
   };
 
@@ -456,9 +585,11 @@ const AdminPage = () => {
   ) => {
     const nextName = editingProductName.trim();
     const nextDescription = editingProductDescription.trim();
-    const basePrice = Number(editingProductBasePrice);
-    const discountPercentage = Number(editingProductDiscount || 0);
+    const basePrice = parseNumericInput(editingProductBasePrice);
+    const discountPercentage = parseNumericInput(editingProductDiscount || '0');
+    const finalPrice = parseNumericInput(editingProductFinalPrice || '0');
     const sizeList = sizes?.length ? sizes : ['UN'];
+    const manualUrls = parseImageUrls(editingProductImagesText);
 
     if (nextName.length < 3) {
       setProductEditMessage('Nome do produto precisa ter ao menos 3 caracteres.');
@@ -470,9 +601,31 @@ const AdminPage = () => {
       return;
     }
 
-    if (!Number.isFinite(discountPercentage) || discountPercentage < 0 || discountPercentage > 95) {
-      setProductEditMessage('Desconto deve estar entre 0% e 95%.');
-      return;
+    const wantsFinalPrice = editingProductPricingMode === 'final';
+    const rawDiscountFromFinal = wantsFinalPrice
+      ? roundCurrency((1 - finalPrice / basePrice) * 100)
+      : 0;
+
+    if (wantsFinalPrice) {
+      if (!Number.isFinite(finalPrice) || finalPrice <= 0) {
+        setProductEditMessage('Preco final precisa ser maior que zero.');
+        return;
+      }
+
+      if (finalPrice > basePrice) {
+        setProductEditMessage('Preco final deve ser menor ou igual ao preco base.');
+        return;
+      }
+
+      if (rawDiscountFromFinal > 95) {
+        setProductEditMessage('O desconto maximo permitido e 95%. Ajuste o preco final.');
+        return;
+      }
+    } else {
+      if (!Number.isFinite(discountPercentage) || discountPercentage < 0 || discountPercentage > 95) {
+        setProductEditMessage('Desconto deve estar entre 0% e 95%.');
+        return;
+      }
     }
 
     const nextGuide = sizeList.map((size) => ({
@@ -482,12 +635,29 @@ const AdminPage = () => {
       sleeveCm: Number(editingProductSizeGuide[size]?.sleeveCm || 0),
     }));
 
+    const uploadResult = editingProductFiles.length
+      ? await uploadProductImages({ productId, files: editingProductFiles })
+      : { urls: [], errors: [] };
+
+    const images = uniqueValues([...manualUrls, ...uploadResult.urls]);
+
+    if (images.length === 0) {
+      setProductEditMessage(
+        uploadResult.errors.length > 0
+          ? `Nao foi possivel enviar imagens: ${uploadResult.errors[0]}`
+          : 'Informe ao menos uma imagem (URL ou upload).'
+      );
+      return;
+    }
+
     const updated = await updateProduct(productId, {
       name: nextName,
       description: nextDescription,
-      price: basePrice,
+      image: images[0],
+      images,
+      price: wantsFinalPrice ? finalPrice : basePrice,
       originalPrice: basePrice,
-      discountPercentage,
+      discountPercentage: wantsFinalPrice ? 0 : discountPercentage,
       sizeGuide: nextGuide,
       stockBySize,
     });
@@ -497,7 +667,13 @@ const AdminPage = () => {
       return;
     }
 
-    setProductEditMessage('Produto atualizado com sucesso.');
+    if (uploadResult.errors.length > 0) {
+      setProductEditMessage(
+        `Produto atualizado. Algumas imagens falharam no upload: ${uploadResult.errors[0]}`
+      );
+    } else {
+      setProductEditMessage('Produto atualizado com sucesso.');
+    }
     cancelEditingProduct();
   };
 
@@ -657,7 +833,7 @@ const AdminPage = () => {
                   >
                     <div className="flex gap-3">
                       <img
-                        src={product.image}
+                        src={product.images?.[0] ?? product.image}
                         alt={product.name}
                         className="h-16 w-16 rounded-lg object-cover"
                       />
@@ -736,17 +912,148 @@ const AdminPage = () => {
                             <div className="grid gap-2 sm:grid-cols-2">
                               <input
                                 value={editingProductBasePrice}
-                                onChange={(event) => setEditingProductBasePrice(event.target.value)}
+                                onChange={(event) => {
+                                  const value = event.target.value;
+                                  setEditingProductBasePrice(value);
+
+                                  const base = parseNumericInput(value);
+                                  if (!Number.isFinite(base) || base <= 0) return;
+
+                                  if (editingProductPricingMode === 'final') {
+                                    const final = parseNumericInput(editingProductFinalPrice || '0');
+                                    if (Number.isFinite(final) && final > 0) {
+                                      setEditingProductDiscount(
+                                        String(resolveDiscountFromFinalPrice(base, final))
+                                      );
+                                    }
+                                    return;
+                                  }
+
+                                  const discount = parseNumericInput(editingProductDiscount || '0');
+                                  if (Number.isFinite(discount) && discount >= 0) {
+                                    setEditingProductFinalPrice(
+                                      resolveFinalPriceFromDiscount(base, discount).toFixed(2)
+                                    );
+                                  }
+                                }}
                                 placeholder="Preco base"
                                 className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                               />
                               <input
                                 value={editingProductDiscount}
-                                onChange={(event) => setEditingProductDiscount(event.target.value)}
+                                onChange={(event) => {
+                                  const value = event.target.value;
+                                  setEditingProductPricingMode('discount');
+                                  setEditingProductDiscount(value);
+
+                                  const base = parseNumericInput(editingProductBasePrice);
+                                  const discount = parseNumericInput(value || '0');
+
+                                  if (Number.isFinite(base) && base > 0 && Number.isFinite(discount) && discount >= 0) {
+                                    setEditingProductFinalPrice(
+                                      resolveFinalPriceFromDiscount(base, discount).toFixed(2)
+                                    );
+                                  }
+                                }}
                                 placeholder="Desconto (%)"
                                 className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                               />
                             </div>
+                            <input
+                              value={editingProductFinalPrice}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setEditingProductPricingMode('final');
+                                setEditingProductFinalPrice(value);
+
+                                const base = parseNumericInput(editingProductBasePrice);
+                                const final = parseNumericInput(value || '0');
+
+                                if (Number.isFinite(base) && base > 0 && Number.isFinite(final) && final > 0) {
+                                  setEditingProductDiscount(
+                                    String(resolveDiscountFromFinalPrice(base, final))
+                                  );
+                                }
+                              }}
+                              placeholder="Preco final"
+                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                            />
+
+                            {(() => {
+                              const base = parseNumericInput(editingProductBasePrice);
+                              if (!Number.isFinite(base) || base <= 0) return null;
+
+                              const discount = parseNumericInput(editingProductDiscount || '0');
+                              const final = parseNumericInput(editingProductFinalPrice || '0');
+
+                              const resolvedFinal =
+                                editingProductPricingMode === 'final' && Number.isFinite(final) && final > 0
+                                  ? final
+                                  : resolveFinalPriceFromDiscount(base, discount);
+
+                              const resolvedDiscount =
+                                editingProductPricingMode === 'final' && Number.isFinite(final) && final > 0
+                                  ? resolveDiscountFromFinalPrice(base, final)
+                                  : clampDiscountPercentage(discount);
+
+                              return (
+                                <p className="text-xs text-slate-600 dark:text-slate-300">
+                                  Pre-visualizacao: {currencyFormatter.format(resolvedFinal)}{' '}
+                                  {resolvedDiscount > 0 ? `| ${resolvedDiscount}% OFF` : ''}
+                                </p>
+                              );
+                            })()}
+
+                            <textarea
+                              value={editingProductImagesText}
+                              onChange={(event) => setEditingProductImagesText(event.target.value)}
+                              placeholder="URLs das imagens (uma por linha)"
+                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 min-h-24"
+                            />
+
+                            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                Upload de imagens (opcional)
+                              </p>
+                              <input
+                                key={editingProductFileInputKey}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(event) => {
+                                  const files = event.target.files ? Array.from(event.target.files) : [];
+                                  setEditingProductFiles(files);
+                                }}
+                                className="mt-2 block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
+                              />
+                              {!isSupabaseConfigured && (
+                                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                  Para enviar imagens direto do painel, conecte o Supabase e crie o bucket
+                                  {' product-images'}.
+                                </p>
+                              )}
+                              {editingProductFiles.length > 0 && (
+                                <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                                  {editingProductFiles.length} arquivo(s) selecionado(s).
+                                </p>
+                              )}
+                            </div>
+
+                            {parseImageUrls(editingProductImagesText).length > 0 && (
+                              <div className="grid grid-cols-5 gap-2">
+                                {parseImageUrls(editingProductImagesText)
+                                  .slice(0, 10)
+                                  .map((url) => (
+                                    <img
+                                      key={`edit-product-preview-${product.id}-${url}`}
+                                      src={url}
+                                      alt="Preview"
+                                      className="h-16 w-full rounded-lg object-cover border border-slate-200 dark:border-slate-800"
+                                      loading="lazy"
+                                    />
+                                  ))}
+                              </div>
+                            )}
 
                             <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
                               <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
@@ -913,35 +1220,159 @@ const AdminPage = () => {
                   placeholder="Nome do produto"
                   className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                 />
-                <input
-                  value={newProduct.image}
+                <textarea
+                  value={newProduct.imageUrls}
                   onChange={(event) =>
-                    setNewProduct((prev) => ({ ...prev, image: event.target.value }))
+                    setNewProduct((prev) => ({ ...prev, imageUrls: event.target.value }))
                   }
-                  placeholder="URL da imagem"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  placeholder="URLs das imagens (uma por linha)"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100 min-h-24"
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
+
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    Upload de imagens (opcional)
+                  </p>
+                  <input
+                    key={newProductFileInputKey}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(event) => {
+                      const files = event.target.files ? Array.from(event.target.files) : [];
+                      setNewProductFiles(files);
+                    }}
+                    className="mt-2 block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
+                  />
+                  {!isSupabaseConfigured && (
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                      Para enviar imagens direto do painel, conecte o Supabase e crie o bucket
+                      {' product-images'}.
+                    </p>
+                  )}
+                  {newProductFiles.length > 0 && (
+                    <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                      {newProductFiles.length} arquivo(s) selecionado(s).
+                    </p>
+                  )}
+                </div>
+
+                {parseImageUrls(newProduct.imageUrls).length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {parseImageUrls(newProduct.imageUrls)
+                      .slice(0, 8)
+                      .map((url) => (
+                        <img
+                          key={`new-product-preview-${url}`}
+                          src={url}
+                          alt="Preview"
+                          className="h-20 w-full rounded-lg object-cover border border-slate-200 dark:border-slate-800"
+                          loading="lazy"
+                        />
+                      ))}
+                  </div>
+                )}
+
+                <div className="grid gap-3 sm:grid-cols-3">
                   <input
                     value={newProduct.basePrice}
-                    onChange={(event) =>
-                      setNewProduct((prev) => ({ ...prev, basePrice: event.target.value }))
-                    }
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setNewProduct((previous) => {
+                        const next = { ...previous, basePrice: value };
+                        const base = parseNumericInput(value);
+
+                        if (!Number.isFinite(base) || base <= 0) return next;
+
+                        if (newProductPricingMode === 'final') {
+                          const final = parseNumericInput(next.finalPrice || '0');
+                          if (Number.isFinite(final) && final > 0) {
+                            next.discountPercentage = String(
+                              resolveDiscountFromFinalPrice(base, final)
+                            );
+                          }
+                          return next;
+                        }
+
+                        const discount = parseNumericInput(next.discountPercentage || '0');
+                        if (Number.isFinite(discount) && discount >= 0) {
+                          next.finalPrice = resolveFinalPriceFromDiscount(base, discount).toFixed(2);
+                        }
+
+                        return next;
+                      });
+                    }}
                     placeholder="Preco base"
                     className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                   <input
                     value={newProduct.discountPercentage}
-                    onChange={(event) =>
-                      setNewProduct((prev) => ({
-                        ...prev,
-                        discountPercentage: event.target.value,
-                      }))
-                    }
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setNewProductPricingMode('discount');
+                      setNewProduct((previous) => {
+                        const next = { ...previous, discountPercentage: value };
+                        const base = parseNumericInput(next.basePrice);
+                        const discount = parseNumericInput(value || '0');
+
+                        if (Number.isFinite(base) && base > 0 && Number.isFinite(discount) && discount >= 0) {
+                          next.finalPrice = resolveFinalPriceFromDiscount(base, discount).toFixed(2);
+                        }
+
+                        return next;
+                      });
+                    }}
                     placeholder="Desconto (%)"
                     className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
+                  <input
+                    value={newProduct.finalPrice}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setNewProductPricingMode('final');
+                      setNewProduct((previous) => {
+                        const next = { ...previous, finalPrice: value };
+                        const base = parseNumericInput(next.basePrice);
+                        const final = parseNumericInput(value || '0');
+
+                        if (Number.isFinite(base) && base > 0 && Number.isFinite(final) && final > 0) {
+                          next.discountPercentage = String(
+                            resolveDiscountFromFinalPrice(base, final)
+                          );
+                        }
+
+                        return next;
+                      });
+                    }}
+                    placeholder="Preco final"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  />
                 </div>
+
+                {(() => {
+                  const base = parseNumericInput(newProduct.basePrice);
+                  if (!Number.isFinite(base) || base <= 0) return null;
+
+                  const discount = parseNumericInput(newProduct.discountPercentage || '0');
+                  const final = parseNumericInput(newProduct.finalPrice || '0');
+
+                  const resolvedFinal =
+                    newProductPricingMode === 'final' && Number.isFinite(final) && final > 0
+                      ? final
+                      : resolveFinalPriceFromDiscount(base, discount);
+
+                  const resolvedDiscount =
+                    newProductPricingMode === 'final' && Number.isFinite(final) && final > 0
+                      ? resolveDiscountFromFinalPrice(base, final)
+                      : clampDiscountPercentage(discount);
+
+                  return (
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                      Pre-visualizacao: {currencyFormatter.format(resolvedFinal)}{' '}
+                      {resolvedDiscount > 0 ? `| ${resolvedDiscount}% OFF` : ''}
+                    </p>
+                  );
+                })()}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <select
                     value={newProduct.category}
@@ -1228,7 +1659,7 @@ const AdminPage = () => {
               <input
                 value={contactDraft.handle}
                 onChange={(event) => handleContactDraftChange('handle', event.target.value)}
-                placeholder="Perfil exibido (ex.: @nuvleoficial)"
+                placeholder="Perfil exibido (ex.: nuvleoficial)"
                 className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
               />
 
@@ -1256,15 +1687,17 @@ const AdminPage = () => {
             <div className="mt-4 space-y-3">
               {socialPlatforms.map((platform) => (
                 <label key={platform.id} className="block">
-                  <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                    {platform.label}
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    <platform.Icon size={16} />
+                    <span className="sr-only">{platform.label}</span>
                   </span>
                   <input
                     value={socialDraft[platform.id]}
                     onChange={(event) =>
                       handleSocialDraftChange(platform.id, event.target.value)
                     }
-                    placeholder={`URL ${platform.label}`}
+                    placeholder="URL"
+                    aria-label={`URL ${platform.label}`}
                     className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                 </label>
@@ -1286,9 +1719,10 @@ const AdminPage = () => {
                         hasUrl
                           ? 'border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300'
                           : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'
-                      }`}
-                    >
-                      {platform.label}
+                    }`}
+                  >
+                      <platform.Icon size={14} />
+                      <span className="sr-only">{platform.label}</span>
                     </span>
                   );
                 })}
