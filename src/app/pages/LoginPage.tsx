@@ -1,7 +1,7 @@
-import { Lock, Mail, ShieldCheck, User } from 'lucide-react';
+import { Lock, Mail, User } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { demoAdminCredentials, useAuth } from '../../features/auth';
+import { useAuth } from '../../features/auth';
 import { isSupabaseConfigured } from '../../shared/lib/supabase';
 
 type AuthMode = 'login' | 'register';
@@ -116,7 +116,7 @@ const LoginPage = () => {
         <p className="mt-3 text-slate-600 dark:text-slate-300">
           {isSupabaseConfigured
             ? 'Autenticacao conectada ao Supabase.'
-            : 'Login local ativo para cliente e administrador.'}
+            : 'Login local ativo para clientes.'}
         </p>
 
         <div className="mt-6 rounded-xl bg-slate-100 dark:bg-slate-800 p-1 inline-flex">
@@ -227,45 +227,16 @@ const LoginPage = () => {
       </section>
 
       <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-100 p-8 md:p-10">
-        <h2 className="text-2xl font-bold">Acesso administrativo de teste</h2>
+        <h2 className="text-2xl font-bold">Compre com tranquilidade</h2>
         <p className="mt-3 text-slate-300 text-sm">
-          {isSupabaseConfigured
-            ? 'No Supabase, marque um perfil com role=admin para liberar o painel administrativo.'
-            : 'Use este usuario para abrir o painel administrativo local e gerenciar produtos, estoque, pedidos e clientes.'}
+          Acompanhe seus pedidos, gerencie seu historico e finalize suas compras com suporte da loja.
         </p>
 
-        <div className="mt-5 rounded-2xl bg-slate-800 p-4 border border-slate-700 space-y-2 text-sm">
-          {isSupabaseConfigured ? (
-            <p>
-              Defina o admin no banco: tabela <strong>profiles</strong>, coluna{' '}
-              <strong>role='admin'</strong>.
-            </p>
-          ) : (
-            <>
-              <p>
-                <strong>E-mail:</strong> {demoAdminCredentials.email}
-              </p>
-              <p>
-                <strong>Senha:</strong> {demoAdminCredentials.password}
-              </p>
-            </>
-          )}
+        <div className="mt-5 rounded-2xl bg-slate-800 p-4 border border-slate-700 space-y-2 text-sm text-slate-300">
+          <p>Pedidos vinculados a sua conta para acompanhamento.</p>
+          <p>Atualizacao de status em tempo real no painel de pedidos.</p>
+          <p>Contato oficial disponivel no rodape da loja.</p>
         </div>
-
-        <ul className="mt-6 space-y-3 text-slate-300 text-sm">
-          <li className="flex gap-3">
-            <ShieldCheck className="mt-0.5 text-emerald-400" size={16} />
-            Alterar estoque e status dos pedidos.
-          </li>
-          <li className="flex gap-3">
-            <ShieldCheck className="mt-0.5 text-emerald-400" size={16} />
-            Cadastrar novas camisas com imagem, preco e tamanhos.
-          </li>
-          <li className="flex gap-3">
-            <ShieldCheck className="mt-0.5 text-emerald-400" size={16} />
-            Ver dados completos de clientes e pedidos.
-          </li>
-        </ul>
       </section>
     </div>
   );
