@@ -321,6 +321,12 @@ export const addLocalOrder = async (order: LocalOrder) => {
     });
 
     if (error) {
+      if (error.message.includes('create_order_with_stock')) {
+        throw new Error(
+          'Funcao create_order_with_stock nao encontrada. Execute novamente supabase/schema.sql.'
+        );
+      }
+
       throw new Error(error.message);
     }
 

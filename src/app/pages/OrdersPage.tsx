@@ -12,6 +12,7 @@ import {
   removeLocalOrder,
 } from '../../features/orders';
 import type { LocalOrder, OrderStatus } from '../../features/orders';
+import { isSupabaseConfigured } from '../../shared/lib/supabase';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -80,6 +81,7 @@ const OrdersPage = () => {
 
   const hasOrders = orders.length > 0;
   const hasResults = filteredOrders.length > 0;
+  const canClearHistory = isAdmin || !isSupabaseConfigured;
 
   const handleAdvanceStatus = async (orderId: string) => {
     const targetOrder = orders.find((order) => order.id === orderId);
@@ -108,6 +110,13 @@ const OrdersPage = () => {
   };
 
   const handleClearOrders = async () => {
+    if (!canClearHistory) {
+      setActionError(
+        'No modo banco, clientes nao podem apagar historico de pedidos.'
+      );
+      return;
+    }
+
     if (isAdmin) {
       try {
         await clearLocalOrders();
@@ -165,7 +174,7 @@ const OrdersPage = () => {
             </p>
           </div>
 
-          {hasOrders && (
+          {hasOrders && canClearHistory && (
             <button
               onClick={() => {
                 void handleClearOrders();
