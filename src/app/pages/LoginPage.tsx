@@ -254,16 +254,23 @@ const LoginPage = () => {
             </div>
           </label>
 
-          {isLogin && isSupabaseConfigured && (
-            <div className="flex justify-end">
+          {isLogin && (
+            <div className="flex flex-col items-end gap-1">
               <button
                 type="button"
-                disabled={!hasEmail || isSendingReset}
+                disabled={!hasEmail || isSendingReset || !isSupabaseConfigured}
                 onClick={() => {
                   void (async () => {
                     setErrorMessage('');
                     setInfoMessage('');
                     setPendingConfirmationEmail(null);
+
+                    if (!isSupabaseConfigured) {
+                      setErrorMessage(
+                        'Recuperacao de senha indisponivel: Supabase nao configurado no deploy.'
+                      );
+                      return;
+                    }
 
                     if (!hasEmail) {
                       setErrorMessage('Informe seu e-mail para recuperar a senha.');
@@ -289,6 +296,12 @@ const LoginPage = () => {
               >
                 {isSendingReset ? 'Enviando...' : 'Esqueci minha senha'}
               </button>
+
+              {!isSupabaseConfigured && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 text-right">
+                  Configure <strong>VITE_SUPABASE_URL</strong> e <strong>VITE_SUPABASE_ANON_KEY</strong> na Vercel e refaça o deploy.
+                </p>
+              )}
             </div>
           )}
 
