@@ -22,6 +22,7 @@ import {
   OrdersPage,
   ProductDetailsPage,
   ProductsPage,
+  ResetPasswordPage,
 } from './pages';
 
 const ProtectedRoute = ({ children }: { children: ReactElement }) => {
@@ -103,6 +104,7 @@ function App() {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/produto/:productId" element={<ProductDetailsPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
               <Route
                 path="/conta"
                 element={(

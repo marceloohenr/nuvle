@@ -39,6 +39,7 @@ interface AuthContextValue {
   login: (payload: LoginPayload) => Promise<ActionResult>;
   register: (payload: RegisterPayload) => Promise<ActionResult>;
   resendSignupConfirmation: (email: string) => Promise<ActionResult>;
+  requestPasswordReset: (email: string) => Promise<ActionResult>;
   logout: () => Promise<void>;
 }
 
@@ -589,7 +590,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [storedUsers]
   );
 
-  const resendSignupConfirmation = useCallback(async (email: string): Promise<ActionResult> => {
+const resendSignupConfirmation = useCallback(async (email: string): Promise<ActionResult> => {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
@@ -612,6 +613,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return {
       success: true,
       message: `E-mail de confirmacao reenviado para ${normalizedEmail}.`,
+    };
+  }, []);
+
+  const requestPasswordReset = useCallback(async (email: string): Promise<ActionResult> => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return { success: false, error: 'Informe um e-mail valido.' };
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      return { success: false, error: 'Supabase nao configurado.' };
+    }
+
+    const redirectTo =
+      typeof window === 'undefined'
+        ? undefined
+        : `${window.location.origin}/redefinir-senha`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      ...(redirectTo ? { redirectTo } : {}),
+    });
+
+    if (error) {
+      return { success: false, error: toFriendlySupabaseAuthError(error.message) };
+    }
+
+    return {
+      success: true,
+      message: `Enviamos um link de redefinicao de senha para ${normalizedEmail}.`,
     };
   }, []);
 
@@ -647,9 +678,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       login,
       register,
       resendSignupConfirmation,
+      requestPasswordReset,
       logout,
     }),
-    [currentUser, users, isAuthReady, login, register, resendSignupConfirmation, logout]
+    [
+      currentUser,
+      users,
+      isAuthReady,
+      login,
+      register,
+      resendSignupConfirmation,
+      requestPasswordReset,
+      logout,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

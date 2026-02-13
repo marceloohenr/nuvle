@@ -8,3 +8,4 @@ export { default as OrderDetailsPage } from './OrderDetailsPage';
 export { default as OrdersPage } from './OrdersPage';
 export { default as ProductDetailsPage } from './ProductDetailsPage';
 export { default as ProductsPage } from './ProductsPage';
+export { default as ResetPasswordPage } from './ResetPasswordPage';

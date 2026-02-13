@@ -16,6 +16,7 @@ const LoginPage = () => {
     login,
     register,
     resendSignupConfirmation,
+    requestPasswordReset,
     logout,
   } = useAuth();
 
@@ -29,6 +30,7 @@ const LoginPage = () => {
   const [infoMessage, setInfoMessage] = useState('');
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const isLogin = mode === 'login';
@@ -251,6 +253,44 @@ const LoginPage = () => {
               </button>
             </div>
           </label>
+
+          {isLogin && isSupabaseConfigured && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={!hasEmail || isSendingReset}
+                onClick={() => {
+                  void (async () => {
+                    setErrorMessage('');
+                    setInfoMessage('');
+                    setPendingConfirmationEmail(null);
+
+                    if (!hasEmail) {
+                      setErrorMessage('Informe seu e-mail para recuperar a senha.');
+                      return;
+                    }
+
+                    setIsSendingReset(true);
+                    const result = await requestPasswordReset(form.email);
+                    setIsSendingReset(false);
+
+                    if (!result.success) {
+                      setErrorMessage(
+                        result.error ?? 'Nao foi possivel enviar o e-mail de redefinicao agora.'
+                      );
+                      return;
+                    }
+
+                    const baseMessage = result.message ?? 'E-mail de redefinicao de senha enviado.';
+                    setInfoMessage(`${baseMessage} Se nao encontrar, verifique a caixa de spam.`);
+                  })();
+                }}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:text-slate-400 disabled:hover:text-slate-400 transition-colors"
+              >
+                {isSendingReset ? 'Enviando...' : 'Esqueci minha senha'}
+              </button>
+            </div>
+          )}
 
           {infoMessage && (
             <div className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30 p-3 text-sm text-blue-800 dark:text-blue-200 space-y-2">
