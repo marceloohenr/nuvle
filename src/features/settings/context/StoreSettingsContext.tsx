@@ -27,10 +27,20 @@ export interface StoreContactSettings {
 
 export type StoreSocialLinks = Record<SocialPlatform, string>;
 
+export interface StoreContactVisibility {
+  whatsapp: boolean;
+  email: boolean;
+  handle: boolean;
+}
+
+export type StoreSocialVisibility = Record<SocialPlatform, boolean>;
+
 export interface StoreSettings {
   contact: StoreContactSettings;
   socialLinks: StoreSocialLinks;
   showSocialIcons: boolean;
+  contactVisibility: StoreContactVisibility;
+  socialVisibility: StoreSocialVisibility;
 }
 
 interface StoreSettingsContextValue {
@@ -45,7 +55,16 @@ interface StoreSettingsRow {
   whatsapp_url: string;
   contact_email: string;
   contact_handle: string;
+  show_contact_whatsapp?: boolean;
+  show_contact_email?: boolean;
+  show_contact_handle?: boolean;
   show_social_icons?: boolean;
+  show_social_tiktok?: boolean;
+  show_social_instagram?: boolean;
+  show_social_x?: boolean;
+  show_social_facebook?: boolean;
+  show_social_whatsapp?: boolean;
+  show_social_linkedin?: boolean;
   tiktok_url: string;
   instagram_url: string;
   x_url: string;
@@ -58,6 +77,19 @@ const STORE_SETTINGS_STORAGE_KEY = 'nuvle-store-settings-v1';
 
 const defaultSettings: StoreSettings = {
   showSocialIcons: true,
+  contactVisibility: {
+    whatsapp: true,
+    email: true,
+    handle: true,
+  },
+  socialVisibility: {
+    tiktok: true,
+    instagram: true,
+    x: true,
+    facebook: true,
+    whatsapp: true,
+    linkedin: true,
+  },
   contact: {
     whatsappLabel: '(81) 98896-6556',
     whatsappUrl: 'https://wa.me/5581988966556',
@@ -82,6 +114,37 @@ const normalizeText = (value: unknown) => {
 const normalizeBoolean = (value: unknown, fallback: boolean) => {
   if (typeof value === 'boolean') return value;
   return fallback;
+};
+
+const normalizeContactVisibility = (value: unknown): StoreContactVisibility => {
+  if (!value || typeof value !== 'object') {
+    return defaultSettings.contactVisibility;
+  }
+
+  const payload = value as Partial<StoreContactVisibility>;
+
+  return {
+    whatsapp: normalizeBoolean(payload.whatsapp, defaultSettings.contactVisibility.whatsapp),
+    email: normalizeBoolean(payload.email, defaultSettings.contactVisibility.email),
+    handle: normalizeBoolean(payload.handle, defaultSettings.contactVisibility.handle),
+  };
+};
+
+const normalizeSocialVisibility = (value: unknown): StoreSocialVisibility => {
+  if (!value || typeof value !== 'object') {
+    return defaultSettings.socialVisibility;
+  }
+
+  const payload = value as Partial<Record<SocialPlatform, boolean>>;
+
+  return {
+    tiktok: normalizeBoolean(payload.tiktok, defaultSettings.socialVisibility.tiktok),
+    instagram: normalizeBoolean(payload.instagram, defaultSettings.socialVisibility.instagram),
+    x: normalizeBoolean(payload.x, defaultSettings.socialVisibility.x),
+    facebook: normalizeBoolean(payload.facebook, defaultSettings.socialVisibility.facebook),
+    whatsapp: normalizeBoolean(payload.whatsapp, defaultSettings.socialVisibility.whatsapp),
+    linkedin: normalizeBoolean(payload.linkedin, defaultSettings.socialVisibility.linkedin),
+  };
 };
 
 const normalizeContact = (value: unknown): StoreContactSettings => {
@@ -131,6 +194,8 @@ const normalizeSettings = (value: unknown): StoreSettings => {
       payload.showSocialIcons,
       defaultSettings.showSocialIcons
     ),
+    contactVisibility: normalizeContactVisibility(payload.contactVisibility),
+    socialVisibility: normalizeSocialVisibility(payload.socialVisibility),
   };
 };
 
@@ -146,6 +211,11 @@ const normalizeSettingsRow = (value: unknown): StoreSettings | null => {
       email: row.contact_email,
       handle: row.contact_handle,
     },
+    contactVisibility: {
+      whatsapp: row.show_contact_whatsapp,
+      email: row.show_contact_email,
+      handle: row.show_contact_handle,
+    },
     socialLinks: {
       tiktok: row.tiktok_url,
       instagram: row.instagram_url,
@@ -154,11 +224,58 @@ const normalizeSettingsRow = (value: unknown): StoreSettings | null => {
       whatsapp: row.whatsapp_social_url,
       linkedin: row.linkedin_url,
     },
+    socialVisibility: {
+      tiktok: row.show_social_tiktok,
+      instagram: row.show_social_instagram,
+      x: row.show_social_x,
+      facebook: row.show_social_facebook,
+      whatsapp: row.show_social_whatsapp,
+      linkedin: row.show_social_linkedin,
+    },
     showSocialIcons: row.show_social_icons,
   });
 };
 
 const settingsToRow = (settings: StoreSettings): StoreSettingsRow => ({
+  id: 1,
+  whatsapp_label: settings.contact.whatsappLabel,
+  whatsapp_url: settings.contact.whatsappUrl,
+  contact_email: settings.contact.email,
+  contact_handle: settings.contact.handle,
+  show_contact_whatsapp: settings.contactVisibility.whatsapp,
+  show_contact_email: settings.contactVisibility.email,
+  show_contact_handle: settings.contactVisibility.handle,
+  show_social_icons: settings.showSocialIcons,
+  show_social_tiktok: settings.socialVisibility.tiktok,
+  show_social_instagram: settings.socialVisibility.instagram,
+  show_social_x: settings.socialVisibility.x,
+  show_social_facebook: settings.socialVisibility.facebook,
+  show_social_whatsapp: settings.socialVisibility.whatsapp,
+  show_social_linkedin: settings.socialVisibility.linkedin,
+  tiktok_url: settings.socialLinks.tiktok,
+  instagram_url: settings.socialLinks.instagram,
+  x_url: settings.socialLinks.x,
+  facebook_url: settings.socialLinks.facebook,
+  whatsapp_social_url: settings.socialLinks.whatsapp,
+  linkedin_url: settings.socialLinks.linkedin,
+});
+
+type StoreSettingsRowWithoutVisibility = Omit<
+  StoreSettingsRow,
+  | 'show_contact_whatsapp'
+  | 'show_contact_email'
+  | 'show_contact_handle'
+  | 'show_social_tiktok'
+  | 'show_social_instagram'
+  | 'show_social_x'
+  | 'show_social_facebook'
+  | 'show_social_whatsapp'
+  | 'show_social_linkedin'
+>;
+
+const settingsToRowWithoutVisibility = (
+  settings: StoreSettings
+): StoreSettingsRowWithoutVisibility => ({
   id: 1,
   whatsapp_label: settings.contact.whatsappLabel,
   whatsapp_url: settings.contact.whatsappUrl,
@@ -173,7 +290,7 @@ const settingsToRow = (settings: StoreSettings): StoreSettingsRow => ({
   linkedin_url: settings.socialLinks.linkedin,
 });
 
-type StoreSettingsRowLegacy = Omit<StoreSettingsRow, 'show_social_icons'>;
+type StoreSettingsRowLegacy = Omit<StoreSettingsRowWithoutVisibility, 'show_social_icons'>;
 
 const settingsToRowLegacy = (settings: StoreSettings): StoreSettingsRowLegacy => ({
   id: 1,
@@ -196,18 +313,15 @@ type PostgrestLikeError = {
   hint?: string;
 };
 
-const isUndefinedColumnError = (error: unknown, column: string) => {
+const isUndefinedColumnError = (error: unknown) => {
   if (!error || typeof error !== 'object') return false;
   const payload = error as PostgrestLikeError;
   const combined = `${payload.message ?? ''} ${payload.details ?? ''}`.toLowerCase();
-  const needle = column.toLowerCase();
-  return payload.code === '42703' || combined.includes(needle);
+  return (
+    payload.code === '42703' ||
+    (combined.includes('column') && combined.includes('does not exist'))
+  );
 };
-
-const STORE_SETTINGS_SELECT_V1 =
-  'id, whatsapp_label, whatsapp_url, contact_email, contact_handle, tiktok_url, instagram_url, x_url, facebook_url, whatsapp_social_url, linkedin_url';
-
-const STORE_SETTINGS_SELECT_V2 = `${STORE_SETTINGS_SELECT_V1}, show_social_icons`;
 
 const saveSettingsLocal = (settings: StoreSettings) => {
   if (typeof window === 'undefined') return;
@@ -250,41 +364,37 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
     let active = true;
 
     void (async () => {
-      const fetchRow = async (columns: string) =>
-        supabase
-          .from('store_settings')
-          .select(columns)
-          .eq('id', 1)
-          .maybeSingle();
-
-      const { data, error } = await fetchRow(STORE_SETTINGS_SELECT_V2);
-      const fallback =
-        error && isUndefinedColumnError(error, 'show_social_icons')
-          ? await fetchRow(STORE_SETTINGS_SELECT_V1)
-          : null;
-
-      const resolvedData = fallback?.data ?? data;
-      const resolvedError = fallback?.error ?? error;
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
 
       if (!active) return;
 
-      if (resolvedError || !resolvedData) {
+      if (error || !data) {
         const next = normalizeSettings(defaultSettings);
         setSettingsState(next);
         const { error: upsertError } = await supabase
           .from('store_settings')
           .upsert(settingsToRow(next), { onConflict: 'id' });
 
-        if (upsertError && isUndefinedColumnError(upsertError, 'show_social_icons')) {
-          await supabase
+        if (upsertError && isUndefinedColumnError(upsertError)) {
+          const { error: fallbackError } = await supabase
             .from('store_settings')
-            .upsert(settingsToRowLegacy(next), { onConflict: 'id' });
+            .upsert(settingsToRowWithoutVisibility(next), { onConflict: 'id' });
+
+          if (fallbackError && isUndefinedColumnError(fallbackError)) {
+            await supabase
+              .from('store_settings')
+              .upsert(settingsToRowLegacy(next), { onConflict: 'id' });
+          }
         }
         setIsHydrated(true);
         return;
       }
 
-      const fromDatabase = normalizeSettingsRow(resolvedData);
+      const fromDatabase = normalizeSettingsRow(data);
       setSettingsState(fromDatabase ?? defaultSettings);
       setIsHydrated(true);
     })();
@@ -303,10 +413,16 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
           .from('store_settings')
           .upsert(settingsToRow(settings), { onConflict: 'id' });
 
-        if (error && isUndefinedColumnError(error, 'show_social_icons')) {
-          await supabase
+        if (error && isUndefinedColumnError(error)) {
+          const { error: fallbackError } = await supabase
             .from('store_settings')
-            .upsert(settingsToRowLegacy(settings), { onConflict: 'id' });
+            .upsert(settingsToRowWithoutVisibility(settings), { onConflict: 'id' });
+
+          if (fallbackError && isUndefinedColumnError(fallbackError)) {
+            await supabase
+              .from('store_settings')
+              .upsert(settingsToRowLegacy(settings), { onConflict: 'id' });
+          }
         }
       })();
       return;
@@ -327,9 +443,17 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
           ...previous.contact,
           ...(updates.contact ?? {}),
         },
+        contactVisibility: {
+          ...previous.contactVisibility,
+          ...(updates.contactVisibility ?? {}),
+        },
         socialLinks: {
           ...previous.socialLinks,
           ...(updates.socialLinks ?? {}),
+        },
+        socialVisibility: {
+          ...previous.socialVisibility,
+          ...(updates.socialVisibility ?? {}),
         },
       };
 

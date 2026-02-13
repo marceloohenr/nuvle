@@ -131,6 +131,12 @@ const AdminPage = () => {
   const [settingsMessage, setSettingsMessage] = useState('');
   const [contactDraft, setContactDraft] = useState(settings.contact);
   const [socialDraft, setSocialDraft] = useState(settings.socialLinks);
+  const [contactVisibilityDraft, setContactVisibilityDraft] = useState(
+    settings.contactVisibility
+  );
+  const [socialVisibilityDraft, setSocialVisibilityDraft] = useState(
+    settings.socialVisibility
+  );
   const [showSocialIconsDraft, setShowSocialIconsDraft] = useState(settings.showSocialIcons);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingProductName, setEditingProductName] = useState('');
@@ -175,6 +181,8 @@ const AdminPage = () => {
   useEffect(() => {
     setContactDraft(settings.contact);
     setSocialDraft(settings.socialLinks);
+    setContactVisibilityDraft(settings.contactVisibility);
+    setSocialVisibilityDraft(settings.socialVisibility);
     setShowSocialIconsDraft(settings.showSocialIcons);
   }, [settings]);
 
@@ -375,21 +383,23 @@ const AdminPage = () => {
       }
     );
 
-    if (sanitizedContact.whatsappLabel.length < 6) {
+    if (contactVisibilityDraft.whatsapp && sanitizedContact.whatsappLabel.length < 6) {
       setSettingsMessage('Informe um telefone WhatsApp valido.');
       return;
     }
 
-    if (
-      sanitizedContact.email.length < 5 ||
-      !sanitizedContact.email.includes('@') ||
-      !sanitizedContact.email.includes('.')
-    ) {
-      setSettingsMessage('Informe um e-mail valido para contato.');
-      return;
+    if (contactVisibilityDraft.email) {
+      if (
+        sanitizedContact.email.length < 5 ||
+        !sanitizedContact.email.includes('@') ||
+        !sanitizedContact.email.includes('.')
+      ) {
+        setSettingsMessage('Informe um e-mail valido para contato.');
+        return;
+      }
     }
 
-    if (sanitizedContact.handle.length < 3) {
+    if (contactVisibilityDraft.handle && sanitizedContact.handle.length < 3) {
       setSettingsMessage('Informe um identificador de perfil valido (ex.: nuvleoficial).');
       return;
     }
@@ -398,6 +408,8 @@ const AdminPage = () => {
       contact: sanitizedContact,
       socialLinks: sanitizedSocial,
       showSocialIcons: showSocialIconsDraft,
+      contactVisibility: contactVisibilityDraft,
+      socialVisibility: socialVisibilityDraft,
     });
 
     setSettingsMessage('Configuracoes de contato atualizadas com sucesso.');
@@ -1636,61 +1648,143 @@ const AdminPage = () => {
               Esses dados aparecem no rodape da loja.
             </p>
 
-            <form onSubmit={handleSaveStoreSettings} className="mt-4 space-y-3">
-              <input
-                value={contactDraft.whatsappLabel}
-                onChange={(event) =>
-                  handleContactDraftChange('whatsappLabel', event.target.value)
-                }
-                placeholder="WhatsApp exibido (ex.: (81) 98896-6556)"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
-              />
-              <input
-                value={contactDraft.whatsappUrl}
-                onChange={(event) =>
-                  handleContactDraftChange('whatsappUrl', event.target.value)
-                }
-                placeholder="URL do WhatsApp (ex.: https://wa.me/5581988966556)"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
-              />
-              <input
-                value={contactDraft.email}
-                onChange={(event) => handleContactDraftChange('email', event.target.value)}
-                placeholder="E-mail de contato"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
-              />
-              <input
-                value={contactDraft.handle}
-                onChange={(event) => handleContactDraftChange('handle', event.target.value)}
-                placeholder="Perfil exibido (ex.: nuvleoficial)"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
-              />
-
-              <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                    Exibir icones de redes no rodape
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Quando desativado, os botoes com icones somem do rodape.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={showSocialIconsDraft}
-                  aria-label="Alternar exibicao dos icones de redes no rodape"
-                  onClick={() => setShowSocialIconsDraft((previous) => !previous)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    showSocialIconsDraft ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      showSocialIconsDraft ? 'translate-x-6' : 'translate-x-1'
+            <form onSubmit={handleSaveStoreSettings} className="mt-4 space-y-4">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      WhatsApp no rodape
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Exibir o telefone e o link do WhatsApp na secao de contato.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={contactVisibilityDraft.whatsapp}
+                    aria-label="Exibir WhatsApp no rodape"
+                    onClick={() =>
+                      setContactVisibilityDraft((previous) => ({
+                        ...previous,
+                        whatsapp: !previous.whatsapp,
+                      }))
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      contactVisibilityDraft.whatsapp
+                        ? 'bg-blue-600'
+                        : 'bg-slate-300 dark:bg-slate-700'
                     }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        contactVisibilityDraft.whatsapp ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={contactDraft.whatsappLabel}
+                    onChange={(event) =>
+                      handleContactDraftChange('whatsappLabel', event.target.value)
+                    }
+                    placeholder="WhatsApp exibido (ex.: (81) 98896-6556)"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
-                </button>
+                  <input
+                    value={contactDraft.whatsappUrl}
+                    onChange={(event) =>
+                      handleContactDraftChange('whatsappUrl', event.target.value)
+                    }
+                    placeholder="URL do WhatsApp (ex.: https://wa.me/5581988966556)"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      E-mail no rodape
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Exibir o e-mail na secao de contato.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={contactVisibilityDraft.email}
+                    aria-label="Exibir e-mail no rodape"
+                    onClick={() =>
+                      setContactVisibilityDraft((previous) => ({
+                        ...previous,
+                        email: !previous.email,
+                      }))
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      contactVisibilityDraft.email
+                        ? 'bg-blue-600'
+                        : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        contactVisibilityDraft.email ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <input
+                  value={contactDraft.email}
+                  onChange={(event) => handleContactDraftChange('email', event.target.value)}
+                  placeholder="E-mail de contato"
+                  className="mt-3 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      Perfil no rodape
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Exibir o usuario (sem @) no rodape.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={contactVisibilityDraft.handle}
+                    aria-label="Exibir perfil no rodape"
+                    onClick={() =>
+                      setContactVisibilityDraft((previous) => ({
+                        ...previous,
+                        handle: !previous.handle,
+                      }))
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      contactVisibilityDraft.handle
+                        ? 'bg-blue-600'
+                        : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        contactVisibilityDraft.handle ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <input
+                  value={contactDraft.handle}
+                  onChange={(event) => handleContactDraftChange('handle', event.target.value)}
+                  placeholder="Perfil exibido (ex.: nuvleoficial)"
+                  className="mt-3 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                />
               </div>
 
               {settingsMessage && (
@@ -1711,16 +1805,71 @@ const AdminPage = () => {
               Links sociais
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Preencha as URLs para habilitar os botoes na secao de contato.
+              Ative/desative cada canal e informe a URL que sera usada nos botoes do rodape.
             </p>
+
+            <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  Exibir icones no rodape
+                </p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Desative para esconder todos os botoes de redes sociais.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showSocialIconsDraft}
+                aria-label="Alternar exibicao dos icones de redes no rodape"
+                onClick={() => setShowSocialIconsDraft((previous) => !previous)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  showSocialIconsDraft ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    showSocialIconsDraft ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
 
             <div className="mt-4 space-y-3">
               {socialPlatforms.map((platform) => (
-                <label key={platform.id} className="block">
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                    <platform.Icon size={16} />
-                    <span className="sr-only">{platform.label}</span>
-                  </span>
+                <div
+                  key={platform.id}
+                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                      <platform.Icon size={16} />
+                      <span className="sr-only">{platform.label}</span>
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={socialVisibilityDraft[platform.id]}
+                      aria-label={`Exibir ${platform.label} no rodape`}
+                      onClick={() =>
+                        setSocialVisibilityDraft((previous) => ({
+                          ...previous,
+                          [platform.id]: !previous[platform.id],
+                        }))
+                      }
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        socialVisibilityDraft[platform.id]
+                          ? 'bg-blue-600'
+                          : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          socialVisibilityDraft[platform.id] ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
                   <input
                     value={socialDraft[platform.id]}
                     onChange={(event) =>
@@ -1728,9 +1877,9 @@ const AdminPage = () => {
                     }
                     placeholder="URL"
                     aria-label={`URL ${platform.label}`}
-                    className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                    className="mt-3 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
-                </label>
+                </div>
               ))}
             </div>
 
@@ -1738,26 +1887,51 @@ const AdminPage = () => {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                 Pre-visualizacao
               </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {socialPlatforms.map((platform) => {
-                  const hasUrl = socialDraft[platform.id].trim().length > 0;
+              {!showSocialIconsDraft ? (
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  Icones ocultos no rodape.
+                </p>
+              ) : (() => {
+                const enabled = socialPlatforms.filter(
+                  (platform) => socialVisibilityDraft[platform.id]
+                );
 
+                if (enabled.length === 0) {
                   return (
-                    <span
-                      key={`preview-${platform.id}`}
-                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
-                        hasUrl
-                          ? 'border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300'
-                          : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'
-                    }`}
-                  >
-                      <platform.Icon size={14} />
-                      <span className="sr-only">{platform.label}</span>
-                    </span>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      Nenhum icone ativo.
+                    </p>
                   );
-                })}
-              </div>
+                }
+
+                return (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {enabled.map((platform) => {
+                      const hasUrl = socialDraft[platform.id].trim().length > 0;
+
+                      return (
+                        <span
+                          key={`preview-${platform.id}`}
+                          title={platform.label}
+                          className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+                            hasUrl
+                              ? 'border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                              : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'
+                          }`}
+                        >
+                          <platform.Icon size={14} />
+                          <span className="sr-only">{platform.label}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
+
+            <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+              Para aplicar, clique em "Salvar contato e redes".
+            </p>
           </article>
         </section>
       )}

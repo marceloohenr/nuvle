@@ -184,7 +184,16 @@ create table if not exists public.store_settings (
   whatsapp_url text not null,
   contact_email text not null,
   contact_handle text not null,
+  show_contact_whatsapp boolean not null default true,
+  show_contact_email boolean not null default true,
+  show_contact_handle boolean not null default true,
   show_social_icons boolean not null default true,
+  show_social_tiktok boolean not null default true,
+  show_social_instagram boolean not null default true,
+  show_social_x boolean not null default true,
+  show_social_facebook boolean not null default true,
+  show_social_whatsapp boolean not null default true,
+  show_social_linkedin boolean not null default true,
   tiktok_url text not null default '',
   instagram_url text not null default '',
   x_url text not null default '',
@@ -195,7 +204,16 @@ create table if not exists public.store_settings (
 
 -- Ensure new columns exist in projects created before this version.
 alter table public.store_settings
-  add column if not exists show_social_icons boolean not null default true;
+  add column if not exists show_contact_whatsapp boolean not null default true,
+  add column if not exists show_contact_email boolean not null default true,
+  add column if not exists show_contact_handle boolean not null default true,
+  add column if not exists show_social_icons boolean not null default true,
+  add column if not exists show_social_tiktok boolean not null default true,
+  add column if not exists show_social_instagram boolean not null default true,
+  add column if not exists show_social_x boolean not null default true,
+  add column if not exists show_social_facebook boolean not null default true,
+  add column if not exists show_social_whatsapp boolean not null default true,
+  add column if not exists show_social_linkedin boolean not null default true;
 
 alter table public.store_settings enable row level security;
 

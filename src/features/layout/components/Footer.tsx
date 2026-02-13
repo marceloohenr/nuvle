@@ -102,50 +102,60 @@ const Footer = () => {
               Contato
             </h4>
             <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
-              <li className="flex items-center gap-2">
-                <PhoneCall size={15} />
-                {whatsappHref ? (
+              {settings.contactVisibility.whatsapp && (
+                <li className="flex items-center gap-2">
+                  <PhoneCall size={15} />
+                  {whatsappHref ? (
+                    <a
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-blue-600 dark:hover:text-blue-400"
+                    >
+                      WhatsApp: {settings.contact.whatsappLabel}
+                    </a>
+                  ) : (
+                    <span>WhatsApp: {settings.contact.whatsappLabel}</span>
+                  )}
+                </li>
+              )}
+              {settings.contactVisibility.email && (
+                <li className="flex items-center gap-2">
+                  <Mail size={15} />
                   <a
-                    href={whatsappHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`mailto:${settings.contact.email}`}
                     className="hover:text-blue-600 dark:hover:text-blue-400"
                   >
-                    WhatsApp: {settings.contact.whatsappLabel}
+                    {settings.contact.email}
                   </a>
-                ) : (
-                  <span>WhatsApp: {settings.contact.whatsappLabel}</span>
-                )}
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail size={15} />
-                <a
-                  href={`mailto:${settings.contact.email}`}
-                  className="hover:text-blue-600 dark:hover:text-blue-400"
-                >
-                  {settings.contact.email}
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <AtSign size={15} />
-                {instagramHref ? (
-                  <a
-                    href={instagramHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-blue-600 dark:hover:text-blue-400"
-                  >
-                    {settings.contact.handle}
-                  </a>
-                ) : (
-                  <span>{settings.contact.handle}</span>
-                )}
-              </li>
+                </li>
+              )}
+              {settings.contactVisibility.handle && (
+                <li className="flex items-center gap-2">
+                  <AtSign size={15} />
+                  {instagramHref ? (
+                    <a
+                      href={instagramHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-blue-600 dark:hover:text-blue-400"
+                    >
+                      {settings.contact.handle}
+                    </a>
+                  ) : (
+                    <span>{settings.contact.handle}</span>
+                  )}
+                </li>
+              )}
             </ul>
 
             {settings.showSocialIcons && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {socialPlatforms.map((platform) => {
+                  if (!settings.socialVisibility[platform.id]) {
+                    return null;
+                  }
+
                   const href = normalizeExternalHref(settings.socialLinks[platform.id]);
 
                   if (!href) {
