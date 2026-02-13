@@ -149,21 +149,13 @@ for select
 to anon, authenticated
 using (true);
 
-drop policy if exists product_sizes_insert_delete_admin on public.product_sizes;
-create policy product_sizes_insert_delete_admin
+drop policy if exists product_sizes_write_admin on public.product_sizes;
+create policy product_sizes_write_admin
 on public.product_sizes
 for all
 to authenticated
 using (public.is_admin())
 with check (public.is_admin());
-
-drop policy if exists product_sizes_update_authenticated on public.product_sizes;
-create policy product_sizes_update_authenticated
-on public.product_sizes
-for update
-to authenticated
-using (true)
-with check (stock >= 0);
 
 -- ---------------------------------------------------------------------------
 -- Store settings
@@ -257,6 +249,151 @@ create table if not exists public.order_items (
   price numeric(12,2) not null check (price >= 0),
   size text
 );
+
+create or replace function public.create_order_with_stock(
+  p_order_id text,
+  p_user_id uuid,
+  p_created_at timestamptz,
+  p_status text,
+  p_payment_method text,
+  p_total numeric,
+  p_customer_name text,
+  p_customer_email text,
+  p_customer_phone text,
+  p_customer_cpf text,
+  p_customer_address text,
+  p_customer_city text,
+  p_customer_state text,
+  p_customer_zip_code text,
+  p_items jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  item_record record;
+  normalized_size text;
+  requested_quantity integer;
+  current_stock integer;
+begin
+  if auth.uid() is null then
+    raise exception 'Nao autenticado';
+  end if;
+
+  if p_user_id is null then
+    raise exception 'Usuario do pedido obrigatorio';
+  end if;
+
+  if auth.uid() <> p_user_id and not public.is_admin() then
+    raise exception 'Sem permissao para criar pedido para outro usuario';
+  end if;
+
+  for item_record in
+    select
+      (entry ->> 'product_id')::text as product_id,
+      coalesce((entry ->> 'size')::text, 'UN') as size,
+      coalesce((entry ->> 'quantity')::int, 0) as quantity
+    from jsonb_array_elements(p_items) as entry
+  loop
+    normalized_size := upper(trim(item_record.size));
+    requested_quantity := item_record.quantity;
+
+    if item_record.product_id is null or item_record.product_id = '' then
+      raise exception 'Produto invalido no pedido';
+    end if;
+
+    if requested_quantity <= 0 then
+      raise exception 'Quantidade invalida para produto %', item_record.product_id;
+    end if;
+
+    select ps.stock
+    into current_stock
+    from public.product_sizes ps
+    where ps.product_id = item_record.product_id
+      and ps.size = normalized_size
+    for update;
+
+    if current_stock is null then
+      raise exception 'Sem estoque para produto % no tamanho %', item_record.product_id, normalized_size;
+    end if;
+
+    if current_stock < requested_quantity then
+      raise exception 'Estoque insuficiente para produto % no tamanho %', item_record.product_id, normalized_size;
+    end if;
+  end loop;
+
+  insert into public.orders (
+    id,
+    user_id,
+    created_at,
+    status,
+    payment_method,
+    total,
+    customer_name,
+    customer_email,
+    customer_phone,
+    customer_cpf,
+    customer_address,
+    customer_city,
+    customer_state,
+    customer_zip_code
+  )
+  values (
+    p_order_id,
+    p_user_id,
+    coalesce(p_created_at, timezone('utc', now())),
+    p_status,
+    p_payment_method,
+    p_total,
+    p_customer_name,
+    p_customer_email,
+    p_customer_phone,
+    p_customer_cpf,
+    p_customer_address,
+    p_customer_city,
+    p_customer_state,
+    p_customer_zip_code
+  );
+
+  insert into public.order_items (
+    order_id,
+    product_id,
+    name,
+    image,
+    quantity,
+    price,
+    size
+  )
+  select
+    p_order_id,
+    (entry ->> 'product_id')::text,
+    (entry ->> 'name')::text,
+    (entry ->> 'image')::text,
+    coalesce((entry ->> 'quantity')::int, 1),
+    coalesce((entry ->> 'price')::numeric, 0),
+    nullif((entry ->> 'size')::text, '')
+  from jsonb_array_elements(p_items) as entry;
+
+  update public.product_sizes ps
+  set stock = ps.stock - grouped.quantity
+  from (
+    select
+      (entry ->> 'product_id')::text as product_id,
+      upper(trim(coalesce((entry ->> 'size')::text, 'UN'))) as size,
+      sum(coalesce((entry ->> 'quantity')::int, 0)) as quantity
+    from jsonb_array_elements(p_items) as entry
+    group by 1, 2
+  ) as grouped
+  where ps.product_id = grouped.product_id
+    and ps.size = grouped.size;
+end;
+$$;
+
+grant execute on function public.create_order_with_stock(
+  text, uuid, timestamptz, text, text, numeric, text, text, text, text, text, text, text, text, jsonb
+) to authenticated;
 
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;

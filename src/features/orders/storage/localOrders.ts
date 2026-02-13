@@ -295,41 +295,33 @@ export const getLocalOrderById = async (orderId: string): Promise<LocalOrder | n
 
 export const addLocalOrder = async (order: LocalOrder) => {
   if (isSupabaseConfigured && supabase) {
-    const { error: orderError } = await supabase.from('orders').insert({
-      id: order.id,
-      user_id: order.userId ?? null,
-      created_at: order.createdAt,
-      status: order.status,
-      payment_method: order.paymentMethod,
-      total: order.total,
-      customer_name: order.customer.name,
-      customer_email: order.customer.email,
-      customer_phone: order.customer.phone,
-      customer_cpf: order.customer.cpf,
-      customer_address: order.customer.address,
-      customer_city: order.customer.city,
-      customer_state: order.customer.state,
-      customer_zip_code: order.customer.zipCode,
+    const { error } = await supabase.rpc('create_order_with_stock', {
+      p_order_id: order.id,
+      p_user_id: order.userId ?? null,
+      p_created_at: order.createdAt,
+      p_status: order.status,
+      p_payment_method: order.paymentMethod,
+      p_total: order.total,
+      p_customer_name: order.customer.name,
+      p_customer_email: order.customer.email,
+      p_customer_phone: order.customer.phone,
+      p_customer_cpf: order.customer.cpf,
+      p_customer_address: order.customer.address,
+      p_customer_city: order.customer.city,
+      p_customer_state: order.customer.state,
+      p_customer_zip_code: order.customer.zipCode,
+      p_items: order.items.map((item) => ({
+        product_id: item.id,
+        name: item.name,
+        image: item.image,
+        quantity: item.quantity,
+        price: item.price,
+        size: item.size ?? null,
+      })),
     });
 
-    if (orderError) {
-      throw new Error(orderError.message);
-    }
-
-    const itemsPayload = order.items.map((item) => ({
-      order_id: order.id,
-      product_id: item.id,
-      name: item.name,
-      image: item.image,
-      quantity: item.quantity,
-      price: item.price,
-      size: item.size ?? null,
-    }));
-
-    const { error: itemsError } = await supabase.from('order_items').insert(itemsPayload);
-
-    if (itemsError) {
-      throw new Error(itemsError.message);
+    if (error) {
+      throw new Error(error.message);
     }
 
     return;

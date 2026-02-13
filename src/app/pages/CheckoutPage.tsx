@@ -276,26 +276,28 @@ const CheckoutPage = () => {
     }));
     const customerSnapshot = { ...formData };
     const orderTotal = state.total;
-    const stockResult = consumeProductStock(
-      orderItemsSnapshot.map((item) => ({
-        id: item.id,
-        size: item.size,
-        quantity: item.quantity,
-      }))
-    );
-
-    if (!stockResult.success) {
-      const firstIssue = stockResult.issues?.[0];
-      setStepErrorMessage(
-        firstIssue
-          ? `Estoque insuficiente para ${firstIssue.productName}${
-              firstIssue.size ? ` (tam. ${firstIssue.size})` : ''
-            }. Solicitado: ${firstIssue.requested}, disponivel: ${firstIssue.available}.`
-          : 'Nao foi possivel reservar estoque para este pedido.'
+    if (!isSupabaseConfigured) {
+      const stockResult = consumeProductStock(
+        orderItemsSnapshot.map((item) => ({
+          id: item.id,
+          size: item.size,
+          quantity: item.quantity,
+        }))
       );
-      setShowStepError(true);
-      setIsSubmitting(false);
-      return;
+
+      if (!stockResult.success) {
+        const firstIssue = stockResult.issues?.[0];
+        setStepErrorMessage(
+          firstIssue
+            ? `Estoque insuficiente para ${firstIssue.productName}${
+                firstIssue.size ? ` (tam. ${firstIssue.size})` : ''
+              }. Solicitado: ${firstIssue.requested}, disponivel: ${firstIssue.available}.`
+            : 'Nao foi possivel reservar estoque para este pedido.'
+        );
+        setShowStepError(true);
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     setTimeout(() => {
@@ -322,8 +324,12 @@ const CheckoutPage = () => {
             localStorage.removeItem(CHECKOUT_DRAFT_KEY);
           }
           setIsSubmitting(false);
-        } catch {
-          setStepErrorMessage('Nao foi possivel registrar o pedido no banco.');
+        } catch (error) {
+          const message =
+            error instanceof Error && error.message
+              ? error.message
+              : 'Nao foi possivel registrar o pedido no banco.';
+          setStepErrorMessage(message);
           setShowStepError(true);
           setIsSubmitting(false);
         }

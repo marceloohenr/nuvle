@@ -16,7 +16,8 @@ npm run lint
 1. Copie `.env.example` para `.env.local`.
 2. Preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
 3. No Supabase SQL Editor, execute `supabase/schema.sql`.
-4. Crie um usuario no Auth e depois marque o perfil como admin:
+4. O SQL ja inclui a funcao transacional `create_order_with_stock` (pedido + baixa de estoque por tamanho).
+5. Crie um usuario no Auth e depois marque o perfil como admin:
 
 ```sql
 update public.profiles set role = 'admin' where email = 'seu-email@dominio.com';
