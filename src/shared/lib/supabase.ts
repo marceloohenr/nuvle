@@ -7,13 +7,19 @@ const PRODUCTION_FALLBACK = {
   anonKey: 'sb_publishable_MKhxeHGld_ooVQlANRGvqg_Z3_6emRO',
 } as const;
 
+const isLocalhost =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+// If the deploy ends up built in "dev" mode (misconfigured host), don't block the
+// live storefront. We only disable fallbacks when running locally.
+const allowFallback = !import.meta.env.DEV || !isLocalhost;
+
 const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  (!import.meta.env.DEV ? PRODUCTION_FALLBACK.url : '');
+  import.meta.env.VITE_SUPABASE_URL || (allowFallback ? PRODUCTION_FALLBACK.url : '');
 
 const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  (!import.meta.env.DEV ? PRODUCTION_FALLBACK.anonKey : '');
+  import.meta.env.VITE_SUPABASE_ANON_KEY || (allowFallback ? PRODUCTION_FALLBACK.anonKey : '');
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
