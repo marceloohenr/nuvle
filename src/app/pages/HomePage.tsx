@@ -1,4 +1,4 @@
-import { ArrowRight, BadgePercent, Shirt, Sparkles, Tag } from 'lucide-react';
+import { ArrowRight, BadgePercent } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ProductCard, type Product, useCatalog } from '../../features/catalog';
@@ -6,14 +6,6 @@ import { ProductCard, type Product, useCatalog } from '../../features/catalog';
 interface HomePageProps {
   onProductClick: (product: Product) => void;
 }
-
-const categoryIcons = [Shirt, Tag, Sparkles];
-
-const categoryIconById: Record<string, typeof Shirt> = {
-  oversized: Shirt,
-  basicas: Tag,
-  estampadas: Sparkles,
-};
 
 const benefits = [
   'Checkout simples e rapido',
@@ -27,10 +19,18 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
     const flagged = products.filter((product) => Boolean(product.isFeatured));
     return (flagged.length > 0 ? flagged : products).slice(0, 8);
   }, [products]);
-  const categoryHighlights = useMemo(() => {
-    return categories.map((category, index) => {
-      const Icon = categoryIconById[category.id] ?? categoryIcons[index % categoryIcons.length];
-      const itemsInCategory = products.filter((product) => product.category === category.id).length;
+
+  const productCountByCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    products.forEach((product) => {
+      counts[product.category] = (counts[product.category] ?? 0) + 1;
+    });
+    return counts;
+  }, [products]);
+
+  const categoryRows = useMemo(() => {
+    return categories.map((category) => {
+      const itemsInCategory = productCountByCategory[category.id] ?? 0;
 
       return {
         title: getCategoryLabel(category.id),
@@ -39,10 +39,9 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
             ? `${itemsInCategory} produto(s) disponivel(is) nesta categoria.`
             : 'Categoria pronta para novos produtos.',
         query: category.id,
-        icon: Icon,
       };
     });
-  }, [categories, getCategoryLabel, products]);
+  }, [categories, getCategoryLabel, productCountByCategory]);
 
   return (
     <div className="space-y-16">
@@ -109,25 +108,32 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
             </p>
           </div>
         </div>
-        {categoryHighlights.length === 0 ? (
+        {categoryRows.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 text-center text-slate-600 dark:text-slate-300">
             Nenhuma categoria cadastrada ainda.
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {categoryHighlights.map(({ title, description, query, icon: Icon }) => (
+          <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft divide-y divide-slate-100 dark:divide-slate-800">
+            {categoryRows.map(({ title, description, query }) => (
               <Link
                 key={query}
                 to={`/produtos?categoria=${query}`}
-                className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 hover:border-blue-400 dark:hover:border-blue-500 hover:-translate-y-1 transition-all"
+                className="group flex items-center justify-between gap-6 px-6 py-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
               >
-                <Icon className="text-blue-600 dark:text-blue-400 mb-4" size={24} />
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">{title}</h3>
-                <p className="mt-2 text-slate-600 dark:text-slate-300 text-sm">{description}</p>
-                <span className="mt-4 inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium text-sm">
-                  Explorar
-                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 rounded-full bg-blue-500 dark:bg-blue-400" />
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+                      {title}
+                    </h3>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{description}</p>
+                </div>
+
+                <ArrowRight
+                  size={18}
+                  className="shrink-0 text-slate-400 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-1 transition-all"
+                />
               </Link>
             ))}
           </div>
