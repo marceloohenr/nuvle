@@ -141,6 +141,7 @@ const AdminPage = () => {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingProductName, setEditingProductName] = useState('');
   const [editingProductDescription, setEditingProductDescription] = useState('');
+  const [editingProductIsFeatured, setEditingProductIsFeatured] = useState(false);
   const [editingProductBasePrice, setEditingProductBasePrice] = useState('');
   const [editingProductDiscount, setEditingProductDiscount] = useState('');
   const [editingProductFinalPrice, setEditingProductFinalPrice] = useState('');
@@ -160,6 +161,7 @@ const AdminPage = () => {
     basePrice: '',
     discountPercentage: '',
     finalPrice: '',
+    isFeatured: false,
     stock: '20',
     sizes: 'P,M,G,GG',
     description: '',
@@ -482,6 +484,7 @@ const AdminPage = () => {
 
     const result = await addProduct({
       name: newProduct.name,
+      isFeatured: newProduct.isFeatured,
       image: images[0],
       images,
       category: newProduct.category,
@@ -512,6 +515,7 @@ const AdminPage = () => {
       basePrice: '',
       discountPercentage: '',
       finalPrice: '',
+      isFeatured: false,
       description: '',
       stock: '20',
       sizes: 'P,M,G,GG',
@@ -525,6 +529,7 @@ const AdminPage = () => {
     product: {
       id: string;
       name: string;
+      isFeatured?: boolean;
       description?: string;
       originalPrice?: number;
       price: number;
@@ -538,6 +543,7 @@ const AdminPage = () => {
     setEditingProductId(product.id);
     setEditingProductName(product.name);
     setEditingProductDescription(product.description ?? '');
+    setEditingProductIsFeatured(Boolean(product.isFeatured));
     setEditingProductBasePrice(String(product.originalPrice ?? product.price));
     setEditingProductDiscount(String(product.discountPercentage ?? 0));
     setEditingProductFinalPrice(String(product.price));
@@ -567,6 +573,7 @@ const AdminPage = () => {
     setEditingProductId(null);
     setEditingProductName('');
     setEditingProductDescription('');
+    setEditingProductIsFeatured(false);
     setEditingProductBasePrice('');
     setEditingProductDiscount('');
     setEditingProductFinalPrice('');
@@ -668,6 +675,7 @@ const AdminPage = () => {
     const updated = await updateProduct(productId, {
       name: nextName,
       description: nextDescription,
+      isFeatured: editingProductIsFeatured,
       image: images[0],
       images,
       price: wantsFinalPrice ? finalPrice : basePrice,
@@ -857,6 +865,7 @@ const AdminPage = () => {
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           {getCategoryLabel(product.category)} | {currencyFormatter.format(product.price)}
                           {productDiscount > 0 ? ` | ${productDiscount}% OFF` : ''}
+                          {product.isFeatured ? ' | Em alta' : ''}
                         </p>
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                           {product.description || 'Sem descricao cadastrada.'}
@@ -924,6 +933,36 @@ const AdminPage = () => {
                               placeholder="Descricao do produto"
                               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 min-h-20"
                             />
+
+                            <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 px-4 py-3">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                  Em alta (Home)
+                                </p>
+                                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                                  Ative para o produto aparecer na secao "Em alta" da pagina inicial.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={editingProductIsFeatured}
+                                aria-label="Marcar produto como Em alta"
+                                onClick={() => setEditingProductIsFeatured((previous) => !previous)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                  editingProductIsFeatured
+                                    ? 'bg-blue-600'
+                                    : 'bg-slate-300 dark:bg-slate-700'
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    editingProductIsFeatured ? 'translate-x-6' : 'translate-x-1'
+                                  }`}
+                                />
+                              </button>
+                            </div>
+
                             <div className="grid gap-2 sm:grid-cols-2">
                               <input
                                 value={editingProductBasePrice}
@@ -1419,6 +1458,39 @@ const AdminPage = () => {
                     className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                 </div>
+
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      Em alta (Home)
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Quando ativado, este produto aparece na secao "Em alta" da pagina inicial.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={newProduct.isFeatured}
+                    aria-label="Marcar produto como Em alta"
+                    onClick={() =>
+                      setNewProduct((previous) => ({
+                        ...previous,
+                        isFeatured: !previous.isFeatured,
+                      }))
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      newProduct.isFeatured ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        newProduct.isFeatured ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
                 <input
                   value={newProduct.sizes}
                   onChange={(event) =>

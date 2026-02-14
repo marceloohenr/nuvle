@@ -101,6 +101,7 @@ create table if not exists public.products (
   price numeric(12,2) not null check (price > 0),
   original_price numeric(12,2),
   discount_percentage numeric(5,2) check (discount_percentage is null or (discount_percentage >= 0 and discount_percentage <= 95)),
+  is_featured boolean not null default false,
   image text not null,
   images text[],
   category_id text not null references public.categories(id),
@@ -110,7 +111,8 @@ create table if not exists public.products (
 
 -- Ensure new columns exist in projects created before this version.
 alter table public.products
-  add column if not exists images text[];
+  add column if not exists images text[],
+  add column if not exists is_featured boolean not null default false;
 
 update public.products
 set images = array[image]

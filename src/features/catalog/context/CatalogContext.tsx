@@ -19,6 +19,7 @@ import type {
 
 interface ProductDraft {
   name: string;
+  isFeatured?: boolean;
   price: number;
   originalPrice?: number;
   discountPercentage?: number;
@@ -114,6 +115,7 @@ interface ProductSizeRow {
 interface ProductRow {
   id: string;
   name: string;
+  is_featured?: boolean | null;
   price: number;
   original_price: number | null;
   discount_percentage: number | null;
@@ -424,6 +426,7 @@ const normalizeProduct = (value: unknown): Product | null => {
   return {
     id: item.id,
     name: item.name,
+    isFeatured: typeof item.isFeatured === 'boolean' ? item.isFeatured : false,
     image: item.image,
     images,
     category: categoryId,
@@ -448,6 +451,7 @@ const normalizeProductDraft = (draft: ProductDraft): ProductDraft => {
 
   return {
     ...draft,
+    isFeatured: Boolean(draft.isFeatured),
     name: draft.name.trim(),
     image: primaryImage,
     images,
@@ -519,6 +523,7 @@ const productRowToProduct = (value: unknown): Product | null => {
   return normalizeProduct({
     id: row.id,
     name: row.name,
+    isFeatured: typeof row.is_featured === 'boolean' ? row.is_featured : false,
     image: row.image,
     images: row.images ?? undefined,
     category: row.category_id,
@@ -539,8 +544,12 @@ const productRowToProduct = (value: unknown): Product | null => {
   });
 };
 
-const productToRow = (product: Product, options?: { includeImages?: boolean }) => {
+const productToRow = (
+  product: Product,
+  options?: { includeImages?: boolean; includeFeatured?: boolean }
+) => {
   const includeImages = Boolean(options?.includeImages);
+  const includeFeatured = options?.includeFeatured !== false;
   const images = includeImages
     ? product.images?.length
       ? product.images
@@ -550,6 +559,7 @@ const productToRow = (product: Product, options?: { includeImages?: boolean }) =
   return {
     id: product.id,
     name: product.name,
+    ...(includeFeatured ? { is_featured: Boolean(product.isFeatured) } : {}),
     price: product.price,
     original_price: product.originalPrice ?? null,
     discount_percentage: product.discountPercentage ?? null,
@@ -608,27 +618,55 @@ const removeCategoryRemote = async (categoryId: string) => {
 const upsertProductRemote = async (product: Product) => {
   if (!isSupabaseConfigured || !supabase) return;
 
-  const { error: productError } = await supabase
-    .from('products')
-    .upsert(productToRow(product, { includeImages: true }), { onConflict: 'id' });
+  const isMissingColumn = (error: unknown, column: string) => {
+    if (!error || typeof error !== 'object') return false;
+    const payload = error as { message?: string; details?: string; code?: string };
+    const combined = `${payload.message ?? ''} ${payload.details ?? ''}`.toLowerCase();
+    const needle = column.toLowerCase();
+    return (
+      payload.code === '42703' ||
+      payload.code === 'PGRST204' ||
+      (combined.includes(needle) &&
+        (combined.includes('schema cache') ||
+          combined.includes('column') ||
+          combined.includes('could not find')))
+    );
+  };
 
-  if (productError) {
-    const message = productError.message.toLowerCase();
-    const missingImagesColumn =
-      message.includes('images') &&
-      (message.includes('schema cache') || message.includes('column') || message.includes('products'));
+  let includeImages = true;
+  let includeFeatured = true;
+  let lastError: { message?: string } | null = null;
 
-    if (!missingImagesColumn) {
-      throw new Error(productError.message);
-    }
-
-    const { error: retryError } = await supabase
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { error } = await supabase
       .from('products')
-      .upsert(productToRow(product, { includeImages: false }), { onConflict: 'id' });
+      .upsert(productToRow(product, { includeImages, includeFeatured }), { onConflict: 'id' });
 
-    if (retryError) {
-      throw new Error(retryError.message);
+    if (!error) {
+      lastError = null;
+      break;
     }
+
+    lastError = error;
+
+    let dropped = false;
+    if (includeImages && isMissingColumn(error, 'images')) {
+      includeImages = false;
+      dropped = true;
+    }
+
+    if (includeFeatured && isMissingColumn(error, 'is_featured')) {
+      includeFeatured = false;
+      dropped = true;
+    }
+
+    if (!dropped) {
+      throw new Error(error.message);
+    }
+  }
+
+  if (lastError) {
+    throw new Error(lastError.message || 'Falha ao salvar produto.');
   }
 
   const sizeRows = productToSizeRows(product);
@@ -1102,6 +1140,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       const nextProduct: Product = {
         id: candidateId,
         name: normalized.name,
+        isFeatured: normalized.isFeatured,
         image: normalized.image,
         images: normalized.images,
         category: normalized.category,
@@ -1135,6 +1174,8 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
 
       const nextName = updates.name?.trim() || target.name;
       const basePrimaryImage = updates.image?.trim() || target.image;
+      const nextIsFeatured =
+        typeof updates.isFeatured === 'boolean' ? updates.isFeatured : target.isFeatured;
       const nextImages = updates.images
         ? normalizeImageList(updates.images, basePrimaryImage)
         : normalizeImageList(target.images, basePrimaryImage);
@@ -1194,6 +1235,7 @@ export const CatalogProvider = ({ children }: { children: ReactNode }) => {
       const updatedProduct: Product = {
         ...target,
         name: nextName,
+        isFeatured: nextIsFeatured,
         image: nextImage,
         images: nextImages,
         description: nextDescription,

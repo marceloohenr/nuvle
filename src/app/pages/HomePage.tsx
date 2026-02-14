@@ -1,4 +1,4 @@
-import { ArrowRight, BadgePercent, Shirt, Sparkles, Tag, Truck } from 'lucide-react';
+import { ArrowRight, BadgePercent, Shirt, Sparkles, Tag } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ProductCard, type Product, useCatalog } from '../../features/catalog';
@@ -7,7 +7,13 @@ interface HomePageProps {
   onProductClick: (product: Product) => void;
 }
 
-const categoryIcons = [Shirt, Sparkles, Truck, Tag];
+const categoryIcons = [Shirt, Tag, Sparkles];
+
+const categoryIconById: Record<string, typeof Shirt> = {
+  oversized: Shirt,
+  basicas: Tag,
+  estampadas: Sparkles,
+};
 
 const benefits = [
   'Checkout simples e rapido',
@@ -17,10 +23,13 @@ const benefits = [
 
 const HomePage = ({ onProductClick }: HomePageProps) => {
   const { products, categories, getCategoryLabel } = useCatalog();
-  const featuredProducts = useMemo(() => products.slice(0, 8), [products]);
+  const featuredProducts = useMemo(() => {
+    const flagged = products.filter((product) => Boolean(product.isFeatured));
+    return (flagged.length > 0 ? flagged : products).slice(0, 8);
+  }, [products]);
   const categoryHighlights = useMemo(() => {
     return categories.map((category, index) => {
-      const Icon = categoryIcons[index % categoryIcons.length];
+      const Icon = categoryIconById[category.id] ?? categoryIcons[index % categoryIcons.length];
       const itemsInCategory = products.filter((product) => product.category === category.id).length;
 
       return {

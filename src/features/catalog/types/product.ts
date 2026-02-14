@@ -16,6 +16,7 @@ export interface SizeGuideRow {
 export interface Product {
   id: string;
   name: string;
+  isFeatured?: boolean;
   price: number;
   originalPrice?: number;
   discountPercentage?: number;
