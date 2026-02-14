@@ -1,4 +1,6 @@
 import {
+  BarChart3,
+  Download,
   Facebook,
   Instagram,
   Linkedin,
@@ -31,7 +33,7 @@ import type { LocalOrder, OrderStatus } from '../../features/orders';
 import { isSupabaseConfigured } from '../../shared/lib/supabase';
 import { uploadProductImages } from '../../shared/lib/storage';
 
-type AdminTab = 'products' | 'orders' | 'customers' | 'settings';
+type AdminTab = 'dashboard' | 'products' | 'orders' | 'customers' | 'settings';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -42,6 +44,38 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
 });
+
+const pad2 = (value: number) => String(value).padStart(2, '0');
+
+const toLocalDateKey = (date: Date) =>
+  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+
+const MS_IN_DAY = 24 * 60 * 60 * 1000;
+
+const daysAgo = (days: number) => new Date(Date.now() - days * MS_IN_DAY);
+
+const escapeCsvValue = (value: unknown) => {
+  if (value === null || value === undefined) return '';
+  const text = String(value);
+  const escaped = text.replace(/"/g, '""');
+  if (/[";\n\r]/.test(escaped)) return `"${escaped}"`;
+  return escaped;
+};
+
+const downloadCsv = (filename: string, csv: string) => {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+};
 
 const uniqueValues = (values: string[]) => {
   const unique: string[] = [];
@@ -119,7 +153,8 @@ const AdminPage = () => {
     removeProduct,
   } = useCatalog();
 
-  const [activeTab, setActiveTab] = useState<AdminTab>('products');
+  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [analyticsRange, setAnalyticsRange] = useState<'7d' | '30d' | '365d' | 'all'>('30d');
   const [orders, setOrders] = useState<LocalOrder[]>([]);
   const [orderSearch, setOrderSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
@@ -779,7 +814,17 @@ const AdminPage = () => {
       </section>
 
       <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
-        <div className="grid gap-2 sm:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-5">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+              activeTab === 'dashboard'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+            }`}
+          >
+            Dashboard
+          </button>
           <button
             onClick={() => setActiveTab('products')}
             className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
@@ -822,6 +867,428 @@ const AdminPage = () => {
           </button>
         </div>
       </section>
+
+      {activeTab === 'dashboard' && (
+        <section className="space-y-6">
+          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white inline-flex items-center gap-2">
+                  <BarChart3 size={18} />
+                  Dashboard
+                </h2>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  Visao geral de usuarios, pedidos e produtos mais vendidos.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <select
+                  value={analyticsRange}
+                  onChange={(event) =>
+                    setAnalyticsRange(event.target.value as typeof analyticsRange)
+                  }
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100"
+                  aria-label="Selecionar periodo do relatorio"
+                >
+                  <option value="7d">Ultimos 7 dias</option>
+                  <option value="30d">Ultimos 30 dias</option>
+                  <option value="365d">Ultimos 12 meses</option>
+                  <option value="all">Todo o periodo</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const since =
+                      analyticsRange === '7d'
+                        ? daysAgo(7)
+                        : analyticsRange === '30d'
+                        ? daysAgo(30)
+                        : analyticsRange === '365d'
+                        ? daysAgo(365)
+                        : null;
+
+                    const ordersInRange = since
+                      ? orders.filter((order) => new Date(order.createdAt) >= since)
+                      : orders;
+
+                    const header = [
+                      'order_id',
+                      'created_at',
+                      'status',
+                      'payment_method',
+                      'total',
+                      'customer_name',
+                      'customer_email',
+                      'customer_phone',
+                      'customer_city',
+                      'customer_state',
+                      'product_id',
+                      'product_name',
+                      'quantity',
+                      'price',
+                      'size',
+                    ];
+
+                    const lines = [header.join(';')];
+
+                    ordersInRange.forEach((order) => {
+                      order.items.forEach((item) => {
+                        lines.push(
+                          [
+                            order.id,
+                            order.createdAt,
+                            order.status,
+                            order.paymentMethod,
+                            order.total,
+                            order.customer.name,
+                            order.customer.email,
+                            order.customer.phone,
+                            order.customer.city,
+                            order.customer.state,
+                            item.id,
+                            item.name,
+                            item.quantity,
+                            item.price,
+                            item.size ?? '',
+                          ]
+                            .map((value) => escapeCsvValue(value))
+                            .join(';')
+                        );
+                      });
+                    });
+
+                    const today = toLocalDateKey(new Date());
+                    downloadCsv(`relatorio-pedidos-${analyticsRange}-${today}.csv`, lines.join('\r\n'));
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Download size={16} />
+                  Exportar pedidos CSV
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const since =
+                      analyticsRange === '7d'
+                        ? daysAgo(7)
+                        : analyticsRange === '30d'
+                        ? daysAgo(30)
+                        : analyticsRange === '365d'
+                        ? daysAgo(365)
+                        : null;
+
+                    const customers = users.filter((user) => user.role === 'customer');
+                    const usersInRange = since
+                      ? customers.filter((user) => new Date(user.createdAt) >= since)
+                      : customers;
+
+                    const header = ['id', 'name', 'email', 'role', 'created_at'];
+                    const lines = [header.join(';')];
+
+                    usersInRange.forEach((user) => {
+                      lines.push(
+                        [user.id, user.name, user.email, user.role, user.createdAt]
+                          .map((value) => escapeCsvValue(value))
+                          .join(';')
+                      );
+                    });
+
+                    const today = toLocalDateKey(new Date());
+                    downloadCsv(`relatorio-usuarios-${analyticsRange}-${today}.csv`, lines.join('\r\n'));
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Download size={16} />
+                  Exportar usuarios CSV
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const since =
+                      analyticsRange === '7d'
+                        ? daysAgo(7)
+                        : analyticsRange === '30d'
+                        ? daysAgo(30)
+                        : analyticsRange === '365d'
+                        ? daysAgo(365)
+                        : null;
+
+                    const ordersInRange = since
+                      ? orders.filter((order) => new Date(order.createdAt) >= since)
+                      : orders;
+
+                    const salesByProduct = new Map<string, { id: string; name: string; quantity: number; revenue: number }>();
+
+                    ordersInRange.forEach((order) => {
+                      order.items.forEach((item) => {
+                        const existing = salesByProduct.get(item.id);
+                        const revenue = item.quantity * item.price;
+
+                        if (!existing) {
+                          salesByProduct.set(item.id, {
+                            id: item.id,
+                            name: item.name,
+                            quantity: item.quantity,
+                            revenue,
+                          });
+                          return;
+                        }
+
+                        existing.quantity += item.quantity;
+                        existing.revenue += revenue;
+                      });
+                    });
+
+                    const header = ['product_id', 'product_name', 'quantity', 'revenue'];
+                    const lines = [header.join(';')];
+
+                    Array.from(salesByProduct.values())
+                      .sort((a, b) => b.quantity - a.quantity)
+                      .forEach((row) => {
+                        lines.push(
+                          [row.id, row.name, row.quantity, row.revenue]
+                            .map((value) => escapeCsvValue(value))
+                            .join(';')
+                        );
+                      });
+
+                    const today = toLocalDateKey(new Date());
+                    downloadCsv(
+                      `relatorio-top-produtos-${analyticsRange}-${today}.csv`,
+                      lines.join('\r\n')
+                    );
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Download size={16} />
+                  Exportar top produtos CSV
+                </button>
+              </div>
+            </div>
+
+            {(() => {
+              const customerUsers = users.filter((user) => user.role === 'customer');
+              const newUsersWeek = customerUsers.filter((user) => new Date(user.createdAt) >= daysAgo(7)).length;
+              const newUsersMonth = customerUsers.filter((user) => new Date(user.createdAt) >= daysAgo(30)).length;
+              const newUsersYear = customerUsers.filter((user) => new Date(user.createdAt) >= daysAgo(365)).length;
+
+              const ordersWeek = orders.filter((order) => new Date(order.createdAt) >= daysAgo(7)).length;
+              const ordersMonth = orders.filter((order) => new Date(order.createdAt) >= daysAgo(30)).length;
+              const ordersYear = orders.filter((order) => new Date(order.createdAt) >= daysAgo(365)).length;
+
+              const monthOrders = orders.filter((order) => new Date(order.createdAt) >= daysAgo(30));
+              const avgOrdersPerDay = monthOrders.length / 30;
+              const avgOrderValue =
+                monthOrders.length > 0
+                  ? monthOrders.reduce((sum, order) => sum + order.total, 0) / monthOrders.length
+                  : 0;
+
+              const topSince =
+                analyticsRange === '7d'
+                  ? daysAgo(7)
+                  : analyticsRange === '30d'
+                  ? daysAgo(30)
+                  : analyticsRange === '365d'
+                  ? daysAgo(365)
+                  : null;
+
+              const ordersForTop = topSince
+                ? orders.filter((order) => new Date(order.createdAt) >= topSince)
+                : orders;
+
+              const salesByProduct = new Map<
+                string,
+                { id: string; name: string; quantity: number; revenue: number; lastSoldAt: string }
+              >();
+
+              ordersForTop.forEach((order) => {
+                order.items.forEach((item) => {
+                  const existing = salesByProduct.get(item.id);
+                  const revenue = item.quantity * item.price;
+                  const lastSoldAt = order.createdAt;
+
+                  if (!existing) {
+                    salesByProduct.set(item.id, {
+                      id: item.id,
+                      name: item.name,
+                      quantity: item.quantity,
+                      revenue,
+                      lastSoldAt,
+                    });
+                    return;
+                  }
+
+                  existing.quantity += item.quantity;
+                  existing.revenue += revenue;
+
+                  if (new Date(lastSoldAt) > new Date(existing.lastSoldAt)) {
+                    existing.lastSoldAt = lastSoldAt;
+                  }
+                });
+              });
+
+              const topProducts = Array.from(salesByProduct.values())
+                .sort((a, b) => b.quantity - a.quantity)
+                .slice(0, 8);
+
+              const maxTopQty = Math.max(1, ...topProducts.map((row) => row.quantity));
+
+              return (
+                <div className="mt-6 space-y-6">
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <article className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+                      <p className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        Novos usuarios (7d)
+                      </p>
+                      <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white">
+                        {newUsersWeek}
+                      </p>
+                    </article>
+                    <article className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+                      <p className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        Novos usuarios (30d)
+                      </p>
+                      <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white">
+                        {newUsersMonth}
+                      </p>
+                    </article>
+                    <article className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+                      <p className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        Novos usuarios (12m)
+                      </p>
+                      <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white">
+                        {newUsersYear}
+                      </p>
+                    </article>
+                    <article className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+                      <p className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        Media pedidos/dia (30d)
+                      </p>
+                      <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white">
+                        {avgOrdersPerDay.toFixed(2)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Ticket medio: {currencyFormatter.format(avgOrderValue)}
+                      </p>
+                    </article>
+                  </div>
+
+                  <div className="grid gap-6 lg:grid-cols-3">
+                    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        Novos usuarios
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Semana, mes e ano (clientes).
+                      </p>
+                      <div className="mt-4 space-y-2">
+                        {[
+                          { label: '7d', value: newUsersWeek },
+                          { label: '30d', value: newUsersMonth },
+                          { label: '12m', value: newUsersYear },
+                        ].map((point) => (
+                          <div key={point.label} className="grid grid-cols-[42px_1fr_60px] gap-3 items-center">
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                              {point.label}
+                            </span>
+                            <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                              <div
+                                className="h-full bg-blue-600 rounded-full"
+                                style={{
+                                  width: `${(point.value / Math.max(1, newUsersYear)) * 100}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="text-xs text-slate-600 dark:text-slate-300 text-right">
+                              {point.value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+
+                    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        Pedidos
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Semana, mes e ano.
+                      </p>
+                      <div className="mt-4 space-y-2">
+                        {[
+                          { label: '7d', value: ordersWeek },
+                          { label: '30d', value: ordersMonth },
+                          { label: '12m', value: ordersYear },
+                        ].map((point) => (
+                          <div key={point.label} className="grid grid-cols-[42px_1fr_60px] gap-3 items-center">
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                              {point.label}
+                            </span>
+                            <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                              <div
+                                className="h-full bg-emerald-600 rounded-full"
+                                style={{
+                                  width: `${(point.value / Math.max(1, ordersYear)) * 100}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="text-xs text-slate-600 dark:text-slate-300 text-right">
+                              {point.value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+
+                    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        Camisas mais vendidas
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Top 8 do periodo selecionado.
+                      </p>
+                      {topProducts.length === 0 ? (
+                        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                          Sem vendas no periodo.
+                        </p>
+                      ) : (
+                        <div className="mt-4 space-y-3">
+                          {topProducts.map((row) => (
+                            <div key={row.id} className="space-y-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-1">
+                                  {row.name}
+                                </p>
+                                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                  {row.quantity} un
+                                </p>
+                              </div>
+                              <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                                <div
+                                  className="h-full bg-blue-600 rounded-full"
+                                  style={{ width: `${(row.quantity / maxTopQty) * 100}%` }}
+                                />
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Receita: {currencyFormatter.format(row.revenue)} | Ultima venda:{' '}
+                                {dateFormatter.format(new Date(row.lastSoldAt))}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </article>
+                  </div>
+                </div>
+              );
+            })()}
+          </article>
+        </section>
+      )}
 
       {activeTab === 'products' && (
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
