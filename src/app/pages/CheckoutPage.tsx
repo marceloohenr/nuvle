@@ -760,7 +760,7 @@ const CheckoutPage = () => {
                 <input
                   value={couponCode}
                   onChange={(event) => setCouponCode(event.target.value)}
-                  placeholder="Digite o codigo (ex.: NUVLE10)"
+                  placeholder="Digite o codigo do cupom"
                   className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100"
                 />
                 <button
