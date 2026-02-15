@@ -126,7 +126,6 @@ const ProductDetailsPage = () => {
     ? getProductSizeStock(product, selectedSize)
     : product.stock;
   const isOutOfStock = selectedSizeStock <= 0;
-  const installment = (product.price / 3).toFixed(2);
   const whatsappUrl = settings.contact.whatsappUrl.trim() || settings.socialLinks.whatsapp.trim();
   const whatsappHref =
     whatsappUrl.startsWith('http://') || whatsappUrl.startsWith('https://')
@@ -238,9 +237,6 @@ const ProductDetailsPage = () => {
                 </span>
               )}
             </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              ou 3x de R$ {installment} sem juros
-            </p>
           </div>
 
           {product.sizes && (

@@ -23,7 +23,6 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
   const discount =
     product.discountPercentage ??
     (product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : 0);
-  const installment = (product.price / 3).toFixed(2);
 
   const handleAddToCart = (event: React.MouseEvent) => {
     event.stopPropagation();
@@ -107,9 +106,6 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           )}
           <p className="text-2xl font-black text-blue-600 dark:text-blue-400">
             R$ {product.price.toFixed(2)}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            ou 3x de R$ {installment} sem juros
           </p>
         </div>
 
