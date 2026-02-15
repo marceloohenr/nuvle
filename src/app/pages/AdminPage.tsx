@@ -158,6 +158,9 @@ const AdminPage = () => {
   const [orders, setOrders] = useState<LocalOrder[]>([]);
   const [orderSearch, setOrderSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
+  const [productFeaturedFilter, setProductFeaturedFilter] = useState<
+    'all' | 'featured' | 'not_featured'
+  >('all');
   const [orderMessage, setOrderMessage] = useState('');
   const [formMessage, setFormMessage] = useState('');
   const [productEditMessage, setProductEditMessage] = useState('');
@@ -241,14 +244,31 @@ const AdminPage = () => {
 
   const filteredProducts = useMemo(() => {
     const query = productSearch.trim().toLowerCase();
-    if (!query) return products;
+    let next = products;
 
-    return products.filter(
-      (product) =>
-        product.name.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query)
-    );
-  }, [productSearch, products]);
+    if (query) {
+      next = next.filter(
+        (product) =>
+          product.name.toLowerCase().includes(query) ||
+          product.category.toLowerCase().includes(query)
+      );
+    }
+
+    if (productFeaturedFilter === 'featured') {
+      next = next.filter((product) => Boolean(product.isFeatured));
+    } else if (productFeaturedFilter === 'not_featured') {
+      next = next.filter((product) => !product.isFeatured);
+    }
+
+    return next;
+  }, [productFeaturedFilter, productSearch, products]);
+
+  const featuredProducts = useMemo(
+    () => products.filter((product) => Boolean(product.isFeatured)),
+    [products]
+  );
+  const featuredVisible = useMemo(() => featuredProducts.slice(0, 8), [featuredProducts]);
+  const featuredOverflow = useMemo(() => featuredProducts.slice(8), [featuredProducts]);
 
   const filteredOrders = useMemo(() => {
     const query = orderSearch.trim().toLowerCase();
@@ -1293,6 +1313,115 @@ const AdminPage = () => {
       {activeTab === 'products' && (
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    Em alta (Home)
+                  </p>
+                  <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+                    {featuredProducts.length === 0
+                      ? 'Nenhuma camisa marcada como Em alta ainda.'
+                      : `${featuredProducts.length} produto(s) marcado(s). A Home mostra ate 8.`}
+                  </p>
+                  {featuredOverflow.length > 0 && (
+                    <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                      {featuredOverflow.length} marcado(s) a mais nao aparecem na Home.
+                    </p>
+                  )}
+                </div>
+                <Link
+                  to="/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900 transition-colors"
+                >
+                  Abrir Home
+                </Link>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {[
+                  { id: 'all' as const, label: `Todos (${products.length})` },
+                  { id: 'featured' as const, label: `Em alta (${featuredProducts.length})` },
+                  {
+                    id: 'not_featured' as const,
+                    label: `Nao em alta (${Math.max(0, products.length - featuredProducts.length)})`,
+                  },
+                ].map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setProductFeaturedFilter(option.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      productFeaturedFilter === option.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900/70'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              {featuredVisible.length > 0 && (
+                <div className="mt-5 space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    Aparecendo na Home agora
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {featuredVisible.map((product) => (
+                      <div
+                        key={`featured-preview-${product.id}`}
+                        className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"
+                      >
+                        <img
+                          src={product.images?.[0] ?? product.image}
+                          alt={product.name}
+                          className="h-12 w-12 rounded-xl object-cover"
+                          loading="lazy"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                            {product.name}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {getCategoryLabel(product.category)} ·{' '}
+                            {currencyFormatter.format(product.price)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void (async () => {
+                              const ok = await updateProduct(product.id, {
+                                isFeatured: false,
+                              });
+                              if (!ok) {
+                                setProductEditMessage(
+                                  'Nao foi possivel remover o produto de Em alta.'
+                                );
+                              }
+                            })();
+                          }}
+                          className="rounded-xl border border-amber-200 dark:border-amber-900 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors"
+                        >
+                          Remover
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => startEditingProduct(product)}
+                          className="rounded-xl border border-blue-200 dark:border-blue-900 px-3 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                        >
+                          Editar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2">
               <Search size={16} className="text-slate-400" />
               <input
@@ -1376,6 +1505,28 @@ const AdminPage = () => {
                         </div>
 
                         <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void (async () => {
+                                const ok = await updateProduct(product.id, {
+                                  isFeatured: !product.isFeatured,
+                                });
+                                if (!ok) {
+                                  setProductEditMessage(
+                                    'Nao foi possivel atualizar a exibicao do produto em Em alta.'
+                                  );
+                                }
+                              })();
+                            }}
+                            className={`rounded-lg border px-2 py-1 text-xs font-semibold transition-colors ${
+                              product.isFeatured
+                                ? 'border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/20'
+                                : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/70'
+                            }`}
+                          >
+                            {product.isFeatured ? 'Remover Em alta' : 'Marcar Em alta'}
+                          </button>
                           <button
                             onClick={() => startEditingProduct(product)}
                             className="rounded-lg border border-blue-200 dark:border-blue-900 px-2 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
