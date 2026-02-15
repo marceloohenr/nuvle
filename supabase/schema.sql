@@ -308,6 +308,50 @@ to authenticated
 using (bucket_id = 'product-images' and public.is_admin());
 
 -- ---------------------------------------------------------------------------
+-- Coupons
+-- ---------------------------------------------------------------------------
+create table if not exists public.coupons (
+  code text primary key,
+  description text not null default '',
+  discount_percentage numeric(5,2) not null check (discount_percentage > 0 and discount_percentage <= 95),
+  is_active boolean not null default true,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.coupons enable row level security;
+
+drop policy if exists coupons_admin_all on public.coupons;
+create policy coupons_admin_all
+on public.coupons
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+create or replace function public.validate_coupon(p_code text)
+returns table (
+  code text,
+  description text,
+  discount_percentage numeric
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    c.code,
+    c.description,
+    c.discount_percentage
+  from public.coupons c
+  where c.is_active = true
+    and upper(trim(c.code)) = upper(trim(p_code))
+  limit 1;
+$$;
+
+grant execute on function public.validate_coupon(text) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Orders
 -- ---------------------------------------------------------------------------
 create table if not exists public.orders (

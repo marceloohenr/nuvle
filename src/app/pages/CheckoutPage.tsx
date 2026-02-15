@@ -7,6 +7,7 @@ import { useCatalog } from '../../features/catalog';
 import type { CheckoutForm } from '../../features/cart';
 import { addLocalOrder } from '../../features/orders';
 import type { OrderPaymentMethod, OrderStatus } from '../../features/orders';
+import { validateCoupon, type ValidatedCoupon } from '../../features/coupons';
 import { isSupabaseConfigured } from '../../shared/lib/supabase';
 
 type PaymentMethod = OrderPaymentMethod;
@@ -101,6 +102,10 @@ const CheckoutPage = () => {
   const [stepErrorMessage, setStepErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<ValidatedCoupon | null>(null);
+  const [couponMessage, setCouponMessage] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const itemCount = useMemo(
     () => state.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -134,6 +139,17 @@ const CheckoutPage = () => {
   }, [cardData, paymentMethod]);
 
   const canSubmit = isCustomerStepValid && isPaymentStepValid && acceptedTerms;
+
+  const couponDiscountPercentage = appliedCoupon?.discountPercentage ?? 0;
+  const couponDiscountAmount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    const raw = state.total * (couponDiscountPercentage / 100);
+    return Math.round(raw * 100) / 100;
+  }, [appliedCoupon, couponDiscountPercentage, state.total]);
+  const finalTotal = useMemo(
+    () => Math.max(0, Math.round((state.total - couponDiscountAmount) * 100) / 100),
+    [couponDiscountAmount, state.total]
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -233,6 +249,38 @@ const CheckoutPage = () => {
     setCardData((prev) => ({ ...prev, [name]: nextValue }));
   };
 
+  const handleApplyCoupon = () => {
+    setCouponMessage('');
+
+    if (!isSupabaseConfigured) {
+      setCouponMessage('Cupons indisponiveis neste ambiente.');
+      return;
+    }
+
+    if (!couponCode.trim()) {
+      setCouponMessage('Digite um codigo de cupom.');
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    void (async () => {
+      const result = await validateCoupon(couponCode);
+      setIsApplyingCoupon(false);
+
+      if (!result.success || !result.coupon) {
+        setAppliedCoupon(null);
+        setCouponMessage(result.error ?? 'Cupom invalido.');
+        return;
+      }
+
+      setAppliedCoupon(result.coupon);
+      setCouponCode(result.coupon.code);
+      setCouponMessage(
+        `Cupom aplicado: ${result.coupon.code} (-${result.coupon.discountPercentage}%).`
+      );
+    })();
+  };
+
   const goNext = () => {
     if (currentStep === 1 && !isCustomerStepValid) {
       setStepErrorMessage('Revise os dados de entrega antes de continuar.');
@@ -275,7 +323,7 @@ const CheckoutPage = () => {
       size: item.size,
     }));
     const customerSnapshot = { ...formData };
-    const orderTotal = state.total;
+    const orderTotal = finalTotal;
     if (!isSupabaseConfigured) {
       const stockResult = consumeProductStock(
         orderItemsSnapshot.map((item) => ({
@@ -703,14 +751,77 @@ const CheckoutPage = () => {
             ))}
           </div>
 
-          <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex justify-between text-lg font-bold text-slate-900 dark:text-white">
-              <span>Total</span>
-              <span>R$ {state.total.toFixed(2)}</span>
+          <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Cupom de desconto
+              </p>
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value)}
+                  placeholder="Digite o codigo (ex.: NUVLE10)"
+                  className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <button
+                  type="button"
+                  disabled={isApplyingCoupon || !couponCode.trim()}
+                  onClick={handleApplyCoupon}
+                  className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white px-4 py-2.5 text-sm font-semibold transition-colors"
+                >
+                  {isApplyingCoupon ? 'Aplicando...' : 'Aplicar'}
+                </button>
+              </div>
+              {appliedCoupon && (
+                <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200 truncate">
+                      {appliedCoupon.code} (-{appliedCoupon.discountPercentage}%)
+                    </p>
+                    {appliedCoupon.description && (
+                      <p className="text-xs text-emerald-800/80 dark:text-emerald-200/80 line-clamp-1">
+                        {appliedCoupon.description}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppliedCoupon(null);
+                      setCouponMessage('Cupom removido.');
+                    }}
+                    className="rounded-lg border border-emerald-200 dark:border-emerald-900 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/30 transition-colors"
+                  >
+                    Remover
+                  </button>
+                </div>
+              )}
+              {couponMessage && (
+                <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">{couponMessage}</p>
+              )}
             </div>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Frete negociado no atendimento via WhatsApp.
-            </p>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-sm text-slate-600 dark:text-slate-300">
+                <span>Subtotal</span>
+                <span>R$ {state.total.toFixed(2)}</span>
+              </div>
+              {couponDiscountAmount > 0 && appliedCoupon && (
+                <div className="flex justify-between text-sm text-emerald-700 dark:text-emerald-300">
+                  <span>
+                    Cupom {appliedCoupon.code} (-{appliedCoupon.discountPercentage}%)
+                  </span>
+                  <span>- R$ {couponDiscountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-lg font-bold text-slate-900 dark:text-white pt-2">
+                <span>Total</span>
+                <span>R$ {finalTotal.toFixed(2)}</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Frete negociado no atendimento via WhatsApp.
+              </p>
+            </div>
           </div>
 
           <Link
