@@ -1,6 +1,6 @@
 import { LogOut, Menu, Moon, Search, ShieldCheck, ShoppingCart, Sun, UserCircle2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useCart } from '../../cart/context/CartContext';
 import { useTheme } from '../../theme/context/ThemeContext';
@@ -15,6 +15,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
   const { state } = useCart();
   const { isDark, toggleTheme } = useTheme();
   const { currentUser, isAuthenticated, isAdmin, logout } = useAuth();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const totalItems = useMemo(
@@ -44,6 +45,37 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
     return baseItems;
   }, [isAdmin, isAuthenticated]);
 
+  const isNavItemActive = (to: string) => {
+    const [path, hashFragment] = to.split('#');
+    const expectedHash = hashFragment ? `#${hashFragment}` : '';
+
+    if (expectedHash) {
+      return location.pathname === path && location.hash === expectedHash;
+    }
+
+    if (path === '/conta') {
+      return location.pathname === '/conta' && location.hash !== '#favoritos';
+    }
+
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
+  const scrollToFavoritesSection = () => {
+    if (location.pathname !== '/conta') return;
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+
+    const target = document.getElementById('favoritos');
+    if (!target) return;
+
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-black/75 backdrop-blur-xl">
       <div className="bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 text-white text-center text-[11px] py-2 px-4 tracking-[0.2em] font-semibold uppercase">
@@ -62,19 +94,22 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
           <nav className="hidden md:flex items-center gap-1 lg:gap-2">
             {navItems.map((item) => (
-              <NavLink
+              <Link
                 key={item.to}
                 to={item.to}
-                className={({ isActive }) =>
-                  `px-3 lg:px-4 py-2 rounded-md text-[12px] lg:text-[13px] font-semibold tracking-wide uppercase transition-colors ${
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900/80'
-                  }`
-                }
+                onClick={() => {
+                  if (item.to === '/conta#favoritos') {
+                    scrollToFavoritesSection();
+                  }
+                }}
+                className={`px-3 lg:px-4 py-2 rounded-md text-[12px] lg:text-[13px] font-semibold tracking-wide uppercase transition-colors ${
+                  isNavItemActive(item.to)
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900/80'
+                }`}
               >
                 {item.label}
-              </NavLink>
+              </Link>
             ))}
           </nav>
 
@@ -152,20 +187,23 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
         <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black/95">
           <nav className="max-w-[1440px] mx-auto px-4 py-4 flex flex-col gap-2">
             {navItems.map((item) => (
-              <NavLink
+              <Link
                 key={item.to}
                 to={item.to}
-                onClick={() => setIsMenuOpen(false)}
-                className={({ isActive }) =>
-                  `px-4 py-3 rounded-xl text-sm font-semibold tracking-wide uppercase transition-colors ${
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-slate-900'
-                  }`
-                }
+                onClick={() => {
+                  if (item.to === '/conta#favoritos') {
+                    scrollToFavoritesSection();
+                  }
+                  setIsMenuOpen(false);
+                }}
+                className={`px-4 py-3 rounded-xl text-sm font-semibold tracking-wide uppercase transition-colors ${
+                  isNavItemActive(item.to)
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-slate-900'
+                }`}
               >
                 {item.label}
-              </NavLink>
+              </Link>
             ))}
             {!isAuthenticated ? (
               <Link

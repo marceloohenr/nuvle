@@ -1,6 +1,6 @@
 import { CreditCard, Heart, LogOut, MapPin, ShieldCheck, UserCircle2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import { useFavorites } from '../../features/favorites';
 import { getLocalOrders, orderStatusLabel } from '../../features/orders';
@@ -47,6 +47,7 @@ const canAccessOrder = (order: LocalOrder, userId: string, email: string) => {
 const AccountPage = () => {
   const { currentUser, isAdmin, isAuthenticated, logout } = useAuth();
   const { favorites, removeFavorite } = useFavorites();
+  const location = useLocation();
   const [userOrders, setUserOrders] = useState<LocalOrder[]>([]);
 
   useEffect(() => {
@@ -70,6 +71,22 @@ const AccountPage = () => {
       active = false;
     };
   }, [currentUser, isAdmin]);
+
+  useEffect(() => {
+    if (location.hash !== '#favoritos') return;
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+
+    const target = document.getElementById('favoritos');
+    if (!target) return;
+
+    const raf = window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+    };
+  }, [location.hash]);
 
   if (!isAuthenticated || !currentUser) {
     return <Navigate to="/login?redirect=/conta" replace />;
@@ -263,7 +280,7 @@ const AccountPage = () => {
 
       <section
         id="favoritos"
-        className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8"
+        className="scroll-mt-32 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
