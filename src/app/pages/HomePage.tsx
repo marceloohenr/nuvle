@@ -52,7 +52,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
 
   return (
     <div className="space-y-16">
-      <section className="section-reveal relative w-screen ml-[calc(50%-50vw)] overflow-hidden border-y border-slate-200 dark:border-slate-800 shadow-hard">
+      <section className="section-reveal -mt-8 md:-mt-10 relative w-screen ml-[calc(50%-50vw)] overflow-hidden border-y border-slate-200 dark:border-slate-800 shadow-hard">
         <img
           src={campaignImage}
           alt="Campanha Nuvle"
