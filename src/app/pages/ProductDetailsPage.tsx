@@ -110,7 +110,7 @@ const ProductDetailsPage = () => {
         </p>
         <Link
           to="/produtos"
-          className="mt-5 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+          className="mt-5 inline-flex items-center gap-2 bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 px-5 py-3 rounded-xl font-semibold transition-colors"
         >
           <ArrowLeft size={16} />
           Voltar para produtos
@@ -160,7 +160,7 @@ const ProductDetailsPage = () => {
       <div>
         <Link
           to="/produtos"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition-colors"
         >
           <ArrowLeft size={15} />
           Voltar para catalogo
@@ -181,10 +181,10 @@ const ProductDetailsPage = () => {
                   key={`${product.id}-thumb-${url}`}
                   type="button"
                   onClick={() => setActiveImageIndex(index)}
-                  className={`rounded-xl border overflow-hidden transition-colors ${
+                    className={`rounded-xl border overflow-hidden transition-colors ${
                     index === activeImageIndex
-                      ? 'border-blue-600'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-blue-400'
+                      ? 'border-black dark:border-white'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-600 dark:hover:border-slate-500'
                   }`}
                   aria-label={`Ver imagem ${index + 1} do produto`}
                 >
@@ -228,7 +228,7 @@ const ProductDetailsPage = () => {
               </p>
             )}
             <div className="flex items-center gap-3">
-              <p className="text-4xl font-black text-blue-600 dark:text-blue-400">
+              <p className="text-4xl font-black text-slate-900 dark:text-white">
                 R$ {product.price.toFixed(2)}
               </p>
               {discount > 0 && (
@@ -252,8 +252,8 @@ const ProductDetailsPage = () => {
                     disabled={getProductSizeStock(product, size) <= 0}
                     className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${
                       selectedSize === size
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-400'
+                        ? 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black'
+                        : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-600 dark:hover:border-slate-500'
                     } ${
                       getProductSizeStock(product, size) <= 0
                         ? 'opacity-40 cursor-not-allowed'
@@ -271,7 +271,7 @@ const ProductDetailsPage = () => {
             <button
               onClick={addToCart}
               disabled={isOutOfStock}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 rounded-xl transition-colors inline-flex items-center justify-center gap-2"
+              className="w-full bg-black hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 disabled:bg-slate-400 text-white font-semibold py-3 rounded-xl transition-colors inline-flex items-center justify-center gap-2"
             >
               <ShoppingCart size={18} />
               {isOutOfStock ? 'Indisponivel' : 'Adicionar ao carrinho'}
@@ -288,7 +288,7 @@ const ProductDetailsPage = () => {
 
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
-              <Truck className="text-blue-600 dark:text-blue-400" size={18} />
+              <Truck className="text-slate-900 dark:text-white" size={18} />
               <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
                 Envio com suporte humano
               </p>
@@ -297,7 +297,7 @@ const ProductDetailsPage = () => {
               </p>
             </div>
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
-              <ShieldCheck className="text-blue-600 dark:text-blue-400" size={18} />
+              <ShieldCheck className="text-slate-900 dark:text-white" size={18} />
               <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
                 Troca em ate 30 dias
               </p>
@@ -428,7 +428,7 @@ const ProductDetailsPage = () => {
                   <p className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-1">
                     {item.name}
                   </p>
-                  <p className="text-blue-600 dark:text-blue-400 font-bold mt-1">
+                  <p className="text-slate-900 dark:text-white font-bold mt-1">
                     R$ {item.price.toFixed(2)}
                   </p>
                 </div>

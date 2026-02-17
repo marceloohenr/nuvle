@@ -41,18 +41,18 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
   }, [isAdmin, isAuthenticated]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-white/10 bg-white/88 dark:bg-black/75 backdrop-blur-xl">
-      <div className="bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 text-white text-center text-[11px] py-2 px-4 tracking-[0.24em] font-semibold uppercase">
+    <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
+      <div className="bg-black text-white text-center text-[11px] py-2 px-4 tracking-[0.2em] font-semibold uppercase">
         Frete rapido | suporte no WhatsApp | trocas facilitadas
       </div>
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="h-[88px] flex items-center justify-between gap-4">
+        <div className="h-[86px] flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3 min-w-[130px]">
             <img
               src={nuvleLogo}
               alt="Nuvle"
-              className="h-10 sm:h-11 md:h-12 w-auto drop-shadow-[0_0_26px_rgba(56,189,248,0.7)]"
+              className="h-10 sm:h-11 md:h-12 w-auto"
             />
           </Link>
 
@@ -62,10 +62,10 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `px-3 lg:px-4 py-2 rounded-full text-[12px] lg:text-[13px] font-semibold tracking-wide uppercase transition-colors ${
+                  `px-3 lg:px-4 py-2 rounded-md text-[12px] lg:text-[13px] font-semibold tracking-wide uppercase transition-colors ${
                     isActive
-                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
-                      : 'text-slate-700 hover:bg-slate-200/70 dark:text-slate-200 dark:hover:bg-white/12'
+                      ? 'bg-black text-white dark:bg-white dark:text-black'
+                      : 'text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900'
                   }`
                 }
               >
@@ -77,7 +77,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
           <div className="flex items-center gap-2">
             <button
               onClick={onSearchToggle}
-              className="p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/10"
+              className="p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
               aria-label="Pesquisar produtos"
             >
               <Search size={19} />
@@ -85,7 +85,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/10"
+              className="p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
               aria-label="Alternar tema"
             >
               {isDark ? <Sun size={19} /> : <Moon size={19} />}
@@ -93,12 +93,12 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={onCartToggle}
-              className="relative p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/10"
+              className="relative p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
               aria-label="Abrir carrinho"
             >
               <ShoppingCart size={19} />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-sky-400 text-black text-xs font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-black text-white dark:bg-white dark:text-black text-xs font-bold flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
@@ -107,7 +107,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
             {!isAuthenticated ? (
               <Link
                 to="/login"
-                className="hidden sm:inline-flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+                className="hidden sm:inline-flex items-center gap-2 bg-black text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
               >
                 <UserCircle2 size={16} />
                 Entrar
@@ -116,7 +116,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               <>
                 <Link
                   to={isAdmin ? '/admin' : '/conta'}
-                  className="hidden sm:inline-flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+                  className="hidden sm:inline-flex items-center gap-2 bg-black text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
                 >
                   {isAdmin ? <ShieldCheck size={16} /> : <UserCircle2 size={16} />}
                   {currentUser?.name?.split(' ')[0] ?? 'Conta'}
@@ -125,7 +125,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                   onClick={() => {
                     void logout();
                   }}
-                  className="hidden sm:inline-flex items-center gap-2 border border-slate-300 text-slate-700 px-3 py-2 rounded-full text-sm font-semibold hover:bg-slate-100 transition-colors dark:border-white/20 dark:text-slate-100 dark:hover:bg-white/10"
+                  className="hidden sm:inline-flex items-center gap-2 border border-slate-300 text-slate-700 px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
                 >
                   <LogOut size={15} />
                   Sair
@@ -135,7 +135,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="md:hidden p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/10"
+              className="md:hidden p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
               aria-label="Alternar menu"
             >
               {isMenuOpen ? <X size={19} /> : <Menu size={19} />}
@@ -145,7 +145,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 dark:border-white/10 bg-white/95 dark:bg-black/95">
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
           <nav className="max-w-[1440px] mx-auto px-4 py-4 flex flex-col gap-2">
             {navItems.map((item) => (
               <NavLink
@@ -155,8 +155,8 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                 className={({ isActive }) =>
                   `px-4 py-3 rounded-xl text-sm font-semibold tracking-wide uppercase transition-colors ${
                     isActive
-                      ? 'bg-slate-900 text-white dark:bg-white dark:text-black'
-                      : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-white/5'
+                      ? 'bg-black text-white dark:bg-white dark:text-black'
+                      : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-slate-900'
                   }`
                 }
               >
@@ -167,7 +167,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               <Link
                 to="/login"
                 onClick={() => setIsMenuOpen(false)}
-                className="px-4 py-3 rounded-xl text-sm font-semibold bg-slate-900 text-white dark:bg-white dark:text-black"
+                className="px-4 py-3 rounded-xl text-sm font-semibold bg-black text-white dark:bg-white dark:text-black"
               >
                 Entrar na conta
               </Link>
@@ -177,7 +177,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                   void logout();
                   setIsMenuOpen(false);
                 }}
-                className="px-4 py-3 rounded-xl text-sm font-semibold border border-slate-300 text-slate-700 bg-slate-100 text-left dark:border-white/20 dark:text-slate-100 dark:bg-white/5"
+                className="px-4 py-3 rounded-xl text-sm font-semibold border border-slate-300 text-slate-700 bg-slate-100 text-left dark:border-slate-700 dark:text-slate-100 dark:bg-slate-900"
               >
                 Sair da conta
               </button>

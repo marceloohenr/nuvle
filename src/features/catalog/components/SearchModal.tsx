@@ -37,13 +37,13 @@ const SearchModal = ({ isOpen, onClose, onProductClick }: SearchModalProps) => {
       <div className="flex items-start justify-center min-h-screen pt-16">
         <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
 
-        <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4">
+        <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 border border-slate-200 dark:border-slate-800">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Pesquisar produtos</h2>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white">Pesquisar produtos</h2>
               <button
                 onClick={onClose}
-                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               >
                 <X size={20} />
               </button>
@@ -51,7 +51,7 @@ const SearchModal = ({ isOpen, onClose, onProductClick }: SearchModalProps) => {
 
             <div className="relative mb-6">
               <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
                 size={20}
               />
               <input
@@ -59,7 +59,7 @@ const SearchModal = ({ isOpen, onClose, onProductClick }: SearchModalProps) => {
                 placeholder="Digite o nome do produto..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white/70"
                 autoFocus
               />
             </div>
@@ -67,13 +67,13 @@ const SearchModal = ({ isOpen, onClose, onProductClick }: SearchModalProps) => {
             <div className="max-h-96 overflow-y-auto">
               {searchTerm.trim() === '' ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">
+                  <p className="text-slate-500 dark:text-slate-400">
                     Digite algo para pesquisar produtos
                   </p>
                 </div>
               ) : filteredProducts.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">
+                  <p className="text-slate-500 dark:text-slate-400">
                     Nenhum produto encontrado para "{searchTerm}"
                   </p>
                 </div>
@@ -91,7 +91,7 @@ const SearchModal = ({ isOpen, onClose, onProductClick }: SearchModalProps) => {
 
               {filteredProducts.length > 6 && (
                 <div className="text-center mt-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     Mostrando 6 de {filteredProducts.length} resultados
                   </p>
                 </div>

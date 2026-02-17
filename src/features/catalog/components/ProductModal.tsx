@@ -98,7 +98,7 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
                     R$ {product.originalPrice.toFixed(2)}
                   </p>
                 )}
-                <p className="text-3xl font-black text-blue-600 dark:text-blue-400">
+                <p className="text-3xl font-black text-slate-900 dark:text-white">
                   R$ {product.price.toFixed(2)}
                 </p>
               </div>
@@ -137,8 +137,8 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
                         disabled={getProductSizeStock(product, size) <= 0}
                         className={`py-2 px-3 border rounded-xl text-center text-sm font-semibold transition-colors ${
                           selectedSize === size
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-500'
+                            ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
+                            : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-900 dark:hover:border-slate-500'
                         } ${
                           getProductSizeStock(product, size) <= 0
                             ? 'opacity-40 cursor-not-allowed'
@@ -156,7 +156,7 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
                 <button
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-black hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 disabled:bg-slate-400 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   <ShoppingCart size={18} />
                   {isOutOfStock ? 'Indisponivel' : 'Adicionar ao carrinho'}
