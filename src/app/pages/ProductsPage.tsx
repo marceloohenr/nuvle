@@ -15,13 +15,14 @@ type PriceFilter = 'all' | 'under-80' | '80-100' | '100-120' | 'over-120';
 type SortOption = 'recommended' | 'price-asc' | 'price-desc' | 'name-asc';
 
 const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
-  const { products, categories, getCategoryLabel } = useCatalog();
+  const { products, categories, getCategoryLabel, getProductSizeStock } = useCatalog();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | string>('all');
   const [selectedSize, setSelectedSize] = useState<'all' | string>('all');
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('recommended');
+  const [onlyInStock, setOnlyInStock] = useState(false);
 
   useEffect(() => {
     const categoryParam = searchParams.get('categoria');
@@ -65,6 +66,14 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
 
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
+    const hasAnyStock = (product: Product) => {
+      if (product.sizes?.length) {
+        return product.sizes.some((size) => getProductSizeStock(product, size) > 0);
+      }
+
+      return (product.stock ?? 0) > 0;
+    };
+
     const result = products.filter((product) => {
       const matchesCategory =
         activeCategory === 'all' || product.category === activeCategory;
@@ -75,8 +84,13 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
         normalizedSearch.length === 0 ||
         product.name.toLowerCase().includes(normalizedSearch) ||
         product.category.toLowerCase().includes(normalizedSearch);
+      const matchesStock = !onlyInStock
+        ? true
+        : selectedSize === 'all'
+        ? hasAnyStock(product)
+        : getProductSizeStock(product, selectedSize) > 0;
 
-      return matchesCategory && matchesSize && matchesPrice && matchesSearch;
+      return matchesCategory && matchesSize && matchesPrice && matchesSearch && matchesStock;
     });
 
     switch (sortBy) {
@@ -89,7 +103,16 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
       default:
         return result;
     }
-  }, [activeCategory, priceFilter, products, searchTerm, selectedSize, sortBy]);
+  }, [
+    activeCategory,
+    getProductSizeStock,
+    onlyInStock,
+    priceFilter,
+    products,
+    searchTerm,
+    selectedSize,
+    sortBy,
+  ]);
 
   const updateCategory = (category: 'all' | string) => {
     setActiveCategory(category);
@@ -107,6 +130,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
     setSelectedSize('all');
     setPriceFilter('all');
     setSortBy('recommended');
+    setOnlyInStock(false);
     updateCategory('all');
   };
 
@@ -114,6 +138,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
     (activeCategory !== 'all' ? 1 : 0) +
     (selectedSize !== 'all' ? 1 : 0) +
     (priceFilter !== 'all' ? 1 : 0) +
+    (onlyInStock ? 1 : 0) +
     (searchTerm.trim().length > 0 ? 1 : 0);
 
   return (
@@ -173,7 +198,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
               Categoria
@@ -238,6 +263,23 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
               <option value="100-120">R$ 100 ate R$ 120</option>
               <option value="over-120">Acima de R$ 120</option>
             </select>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
+              Disponibilidade
+            </p>
+            <button
+              type="button"
+              onClick={() => setOnlyInStock((previous) => !previous)}
+              className={`w-full rounded-xl border px-3 py-3 text-sm font-semibold transition-colors ${
+                onlyInStock
+                  ? 'border-blue-600 bg-blue-600 text-white'
+                  : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200'
+              }`}
+            >
+              {onlyInStock ? 'Somente com estoque' : 'Mostrar todos'}
+            </button>
           </div>
         </div>
 
