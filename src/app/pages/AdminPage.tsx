@@ -147,7 +147,7 @@ const socialPlatforms: Array<{ id: SocialPlatform; label: string; Icon: typeof I
 ];
 
 const AdminPage = () => {
-  const { currentUser, isAdmin, users } = useAuth();
+  const { currentUser, isAdmin, users, deleteUser } = useAuth();
   const { settings, setSettings } = useStoreSettings();
   const {
     products,
@@ -170,6 +170,7 @@ const AdminPage = () => {
     'all' | 'featured' | 'not_featured'
   >('all');
   const [orderMessage, setOrderMessage] = useState('');
+  const [customerMessage, setCustomerMessage] = useState('');
   const [formMessage, setFormMessage] = useState('');
   const [productEditMessage, setProductEditMessage] = useState('');
   const [categoryMessage, setCategoryMessage] = useState('');
@@ -408,6 +409,7 @@ const AdminPage = () => {
 
   const customerRows = useMemo(() => {
     type CustomerRow = {
+      userId: string | null;
       email: string;
       name: string;
       phone: string;
@@ -427,6 +429,7 @@ const AdminPage = () => {
 
       const key = user.email.toLowerCase();
       byEmail.set(key, {
+        userId: user.id,
         email: user.email,
         name: user.name,
         phone: '-',
@@ -446,6 +449,7 @@ const AdminPage = () => {
 
       if (!existing) {
         byEmail.set(key, {
+          userId: null,
           email: order.customer.email,
           name: order.customer.name,
           phone: order.customer.phone,
@@ -2549,6 +2553,10 @@ const AdminPage = () => {
             Dados unificados dos cadastros e dos pedidos ja realizados.
           </p>
 
+          {customerMessage && (
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{customerMessage}</p>
+          )}
+
           <div className="mt-4 space-y-3">
             {customerRows.map((customer) => (
               <article
@@ -2579,6 +2587,50 @@ const AdminPage = () => {
                     <p className="text-blue-600 dark:text-blue-400 font-semibold">
                       {currencyFormatter.format(customer.totalSpent)}
                     </p>
+                    {customer.userId ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void (async () => {
+                            if (
+                              typeof window !== 'undefined' &&
+                              !window.confirm(
+                                `Deseja apagar o usuario ${customer.name} (${customer.email})?`
+                              )
+                            ) {
+                              return;
+                            }
+
+                            const result = await deleteUser(customer.userId);
+                            if (!result.success) {
+                              setCustomerMessage(
+                                result.error ?? 'Nao foi possivel apagar este usuario.'
+                              );
+                              return;
+                            }
+
+                            setCustomerMessage('Usuario apagado com sucesso.');
+                            await refreshOrders();
+                            await registerAdminLog(
+                              'system',
+                              'delete_user',
+                              `Usuario apagado: ${customer.name} (${customer.email})`,
+                              {
+                                userId: customer.userId,
+                                email: customer.email,
+                              }
+                            );
+                          })();
+                        }}
+                        className="mt-2 inline-flex items-center justify-center rounded-xl border border-red-200 dark:border-red-900 px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                      >
+                        Apagar usuario
+                      </button>
+                    ) : (
+                      <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                        Sem conta para apagar
+                      </p>
+                    )}
                   </div>
                 </div>
 

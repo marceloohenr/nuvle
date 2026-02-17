@@ -40,6 +40,7 @@ interface AuthContextValue {
   register: (payload: RegisterPayload) => Promise<ActionResult>;
   resendSignupConfirmation: (email: string) => Promise<ActionResult>;
   requestPasswordReset: (email: string) => Promise<ActionResult>;
+  deleteUser: (userId: string) => Promise<ActionResult>;
   logout: () => Promise<void>;
 }
 
@@ -646,6 +647,57 @@ const resendSignupConfirmation = useCallback(async (email: string): Promise<Acti
     };
   }, []);
 
+  const deleteUser = useCallback(
+    async (userId: string): Promise<ActionResult> => {
+      const normalizedUserId = userId.trim();
+      if (!normalizedUserId) {
+        return { success: false, error: 'Usuario invalido.' };
+      }
+
+      const actingUser = isSupabaseConfigured ? supabaseCurrentUser : currentStoredUser;
+      if (!actingUser || actingUser.role !== 'admin') {
+        return { success: false, error: 'Sem permissao para excluir usuarios.' };
+      }
+
+      if (actingUser.id === normalizedUserId) {
+        return { success: false, error: 'Nao e permitido excluir seu proprio usuario.' };
+      }
+
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.rpc('admin_delete_user', {
+          p_user_id: normalizedUserId,
+        });
+
+        if (error) {
+          if (error.message.includes('admin_delete_user')) {
+            return {
+              success: false,
+              error: 'Funcao admin_delete_user nao encontrada. Execute novamente supabase/schema.sql.',
+            };
+          }
+
+          return { success: false, error: error.message };
+        }
+
+        setSupabaseUsers(await fetchSupabaseUsers());
+        return { success: true, message: 'Usuario removido com sucesso.' };
+      }
+
+      const exists = storedUsers.some((user) => user.id === normalizedUserId);
+      if (!exists) {
+        return { success: false, error: 'Usuario nao encontrado.' };
+      }
+
+      setStoredUsers((previous) => previous.filter((user) => user.id !== normalizedUserId));
+      if (sessionUserId === normalizedUserId) {
+        setSessionUserId(null);
+      }
+
+      return { success: true, message: 'Usuario removido com sucesso.' };
+    },
+    [currentStoredUser, sessionUserId, storedUsers, supabaseCurrentUser]
+  );
+
   const logout = useCallback(async () => {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
@@ -679,6 +731,7 @@ const resendSignupConfirmation = useCallback(async (email: string): Promise<Acti
       register,
       resendSignupConfirmation,
       requestPasswordReset,
+      deleteUser,
       logout,
     }),
     [
@@ -689,6 +742,7 @@ const resendSignupConfirmation = useCallback(async (email: string): Promise<Acti
       register,
       resendSignupConfirmation,
       requestPasswordReset,
+      deleteUser,
       logout,
     ]
   );

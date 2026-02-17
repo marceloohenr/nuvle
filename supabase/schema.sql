@@ -28,6 +28,40 @@ as $$
   );
 $$;
 
+create or replace function public.admin_delete_user(p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Nao autenticado';
+  end if;
+
+  if not public.is_admin() then
+    raise exception 'Sem permissao';
+  end if;
+
+  if p_user_id is null then
+    raise exception 'Usuario invalido';
+  end if;
+
+  if auth.uid() = p_user_id then
+    raise exception 'Nao e permitido excluir seu proprio usuario';
+  end if;
+
+  delete from auth.users
+  where id = p_user_id;
+
+  if not found then
+    raise exception 'Usuario nao encontrado';
+  end if;
+end;
+$$;
+
+grant execute on function public.admin_delete_user(uuid) to authenticated;
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
