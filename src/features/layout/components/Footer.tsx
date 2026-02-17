@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStoreSettings } from '../../settings';
+import nuvleLogo from '../../../shared/assets/nuvle-logo-neon.svg';
 
 const socialPlatforms = [
   { id: 'tiktok', label: 'TikTok', Icon: Music2 },
@@ -55,25 +56,29 @@ const Footer = () => {
     whatsappHref;
 
   return (
-    <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950 mt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <footer className="border-t border-white/10 bg-black/65 mt-16">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-12">
         <div className="grid gap-8 md:grid-cols-3">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">NUVLE</h3>
-            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 max-w-sm">
+            <img
+              src={nuvleLogo}
+              alt="Nuvle"
+              className="h-10 w-auto drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]"
+            />
+            <p className="mt-3 text-sm text-slate-300 max-w-sm">
               Loja virtual de roupas com foco em estilo, conforto e atendimento direto.
             </p>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+            <h4 className="text-sm font-semibold tracking-widest uppercase text-slate-400">
               Navegacao
             </h4>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link
                   to="/produtos"
-                  className="text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400"
+                  className="text-slate-200 hover:text-cyan-300"
                 >
                   Produtos
                 </Link>
@@ -81,7 +86,7 @@ const Footer = () => {
               <li>
                 <Link
                   to="/pedidos"
-                  className="text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400"
+                  className="text-slate-200 hover:text-cyan-300"
                 >
                   Meus pedidos
                 </Link>
@@ -89,7 +94,7 @@ const Footer = () => {
               <li>
                 <Link
                   to="/login"
-                  className="text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400"
+                  className="text-slate-200 hover:text-cyan-300"
                 >
                   Login
                 </Link>
@@ -98,10 +103,10 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+            <h4 className="text-sm font-semibold tracking-widest uppercase text-slate-400">
               Contato
             </h4>
-            <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+            <ul className="mt-3 space-y-2 text-sm text-slate-100">
               {settings.contactVisibility.whatsapp && (
                 <li className="flex items-center gap-2">
                   <PhoneCall size={15} />
@@ -110,7 +115,7 @@ const Footer = () => {
                       href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-blue-600 dark:hover:text-blue-400"
+                      className="hover:text-cyan-300"
                     >
                       WhatsApp: {settings.contact.whatsappLabel}
                     </a>
@@ -124,7 +129,7 @@ const Footer = () => {
                   <Mail size={15} />
                   <a
                     href={`mailto:${settings.contact.email}`}
-                    className="hover:text-blue-600 dark:hover:text-blue-400"
+                    className="hover:text-cyan-300"
                   >
                     {settings.contact.email}
                   </a>
@@ -138,7 +143,7 @@ const Footer = () => {
                       href={instagramHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-blue-600 dark:hover:text-blue-400"
+                      className="hover:text-cyan-300"
                     >
                       {settings.contact.handle}
                     </a>
@@ -163,7 +168,7 @@ const Footer = () => {
                       <span
                         key={platform.id}
                         title={platform.label}
-                        className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-400 dark:text-slate-500"
+                        className="inline-flex items-center justify-center rounded-full border border-white/15 h-10 w-10 text-slate-500"
                       >
                         <platform.Icon size={18} />
                         <span className="sr-only">{platform.label}</span>
@@ -179,7 +184,7 @@ const Footer = () => {
                       rel="noopener noreferrer"
                       aria-label={platform.label}
                       title={platform.label}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      className="inline-flex items-center justify-center rounded-full border border-white/20 h-10 w-10 text-slate-200 hover:border-cyan-300 hover:text-cyan-300 transition-colors"
                     >
                       <platform.Icon size={18} />
                       <span className="sr-only">{platform.label}</span>
@@ -191,14 +196,14 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-10 pt-5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs text-slate-500 dark:text-slate-400">
+        <div className="mt-10 pt-5 border-t border-white/10 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs text-slate-400">
           <p>(c) {currentYear} Nuvle. Todos os direitos reservados.</p>
           {channelsHref ? (
             <a
               href={channelsHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-blue-600 dark:hover:text-blue-400"
+              className="hover:text-cyan-300"
             >
               Canais oficiais
             </a>

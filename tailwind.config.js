@@ -79,7 +79,8 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],
+        sans: ['Montserrat', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        display: ['Teko', 'Montserrat', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',
@@ -121,9 +122,9 @@ export default {
         }
       },
       boxShadow: {
-        'soft': '0 2px 15px 0 rgba(0, 0, 0, 0.08)',
-        'medium': '0 4px 25px 0 rgba(0, 0, 0, 0.1)',
-        'hard': '0 8px 35px 0 rgba(0, 0, 0, 0.12)',
+        'soft': '0 8px 30px rgba(2, 8, 23, 0.08)',
+        'medium': '0 14px 42px rgba(2, 8, 23, 0.14)',
+        'hard': '0 22px 60px rgba(2, 8, 23, 0.22)',
       },
       borderRadius: {
         'xl': '0.75rem',

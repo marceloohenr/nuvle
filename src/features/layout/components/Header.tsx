@@ -4,6 +4,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useCart } from '../../cart/context/CartContext';
 import { useTheme } from '../../theme/context/ThemeContext';
+import nuvleLogo from '../../../shared/assets/nuvle-logo-neon.svg';
 
 interface HeaderProps {
   onCartToggle: () => void;
@@ -40,31 +41,31 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
   }, [isAdmin, isAuthenticated]);
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-lg bg-white/90 dark:bg-gray-950/80 border-b border-slate-200 dark:border-slate-800">
-      <div className="bg-slate-900 text-slate-100 text-center text-xs py-2 px-4 tracking-wide">
-        ENVIO RAPIDO | FRETE E SUPORTE VIA WHATSAPP
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-black/75 backdrop-blur-xl">
+      <div className="bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 text-white text-center text-[11px] py-2 px-4 tracking-[0.24em] font-semibold uppercase">
+        Frete rapido | suporte no WhatsApp | trocas facilitadas
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="h-20 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-3">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="h-[88px] flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-3 min-w-[130px]">
             <img
-              src="https://i.postimg.cc/zBtj4x02/fundo.png"
+              src={nuvleLogo}
               alt="Nuvle"
-              className="h-12 w-auto"
+              className="h-10 sm:h-11 md:h-12 w-auto drop-shadow-[0_0_26px_rgba(56,189,248,0.7)]"
             />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-2">
+          <nav className="hidden md:flex items-center gap-1 lg:gap-2">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                  `px-3 lg:px-4 py-2 rounded-full text-[12px] lg:text-[13px] font-semibold tracking-wide uppercase transition-colors ${
                     isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      ? 'bg-white text-slate-950'
+                      : 'text-slate-200 hover:bg-white/12'
                   }`
                 }
               >
@@ -76,7 +77,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
           <div className="flex items-center gap-2">
             <button
               onClick={onSearchToggle}
-              className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-2.5 rounded-full border border-white/15 text-slate-100 hover:bg-white/10 transition-colors"
               aria-label="Pesquisar produtos"
             >
               <Search size={19} />
@@ -84,7 +85,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-2.5 rounded-full border border-white/15 text-slate-100 hover:bg-white/10 transition-colors"
               aria-label="Alternar tema"
             >
               {isDark ? <Sun size={19} /> : <Moon size={19} />}
@@ -92,12 +93,12 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={onCartToggle}
-              className="relative p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="relative p-2.5 rounded-full border border-white/15 text-slate-100 hover:bg-white/10 transition-colors"
               aria-label="Abrir carrinho"
             >
               <ShoppingCart size={19} />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-sky-400 text-black text-xs font-bold flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
@@ -106,7 +107,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
             {!isAuthenticated ? (
               <Link
                 to="/login"
-                className="hidden sm:inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                className="hidden sm:inline-flex items-center gap-2 bg-white text-black hover:bg-slate-200 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
               >
                 <UserCircle2 size={16} />
                 Entrar
@@ -115,7 +116,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               <>
                 <Link
                   to={isAdmin ? '/admin' : '/conta'}
-                  className="hidden sm:inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                  className="hidden sm:inline-flex items-center gap-2 bg-white text-black hover:bg-slate-200 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
                 >
                   {isAdmin ? <ShieldCheck size={16} /> : <UserCircle2 size={16} />}
                   {currentUser?.name?.split(' ')[0] ?? 'Conta'}
@@ -124,7 +125,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                   onClick={() => {
                     void logout();
                   }}
-                  className="hidden sm:inline-flex items-center gap-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="hidden sm:inline-flex items-center gap-2 border border-white/20 text-slate-100 px-3 py-2 rounded-full text-sm font-semibold hover:bg-white/10 transition-colors"
                 >
                   <LogOut size={15} />
                   Sair
@@ -134,7 +135,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="md:hidden p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="md:hidden p-2.5 rounded-full border border-white/15 text-slate-100 hover:bg-white/10 transition-colors"
               aria-label="Alternar menu"
             >
               {isMenuOpen ? <X size={19} /> : <Menu size={19} />}
@@ -144,18 +145,18 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950">
-          <nav className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-2">
+        <div className="md:hidden border-t border-white/10 bg-black/95">
+          <nav className="max-w-[1440px] mx-auto px-4 py-4 flex flex-col gap-2">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 onClick={() => setIsMenuOpen(false)}
                 className={({ isActive }) =>
-                  `px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                  `px-4 py-3 rounded-xl text-sm font-semibold tracking-wide uppercase transition-colors ${
                     isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900'
+                      ? 'bg-white text-black'
+                      : 'text-slate-100 bg-white/5'
                   }`
                 }
               >
@@ -166,7 +167,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               <Link
                 to="/login"
                 onClick={() => setIsMenuOpen(false)}
-                className="px-4 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white"
+                className="px-4 py-3 rounded-xl text-sm font-semibold bg-white text-black"
               >
                 Entrar na conta
               </Link>
@@ -176,7 +177,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                   void logout();
                   setIsMenuOpen(false);
                 }}
-                className="px-4 py-3 rounded-xl text-sm font-semibold border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 text-left"
+                className="px-4 py-3 rounded-xl text-sm font-semibold border border-white/20 text-slate-100 bg-white/5 text-left"
               >
                 Sair da conta
               </button>

@@ -51,17 +51,18 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
   return (
     <article
       onClick={() => onProductClick(product)}
-      className="group bg-white dark:bg-slate-900 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-800 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-medium"
+      className="group bg-gradient-to-b from-[#0f172a]/96 to-[#0a1220]/96 rounded-3xl shadow-medium border border-white/10 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-hard"
     >
       <div className="relative">
         <img
           src={product.images?.[0] ?? product.image}
           alt={product.name}
-          className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-110"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
 
         <div className="absolute top-3 left-3 flex items-center gap-2">
-          <span className="rounded-full bg-white/90 dark:bg-slate-900/90 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200">
+          <span className="rounded-full bg-black/70 border border-white/20 px-3 py-1 text-[11px] uppercase tracking-wider font-semibold text-slate-100">
             {getCategoryLabel(product.category)}
           </span>
           {discount > 0 && (
@@ -69,14 +70,19 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
               -{discount}%
             </span>
           )}
+          {product.isFeatured && (
+            <span className="rounded-full bg-cyan-300 text-black px-2.5 py-1 text-xs font-black uppercase tracking-wide">
+              Em alta
+            </span>
+          )}
         </div>
 
         <button
           onClick={handleLike}
-          className={`absolute top-3 right-3 h-9 w-9 rounded-full grid place-items-center transition-colors ${
+          className={`absolute top-3 right-3 h-9 w-9 rounded-full grid place-items-center border transition-colors ${
             isLiked
-              ? 'bg-red-500 text-white'
-              : 'bg-white/90 dark:bg-slate-900/90 text-slate-600 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800'
+              ? 'bg-red-500 border-red-500 text-white'
+              : 'bg-black/70 border-white/20 text-slate-200 hover:bg-black/85'
           }`}
           aria-label="Favoritar produto"
         >
@@ -85,10 +91,10 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
       </div>
 
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white line-clamp-1">
+        <h3 className="text-xl font-semibold text-white line-clamp-1">
           {product.name}
         </h3>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs font-medium text-slate-300">
           {product.sizes?.length
             ? isOutOfStock
               ? `Sem estoque no tamanho ${selectedSize}`
@@ -100,25 +106,25 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
 
         <div className="mt-3">
           {product.originalPrice && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 line-through">
+            <p className="text-sm text-slate-400 line-through">
               R$ {product.originalPrice.toFixed(2)}
             </p>
           )}
-          <p className="text-2xl font-black text-blue-600 dark:text-blue-400">
+          <p className="text-3xl font-black text-cyan-200">
             R$ {product.price.toFixed(2)}
           </p>
         </div>
 
         {product.sizes && (
           <div className="mt-4">
-            <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-widest text-slate-300 mb-1.5">
               Tamanho
             </label>
             <select
               value={selectedSize}
               onChange={(event) => setSelectedSize(event.target.value)}
               onClick={(event) => event.stopPropagation()}
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+              className="w-full rounded-xl border border-white/20 bg-black/35 px-3 py-2 text-sm text-slate-100"
             >
               {product.sizes.map((size) => (
                 <option
@@ -137,7 +143,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           <button
             onClick={handleAddToCart}
             disabled={isOutOfStock}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="bg-white text-black hover:bg-slate-200 disabled:bg-slate-500 disabled:text-slate-800 font-semibold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <ShoppingCart size={16} />
             {isOutOfStock ? 'Indisponivel' : 'Comprar'}
@@ -145,7 +151,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           <Link
             to={`/produto/${product.id}`}
             onClick={(event) => event.stopPropagation()}
-            className="border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-2.5 px-4 rounded-xl transition-colors text-center hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="border border-white/20 text-slate-100 font-semibold py-2.5 px-4 rounded-xl transition-colors text-center hover:bg-white/10"
           >
             Detalhes
           </Link>

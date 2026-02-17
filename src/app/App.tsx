@@ -87,13 +87,15 @@ function App() {
   return (
     <AppProviders>
       <BrowserRouter>
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 transition-colors duration-300">
+        <div className="relative min-h-screen overflow-x-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.16),transparent_38%),radial-gradient(circle_at_90%_0%,rgba(30,64,175,0.18),transparent_32%)]" />
+
           <Header
             onCartToggle={() => setIsCartOpen(true)}
             onSearchToggle={() => setIsSearchOpen(true)}
           />
 
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <main className="relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-8 md:py-10">
             <Routes>
               <Route path="/" element={<HomePage onProductClick={handleProductClick} />} />
               <Route

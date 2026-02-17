@@ -1,0 +1,53 @@
+<svg width="980" height="360" viewBox="0 0 980 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nuvleText" x1="102" y1="76" x2="860" y2="306" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67F6FF" />
+      <stop offset="0.5" stop-color="#25E6FF" />
+      <stop offset="1" stop-color="#00B8FF" />
+    </linearGradient>
+    <linearGradient id="nuvleGlow" x1="80" y1="42" x2="900" y2="326" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0052FF" />
+      <stop offset="1" stop-color="#0031B3" />
+    </linearGradient>
+    <filter id="softGlow" x="0" y="0" width="980" height="360" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="24" />
+    </filter>
+    <filter id="hardGlow" x="0" y="0" width="980" height="360" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#27D8FF" flood-opacity="0.9" />
+      <feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="#0A63FF" flood-opacity="0.8" />
+    </filter>
+  </defs>
+
+  <g filter="url(#softGlow)" opacity="0.95">
+    <text
+      x="70"
+      y="250"
+      font-size="220"
+      font-family="Teko, Impact, Arial Black, sans-serif"
+      font-style="italic"
+      font-weight="700"
+      letter-spacing="12"
+      fill="url(#nuvleGlow)"
+    >
+      NUVLE
+    </text>
+  </g>
+
+  <g filter="url(#hardGlow)">
+    <text
+      x="74"
+      y="250"
+      font-size="210"
+      font-family="Teko, Impact, Arial Black, sans-serif"
+      font-style="italic"
+      font-weight="700"
+      letter-spacing="12"
+      fill="url(#nuvleText)"
+      stroke="#2EF0FF"
+      stroke-width="2"
+      paint-order="stroke"
+    >
+      NUVLE
+    </text>
+  </g>
+</svg>
