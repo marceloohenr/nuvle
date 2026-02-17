@@ -87,8 +87,8 @@ function App() {
   return (
     <AppProviders>
       <BrowserRouter>
-        <div className="relative min-h-screen overflow-x-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.16),transparent_38%),radial-gradient(circle_at_90%_0%,rgba(30,64,175,0.18),transparent_32%)]" />
+        <div className="relative min-h-screen overflow-x-hidden text-slate-900 dark:text-slate-100">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.14),transparent_40%),radial-gradient(circle_at_90%_0%,rgba(2,132,199,0.12),transparent_34%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.16),transparent_38%),radial-gradient(circle_at_90%_0%,rgba(30,64,175,0.18),transparent_32%)]" />
 
           <Header
             onCartToggle={() => setIsCartOpen(true)}

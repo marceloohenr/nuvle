@@ -4,7 +4,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useCart } from '../../cart/context/CartContext';
 import { useTheme } from '../../theme/context/ThemeContext';
-import nuvleLogo from '../../../shared/assets/nuvle-logo-neon.svg';
+import nuvleLogo from '../../../shared/assets/nuvle-logo-raio.png';
 
 interface HeaderProps {
   onCartToggle: () => void;
@@ -41,7 +41,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
   }, [isAdmin, isAuthenticated]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-black/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-white/10 bg-white/88 dark:bg-black/75 backdrop-blur-xl">
       <div className="bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 text-white text-center text-[11px] py-2 px-4 tracking-[0.24em] font-semibold uppercase">
         Frete rapido | suporte no WhatsApp | trocas facilitadas
       </div>
@@ -64,8 +64,8 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                 className={({ isActive }) =>
                   `px-3 lg:px-4 py-2 rounded-full text-[12px] lg:text-[13px] font-semibold tracking-wide uppercase transition-colors ${
                     isActive
-                      ? 'bg-white text-slate-950'
-                      : 'text-slate-200 hover:bg-white/12'
+                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                      : 'text-slate-700 hover:bg-slate-200/70 dark:text-slate-200 dark:hover:bg-white/12'
                   }`
                 }
               >
@@ -77,7 +77,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
           <div className="flex items-center gap-2">
             <button
               onClick={onSearchToggle}
-              className="p-2.5 rounded-full border border-white/15 text-slate-100 hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/10"
               aria-label="Pesquisar produtos"
             >
               <Search size={19} />
@@ -85,7 +85,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-full border border-white/15 text-slate-100 hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/10"
               aria-label="Alternar tema"
             >
               {isDark ? <Sun size={19} /> : <Moon size={19} />}
@@ -93,7 +93,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={onCartToggle}
-              className="relative p-2.5 rounded-full border border-white/15 text-slate-100 hover:bg-white/10 transition-colors"
+              className="relative p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/10"
               aria-label="Abrir carrinho"
             >
               <ShoppingCart size={19} />
@@ -107,7 +107,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
             {!isAuthenticated ? (
               <Link
                 to="/login"
-                className="hidden sm:inline-flex items-center gap-2 bg-white text-black hover:bg-slate-200 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+                className="hidden sm:inline-flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
               >
                 <UserCircle2 size={16} />
                 Entrar
@@ -116,7 +116,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               <>
                 <Link
                   to={isAdmin ? '/admin' : '/conta'}
-                  className="hidden sm:inline-flex items-center gap-2 bg-white text-black hover:bg-slate-200 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+                  className="hidden sm:inline-flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
                 >
                   {isAdmin ? <ShieldCheck size={16} /> : <UserCircle2 size={16} />}
                   {currentUser?.name?.split(' ')[0] ?? 'Conta'}
@@ -125,7 +125,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                   onClick={() => {
                     void logout();
                   }}
-                  className="hidden sm:inline-flex items-center gap-2 border border-white/20 text-slate-100 px-3 py-2 rounded-full text-sm font-semibold hover:bg-white/10 transition-colors"
+                  className="hidden sm:inline-flex items-center gap-2 border border-slate-300 text-slate-700 px-3 py-2 rounded-full text-sm font-semibold hover:bg-slate-100 transition-colors dark:border-white/20 dark:text-slate-100 dark:hover:bg-white/10"
                 >
                   <LogOut size={15} />
                   Sair
@@ -135,7 +135,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="md:hidden p-2.5 rounded-full border border-white/15 text-slate-100 hover:bg-white/10 transition-colors"
+              className="md:hidden p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/10"
               aria-label="Alternar menu"
             >
               {isMenuOpen ? <X size={19} /> : <Menu size={19} />}
@@ -145,7 +145,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden border-t border-white/10 bg-black/95">
+        <div className="md:hidden border-t border-slate-200 dark:border-white/10 bg-white/95 dark:bg-black/95">
           <nav className="max-w-[1440px] mx-auto px-4 py-4 flex flex-col gap-2">
             {navItems.map((item) => (
               <NavLink
@@ -155,8 +155,8 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                 className={({ isActive }) =>
                   `px-4 py-3 rounded-xl text-sm font-semibold tracking-wide uppercase transition-colors ${
                     isActive
-                      ? 'bg-white text-black'
-                      : 'text-slate-100 bg-white/5'
+                      ? 'bg-slate-900 text-white dark:bg-white dark:text-black'
+                      : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-white/5'
                   }`
                 }
               >
@@ -167,7 +167,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               <Link
                 to="/login"
                 onClick={() => setIsMenuOpen(false)}
-                className="px-4 py-3 rounded-xl text-sm font-semibold bg-white text-black"
+                className="px-4 py-3 rounded-xl text-sm font-semibold bg-slate-900 text-white dark:bg-white dark:text-black"
               >
                 Entrar na conta
               </Link>
@@ -177,7 +177,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                   void logout();
                   setIsMenuOpen(false);
                 }}
-                className="px-4 py-3 rounded-xl text-sm font-semibold border border-white/20 text-slate-100 bg-white/5 text-left"
+                className="px-4 py-3 rounded-xl text-sm font-semibold border border-slate-300 text-slate-700 bg-slate-100 text-left dark:border-white/20 dark:text-slate-100 dark:bg-white/5"
               >
                 Sair da conta
               </button>
