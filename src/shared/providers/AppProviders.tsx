@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { AuthProvider, useAuth } from '../../features/auth';
 import { CartProvider } from '../../features/cart/context/CartContext';
 import { CatalogProvider } from '../../features/catalog';
+import { FavoritesProvider } from '../../features/favorites';
 import { StoreSettingsProvider } from '../../features/settings';
 import { ThemeProvider } from '../../features/theme/context/ThemeContext';
 import { ToastProvider } from './ToastProvider';
@@ -23,7 +24,9 @@ export const AppProviders = ({ children }: AppProvidersProps) => {
         <AuthProvider>
           <StoreSettingsProvider>
             <CatalogProvider>
-              <CartProviderGate>{children}</CartProviderGate>
+              <FavoritesProvider>
+                <CartProviderGate>{children}</CartProviderGate>
+              </FavoritesProvider>
             </CatalogProvider>
           </StoreSettingsProvider>
         </AuthProvider>

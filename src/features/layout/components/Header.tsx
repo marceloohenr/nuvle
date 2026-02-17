@@ -31,6 +31,10 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
     if (isAuthenticated) {
       baseItems.push({ to: '/conta', label: 'Minha conta' });
       baseItems.push({ to: '/pedidos', label: 'Pedidos' });
+
+      if (!isAdmin) {
+        baseItems.push({ to: '/conta#favoritos', label: 'Favoritos' });
+      }
     }
 
     if (isAdmin) {

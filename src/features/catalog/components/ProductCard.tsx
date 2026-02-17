@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../cart/context/CartContext';
 import { Product } from '../types/product';
 import { useCatalog } from '../context/CatalogContext';
+import { useFavorites } from '../../favorites';
 import { useToast } from '../../../shared/providers';
 
 interface ProductCardProps {
@@ -15,8 +16,9 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
   const { dispatch } = useCart();
   const { showToast } = useToast();
   const { getCategoryLabel, getProductSizeStock } = useCatalog();
-  const [isLiked, setIsLiked] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] ?? 'UN');
+  const isLiked = isFavorite(product.id);
   const selectedSizeStock = getProductSizeStock(product, selectedSize);
   const isOutOfStock = selectedSizeStock <= 0;
 
@@ -45,7 +47,14 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
 
   const handleLike = (event: React.MouseEvent) => {
     event.stopPropagation();
-    setIsLiked((prev) => !prev);
+    void (async () => {
+      const nextIsFavorite = await toggleFavorite(product.id);
+      showToast(
+        nextIsFavorite
+          ? `${product.name} adicionado aos favoritos.`
+          : `${product.name} removido dos favoritos.`
+      );
+    })();
   };
 
   return (

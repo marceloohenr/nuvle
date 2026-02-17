@@ -407,6 +407,14 @@ const AdminPage = () => {
     }));
   }, [categories, products]);
 
+  const adminUsers = useMemo(() => {
+    return users
+      .filter((user) => user.role === 'admin')
+      .sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+  }, [users]);
+
   const customerRows = useMemo(() => {
     type CustomerRow = {
       userId: string | null;
@@ -2548,155 +2556,207 @@ const AdminPage = () => {
 
       {activeTab === 'customers' && (
         <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Base de clientes</h2>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Usuarios admin</h2>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Dados unificados dos cadastros e dos pedidos ja realizados.
+            Contas com permissao de gerenciamento total da loja.
           </p>
 
-          {customerMessage && (
-            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{customerMessage}</p>
-          )}
-
           <div className="mt-4 space-y-3">
-            {customerRows.map((customer) => (
+            {adminUsers.map((adminUser) => (
               <article
-                key={customer.email}
-                className="rounded-xl border border-slate-200 dark:border-slate-800 p-4"
+                key={adminUser.id}
+                className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-800/60"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 grid place-items-center">
-                      <UserCircle2 size={18} />
+                    <div className="h-9 w-9 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 grid place-items-center">
+                      <ShieldCheck size={18} />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">{customer.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{customer.email}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {customer.phone} | CPF: {customer.cpf}
+                      <p className="font-semibold text-slate-900 dark:text-white">
+                        {adminUser.name}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {customer.city} - {customer.state}
+                        {adminUser.email}
                       </p>
                     </div>
                   </div>
-
-                  <div className="text-right text-sm">
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      {customer.ordersCount} pedido(s)
-                    </p>
-                    <p className="text-blue-600 dark:text-blue-400 font-semibold">
-                      {currencyFormatter.format(customer.totalSpent)}
-                    </p>
-                    {customer.userId ? (
-                      <div className="mt-2 flex flex-wrap justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void (async () => {
-                              if (
-                                typeof window !== 'undefined' &&
-                                !window.confirm(
-                                  `Deseja tornar ${customer.name} (${customer.email}) admin?`
-                                )
-                              ) {
-                                return;
-                              }
-
-                              const result = await promoteUserToAdmin(customer.userId);
-                              if (!result.success) {
-                                setCustomerMessage(
-                                  result.error ?? 'Nao foi possivel promover este usuario.'
-                                );
-                                return;
-                              }
-
-                              setCustomerMessage('Usuario promovido para admin com sucesso.');
-                              await refreshOrders();
-                              await registerAdminLog(
-                                'system',
-                                'promote_user_admin',
-                                `Usuario promovido para admin: ${customer.name} (${customer.email})`,
-                                {
-                                  userId: customer.userId,
-                                  email: customer.email,
-                                }
-                              );
-                            })();
-                          }}
-                          className="inline-flex items-center justify-center rounded-xl border border-emerald-200 dark:border-emerald-900 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
-                        >
-                          Tornar admin
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void (async () => {
-                              if (
-                                typeof window !== 'undefined' &&
-                                !window.confirm(
-                                  `Deseja apagar o usuario ${customer.name} (${customer.email})?`
-                                )
-                              ) {
-                                return;
-                              }
-
-                              const result = await deleteUser(customer.userId);
-                              if (!result.success) {
-                                setCustomerMessage(
-                                  result.error ?? 'Nao foi possivel apagar este usuario.'
-                                );
-                                return;
-                              }
-
-                              setCustomerMessage('Usuario apagado com sucesso.');
-                              await refreshOrders();
-                              await registerAdminLog(
-                                'system',
-                                'delete_user',
-                                `Usuario apagado: ${customer.name} (${customer.email})`,
-                                {
-                                  userId: customer.userId,
-                                  email: customer.email,
-                                }
-                              );
-                            })();
-                          }}
-                          className="inline-flex items-center justify-center rounded-xl border border-red-200 dark:border-red-900 px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                        >
-                          Apagar usuario
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                        Sem conta para apagar
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400">
-                  <span>
-                    Cadastro:{' '}
-                    {customer.registeredAt
-                      ? dateFormatter.format(new Date(customer.registeredAt))
-                      : 'sem cadastro local'}
-                  </span>
-                  <span>
-                    Ultimo pedido:{' '}
-                    {customer.lastOrderAt
-                      ? dateFormatter.format(new Date(customer.lastOrderAt))
-                      : 'sem pedidos'}
+                  <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
+                    Admin
                   </span>
                 </div>
+                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  Cadastro: {dateFormatter.format(new Date(adminUser.createdAt))}
+                </p>
               </article>
             ))}
 
-            {customerRows.length === 0 && (
+            {adminUsers.length === 0 && (
               <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                Nenhum cliente encontrado.
+                Nenhum usuario admin encontrado.
               </div>
             )}
+          </div>
+
+          <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-8">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+              Base de clientes
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Dados unificados dos cadastros e dos pedidos ja realizados.
+            </p>
+
+            {customerMessage && (
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                {customerMessage}
+              </p>
+            )}
+
+            <div className="mt-4 space-y-3">
+              {customerRows.map((customer) => (
+                <article
+                  key={customer.email}
+                  className="rounded-xl border border-slate-200 dark:border-slate-800 p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 grid place-items-center">
+                        <UserCircle2 size={18} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">
+                          {customer.name}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {customer.email}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {customer.phone} | CPF: {customer.cpf}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {customer.city} - {customer.state}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right text-sm">
+                      <p className="font-semibold text-slate-900 dark:text-white">
+                        {customer.ordersCount} pedido(s)
+                      </p>
+                      <p className="text-blue-600 dark:text-blue-400 font-semibold">
+                        {currencyFormatter.format(customer.totalSpent)}
+                      </p>
+                      {customer.userId ? (
+                        <div className="mt-2 flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void (async () => {
+                                if (
+                                  typeof window !== 'undefined' &&
+                                  !window.confirm(
+                                    `Deseja tornar ${customer.name} (${customer.email}) admin?`
+                                  )
+                                ) {
+                                  return;
+                                }
+
+                                const result = await promoteUserToAdmin(customer.userId);
+                                if (!result.success) {
+                                  setCustomerMessage(
+                                    result.error ?? 'Nao foi possivel promover este usuario.'
+                                  );
+                                  return;
+                                }
+
+                                setCustomerMessage('Usuario promovido para admin com sucesso.');
+                                await refreshOrders();
+                                await registerAdminLog(
+                                  'system',
+                                  'promote_user_admin',
+                                  `Usuario promovido para admin: ${customer.name} (${customer.email})`,
+                                  {
+                                    userId: customer.userId,
+                                    email: customer.email,
+                                  }
+                                );
+                              })();
+                            }}
+                            className="inline-flex items-center justify-center rounded-xl border border-emerald-200 dark:border-emerald-900 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                          >
+                            Tornar admin
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void (async () => {
+                                if (
+                                  typeof window !== 'undefined' &&
+                                  !window.confirm(
+                                    `Deseja apagar o usuario ${customer.name} (${customer.email})?`
+                                  )
+                                ) {
+                                  return;
+                                }
+
+                                const result = await deleteUser(customer.userId);
+                                if (!result.success) {
+                                  setCustomerMessage(
+                                    result.error ?? 'Nao foi possivel apagar este usuario.'
+                                  );
+                                  return;
+                                }
+
+                                setCustomerMessage('Usuario apagado com sucesso.');
+                                await refreshOrders();
+                                await registerAdminLog(
+                                  'system',
+                                  'delete_user',
+                                  `Usuario apagado: ${customer.name} (${customer.email})`,
+                                  {
+                                    userId: customer.userId,
+                                    email: customer.email,
+                                  }
+                                );
+                              })();
+                            }}
+                            className="inline-flex items-center justify-center rounded-xl border border-red-200 dark:border-red-900 px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                          >
+                            Apagar usuario
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                          Sem conta para apagar
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400">
+                    <span>
+                      Cadastro:{' '}
+                      {customer.registeredAt
+                        ? dateFormatter.format(new Date(customer.registeredAt))
+                        : 'sem cadastro local'}
+                    </span>
+                    <span>
+                      Ultimo pedido:{' '}
+                      {customer.lastOrderAt
+                        ? dateFormatter.format(new Date(customer.lastOrderAt))
+                        : 'sem pedidos'}
+                    </span>
+                  </div>
+                </article>
+              ))}
+
+              {customerRows.length === 0 && (
+                <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                  Nenhum cliente encontrado.
+                </div>
+              )}
+            </div>
           </div>
         </section>
       )}
