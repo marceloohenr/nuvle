@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  ClipboardList,
   Download,
   Facebook,
   Instagram,
@@ -24,6 +25,12 @@ import {
 } from '../../features/settings';
 import { deleteCoupon, fetchCoupons, upsertCoupon } from '../../features/coupons';
 import {
+  addAdminLog,
+  clearAdminLogs,
+  getAdminLogs,
+  type AdminLogScope,
+} from '../../features/adminLogs';
+import {
   getLocalOrders,
   orderPaymentLabel,
   orderStatusLabel,
@@ -34,7 +41,7 @@ import type { LocalOrder, OrderStatus } from '../../features/orders';
 import { isSupabaseConfigured } from '../../shared/lib/supabase';
 import { uploadProductImages } from '../../shared/lib/storage';
 
-type AdminTab = 'dashboard' | 'products' | 'orders' | 'customers' | 'settings';
+type AdminTab = 'dashboard' | 'products' | 'orders' | 'customers' | 'settings' | 'logs';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -229,6 +236,20 @@ const AdminPage = () => {
     isActive: true,
   });
   const [editingCouponCode, setEditingCouponCode] = useState<string | null>(null);
+  const [adminLogs, setAdminLogs] = useState<
+    Array<{
+      id: string;
+      createdAt: string;
+      scope: string;
+      action: string;
+      description: string;
+      actorName?: string;
+      actorEmail?: string;
+    }>
+  >([]);
+  const [isLogsLoading, setIsLogsLoading] = useState(false);
+  const [logsSearch, setLogsSearch] = useState('');
+  const [logsMessage, setLogsMessage] = useState('');
 
   const refreshOrders = async () => {
     setOrders(await getLocalOrders());
@@ -260,9 +281,50 @@ const AdminPage = () => {
     }
   };
 
+  const refreshAdminLogs = async () => {
+    setIsLogsLoading(true);
+    setLogsMessage('');
+
+    try {
+      const next = await getAdminLogs(300);
+      setAdminLogs(next);
+    } catch {
+      setAdminLogs([]);
+    } finally {
+      setIsLogsLoading(false);
+    }
+  };
+
+  const registerAdminLog = async (
+    scope: AdminLogScope,
+    action: string,
+    description: string,
+    metadata?: Record<string, unknown>
+  ) => {
+    await addAdminLog({
+      scope,
+      action,
+      description,
+      actorId: currentUser?.id,
+      actorName: currentUser?.name,
+      actorEmail: currentUser?.email,
+      metadata,
+    });
+
+    if (activeTab === 'logs') {
+      await refreshAdminLogs();
+    }
+  };
+
   useEffect(() => {
     if (activeTab !== 'settings') return;
     void refreshCoupons();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'logs') return;
+    void refreshAdminLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -322,6 +384,20 @@ const AdminPage = () => {
         order.customer.city.toLowerCase().includes(query)
     );
   }, [orderSearch, orders]);
+
+  const filteredAdminLogs = useMemo(() => {
+    const query = logsSearch.trim().toLowerCase();
+    if (!query) return adminLogs;
+
+    return adminLogs.filter(
+      (log) =>
+        log.scope.toLowerCase().includes(query) ||
+        log.action.toLowerCase().includes(query) ||
+        log.description.toLowerCase().includes(query) ||
+        (log.actorName ?? '').toLowerCase().includes(query) ||
+        (log.actorEmail ?? '').toLowerCase().includes(query)
+    );
+  }, [adminLogs, logsSearch]);
 
   const categoriesWithCount = useMemo(() => {
     return categories.map((category) => ({
@@ -424,6 +500,12 @@ const AdminPage = () => {
 
     setCategoryMessage(`Categoria "${result.category?.label}" criada com sucesso.`);
     setNewCategoryName('');
+    await registerAdminLog(
+      'category',
+      'create',
+      `Categoria criada: ${result.category?.label ?? newCategoryName.trim()}`,
+      { categoryId: result.category?.id ?? null }
+    );
   };
 
   const handleRemoveCategory = async (categoryId: string) => {
@@ -436,6 +518,10 @@ const AdminPage = () => {
     }
 
     setCategoryMessage(`Categoria "${label}" removida.`);
+    await registerAdminLog('category', 'remove', `Categoria removida: ${label}`, {
+      categoryId,
+      label,
+    });
   };
 
   const handleContactDraftChange = (
@@ -510,6 +596,11 @@ const AdminPage = () => {
     });
 
     setSettingsMessage('Configuracoes de contato atualizadas com sucesso.');
+    void registerAdminLog(
+      'settings',
+      'update',
+      'Configuracoes de contato e redes foram atualizadas.'
+    );
   };
 
   const handleCouponDraftChange = (
@@ -525,6 +616,8 @@ const AdminPage = () => {
   const handleSubmitCoupon = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCouponMessage('');
+    const wasEditing = Boolean(editingCouponCode);
+    const normalizedCode = couponDraft.code.trim().toUpperCase();
 
     const discount = Number(String(couponDraft.discountPercentage).replace(',', '.'));
     const result = await upsertCoupon({
@@ -543,6 +636,15 @@ const AdminPage = () => {
     setEditingCouponCode(null);
     setCouponDraft({ code: '', description: '', discountPercentage: '10', isActive: true });
     await refreshCoupons();
+    await registerAdminLog(
+      'coupon',
+      wasEditing ? 'update' : 'create',
+      `${wasEditing ? 'Cupom atualizado' : 'Cupom criado'}: ${normalizedCode}`,
+      {
+        code: normalizedCode,
+        discountPercentage: discount,
+      }
+    );
   };
 
   const startEditingCoupon = (coupon: {
@@ -673,6 +775,10 @@ const AdminPage = () => {
     setNewProductFiles([]);
     setNewProductFileInputKey((previous) => previous + 1);
     setNewProductPricingMode('discount');
+    await registerAdminLog('product', 'create', `Produto criado: ${newProduct.name.trim()}`, {
+      productName: newProduct.name.trim(),
+      category: newProduct.category,
+    });
   };
 
   const startEditingProduct = (
@@ -847,7 +953,26 @@ const AdminPage = () => {
     } else {
       setProductEditMessage('Produto atualizado com sucesso.');
     }
+    await registerAdminLog('product', 'update', `Produto atualizado: ${nextName}`, {
+      productId,
+      isFeatured: editingProductIsFeatured,
+    });
     cancelEditingProduct();
+  };
+
+  const handleAdjustProductStockBySize = (
+    productId: string,
+    productName: string,
+    size: string,
+    delta: number
+  ) => {
+    adjustProductStockBySize(productId, size, delta);
+    void registerAdminLog(
+      'stock',
+      delta > 0 ? 'increase' : 'decrease',
+      `Estoque ${delta > 0 ? 'aumentado' : 'reduzido'}: ${productName} (tam. ${size})`,
+      { productId, size, delta }
+    );
   };
 
   if (!currentUser) {
@@ -929,7 +1054,7 @@ const AdminPage = () => {
       </section>
 
       <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
-        <div className="grid gap-2 sm:grid-cols-5">
+        <div className="grid gap-2 sm:grid-cols-6">
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
@@ -979,6 +1104,16 @@ const AdminPage = () => {
             }`}
           >
             Contato e redes
+          </button>
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+              activeTab === 'logs'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+            }`}
+          >
+            Logs admin
           </button>
         </div>
       </section>
@@ -1496,7 +1631,14 @@ const AdminPage = () => {
                                 setProductEditMessage(
                                   'Nao foi possivel remover o produto de Em alta.'
                                 );
+                                return;
                               }
+                              await registerAdminLog(
+                                'product',
+                                'featured_off',
+                                `Produto removido de Em alta: ${product.name}`,
+                                { productId: product.id }
+                              );
                             })();
                           }}
                           className="rounded-xl border border-amber-200 dark:border-amber-900 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors"
@@ -1579,7 +1721,14 @@ const AdminPage = () => {
                                     {size}
                                   </span>
                                   <button
-                                    onClick={() => adjustProductStockBySize(product.id, size, -1)}
+                                    onClick={() =>
+                                      handleAdjustProductStockBySize(
+                                        product.id,
+                                        product.name,
+                                        size,
+                                        -1
+                                      )
+                                    }
                                     className="h-5 w-5 rounded border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                                   >
                                     -
@@ -1588,7 +1737,14 @@ const AdminPage = () => {
                                     {currentStock}
                                   </span>
                                   <button
-                                    onClick={() => adjustProductStockBySize(product.id, size, 1)}
+                                    onClick={() =>
+                                      handleAdjustProductStockBySize(
+                                        product.id,
+                                        product.name,
+                                        size,
+                                        1
+                                      )
+                                    }
                                     className="h-5 w-5 rounded border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                                   >
                                     +
@@ -1611,7 +1767,14 @@ const AdminPage = () => {
                                   setProductEditMessage(
                                     'Nao foi possivel atualizar a exibicao do produto em Em alta.'
                                   );
+                                  return;
                                 }
+                                await registerAdminLog(
+                                  'product',
+                                  product.isFeatured ? 'featured_off' : 'featured_on',
+                                  `Produto ${product.isFeatured ? 'removido de' : 'marcado como'} Em alta: ${product.name}`,
+                                  { productId: product.id }
+                                );
                               })();
                             }}
                             className={`rounded-lg border px-2 py-1 text-xs font-semibold transition-colors ${
@@ -1894,7 +2057,14 @@ const AdminPage = () => {
                             const removed = await removeProduct(product.id);
                             if (!removed) {
                               setProductEditMessage('Nao foi possivel remover este produto.');
+                              return;
                             }
+                            await registerAdminLog(
+                              'product',
+                              'remove',
+                              `Produto removido: ${product.name}`,
+                              { productId: product.id }
+                            );
                           })();
                         }}
                         className="h-9 w-9 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 grid place-items-center hover:bg-red-50 dark:hover:bg-red-950/30"
@@ -2306,6 +2476,15 @@ const AdminPage = () => {
                           await updateLocalOrderStatus(order.id, nextStatus);
                           await refreshOrders();
                           setOrderMessage('Status do pedido atualizado.');
+                          await registerAdminLog(
+                            'order',
+                            'status_update',
+                            `Status do pedido ${order.id} atualizado para ${orderStatusLabel[nextStatus]}.`,
+                            {
+                              orderId: order.id,
+                              status: nextStatus,
+                            }
+                          );
                         } catch {
                           setOrderMessage('Nao foi possivel atualizar o status no banco.');
                         }
@@ -2334,6 +2513,12 @@ const AdminPage = () => {
                           await removeLocalOrder(order.id);
                           await refreshOrders();
                           setOrderMessage('Pedido removido com sucesso.');
+                          await registerAdminLog(
+                            'order',
+                            'remove',
+                            `Pedido removido: ${order.id}`,
+                            { orderId: order.id }
+                          );
                         } catch {
                           setOrderMessage('Nao foi possivel remover o pedido no banco.');
                         }
@@ -2889,6 +3074,15 @@ const AdminPage = () => {
                                 return;
                               }
                               await refreshCoupons();
+                              await registerAdminLog(
+                                'coupon',
+                                coupon.isActive ? 'deactivate' : 'activate',
+                                `Cupom ${coupon.isActive ? 'desativado' : 'ativado'}: ${coupon.code}`,
+                                {
+                                  code: coupon.code,
+                                  isActive: !coupon.isActive,
+                                }
+                              );
                             })();
                           }}
                           className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-colors"
@@ -2912,6 +3106,12 @@ const AdminPage = () => {
                                 return;
                               }
                               await refreshCoupons();
+                              await registerAdminLog(
+                                'coupon',
+                                'remove',
+                                `Cupom removido: ${coupon.code}`,
+                                { code: coupon.code }
+                              );
                             })();
                           }}
                           className="rounded-xl border border-red-200 dark:border-red-900 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
@@ -2925,6 +3125,111 @@ const AdminPage = () => {
               )}
             </div>
           </article>
+        </section>
+      )}
+
+      {activeTab === 'logs' && (
+        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white inline-flex items-center gap-2">
+                <ClipboardList size={18} />
+                Log administrativo
+              </h2>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                Historico das acoes realizadas no painel admin.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void refreshAdminLogs();
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <RefreshCw size={15} />
+                Atualizar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void (async () => {
+                    if (
+                      typeof window !== 'undefined' &&
+                      !window.confirm('Deseja limpar todos os logs administrativos?')
+                    ) {
+                      return;
+                    }
+
+                    await clearAdminLogs();
+                    setLogsMessage('Logs limpos com sucesso.');
+                    await refreshAdminLogs();
+                  })();
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-red-200 dark:border-red-900 px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              >
+                <Trash2 size={14} />
+                Limpar logs
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2">
+            <Search size={16} className="text-slate-400" />
+            <input
+              value={logsSearch}
+              onChange={(event) => setLogsSearch(event.target.value)}
+              placeholder="Buscar por acao, descricao ou usuario"
+              className="w-full bg-transparent text-sm text-slate-800 dark:text-slate-100 focus:outline-none"
+            />
+          </div>
+
+          {logsMessage && (
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{logsMessage}</p>
+          )}
+
+          <div className="mt-4 space-y-3 max-h-[760px] overflow-y-auto pr-1">
+            {isLogsLoading ? (
+              <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                Carregando logs...
+              </div>
+            ) : filteredAdminLogs.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                Nenhum log encontrado.
+              </div>
+            ) : (
+              filteredAdminLogs.map((log) => (
+                <article
+                  key={log.id}
+                  className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest">
+                        {log.scope}
+                      </span>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {log.action}
+                      </p>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {dateFormatter.format(new Date(log.createdAt))}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+                    {log.description}
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    {log.actorName || log.actorEmail
+                      ? `Por: ${log.actorName ?? '-'} (${log.actorEmail ?? '-'})`
+                      : 'Origem: painel administrativo'}
+                  </p>
+                </article>
+              ))
+            )}
+          </div>
         </section>
       )}
 

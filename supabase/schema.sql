@@ -352,6 +352,33 @@ $$;
 grant execute on function public.validate_coupon(text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Admin logs
+-- ---------------------------------------------------------------------------
+create table if not exists public.admin_logs (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default timezone('utc', now()),
+  scope text not null check (
+    scope in ('system', 'product', 'category', 'stock', 'order', 'settings', 'coupon')
+  ),
+  action text not null,
+  description text not null,
+  actor_id uuid references auth.users(id) on delete set null,
+  actor_name text,
+  actor_email text,
+  metadata jsonb not null default '{}'::jsonb
+);
+
+alter table public.admin_logs enable row level security;
+
+drop policy if exists admin_logs_admin_all on public.admin_logs;
+create policy admin_logs_admin_all
+on public.admin_logs
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+-- ---------------------------------------------------------------------------
 -- Orders
 -- ---------------------------------------------------------------------------
 create table if not exists public.orders (
