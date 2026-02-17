@@ -66,10 +66,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
               <BadgePercent size={16} />
               Drop com preco promocional
             </p>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl uppercase tracking-[0.08em] font-bold text-white leading-[0.95]">
-              Colecao Nuvle
-            </h1>
-            <p className="mt-4 text-sm sm:text-base md:text-lg text-slate-200 max-w-xl">
+            <p className="mt-1 text-sm sm:text-base md:text-lg text-slate-200 max-w-xl">
               A Nuvle mistura shape moderno, caimento premium e compra simples.
               Escolha seu tamanho, feche seu carrinho e acompanhe tudo pela conta.
             </p>
