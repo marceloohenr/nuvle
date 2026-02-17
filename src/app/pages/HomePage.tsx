@@ -62,7 +62,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
 
         <div className="relative z-10 mx-auto max-w-[1440px] grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end px-4 py-10 sm:px-6 sm:py-14 lg:px-10 lg:py-16 min-h-[72vh] sm:min-h-[78vh] lg:min-h-[86vh]">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full bg-white/15 text-white px-4 py-1 text-xs tracking-[0.18em] font-semibold uppercase mb-5">
+            <p className="inline-flex items-center gap-2 rounded-full bg-cyan-400/20 text-cyan-100 px-4 py-1 text-xs tracking-[0.18em] font-semibold uppercase mb-5">
               <BadgePercent size={16} />
               Drop com preco promocional
             </p>
@@ -73,7 +73,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 to="/produtos"
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-white hover:bg-slate-200 text-black font-semibold px-5 py-3 rounded-md transition-colors"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-3 rounded-md transition-colors"
               >
                 Ver catalogo
                 <ArrowRight size={16} />
@@ -88,7 +88,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
             <ul className="mt-8 grid gap-2 text-sm text-slate-200">
               {benefits.map((item) => (
                 <li key={item} className="flex items-start gap-2">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-white" />
+                  <span className="mt-1 h-2 w-2 rounded-full bg-cyan-300" />
                   {item}
                 </li>
               ))}
@@ -101,7 +101,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
               className="h-16 w-16 rounded-xl object-cover"
             />
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-200">Destaque da semana</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-200">Destaque da semana</p>
               <p className="truncate font-semibold text-white">{heroProduct?.name ?? '#USENUVLE'}</p>
             </div>
           </div>
@@ -140,7 +140,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
                     <h3 className="text-3xl uppercase tracking-[0.05em] font-bold text-white truncate">{title}</h3>
                     <p className="mt-1 text-xs text-slate-300">{description}</p>
                   </div>
-                  <span className="rounded-md border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
+                  <span className="rounded-md border border-cyan-200/40 bg-cyan-400/20 px-3 py-1 text-xs font-semibold text-cyan-100">
                     Explorar
                   </span>
                 </div>
@@ -153,7 +153,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
       <section className="section-reveal stagger-2">
         <div className="flex items-end justify-between mb-6">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-700 px-3 py-1 text-[11px] uppercase tracking-[0.16em] font-semibold text-slate-700 dark:text-slate-200">
+            <p className="inline-flex items-center gap-2 rounded-md border border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-3 py-1 text-[11px] uppercase tracking-[0.16em] font-semibold text-blue-700 dark:text-blue-200">
               Em alta
             </p>
             <h2 className="mt-3 text-4xl md:text-5xl uppercase tracking-[0.06em] font-bold text-slate-950 dark:text-white">Pecas selecionadas</h2>
@@ -163,7 +163,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
           </div>
           <Link
             to="/produtos"
-            className="hidden md:inline-flex text-slate-700 dark:text-slate-300 font-semibold hover:text-black dark:hover:text-white"
+            className="hidden md:inline-flex text-blue-700 dark:text-blue-300 font-semibold hover:text-blue-900 dark:hover:text-blue-100"
           >
             Ver todos os produtos
           </Link>
@@ -175,7 +175,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
         </div>
       </section>
 
-      <section className="section-reveal stagger-3 rounded-md border border-slate-300 dark:border-slate-700 bg-black text-slate-100 p-8 md:p-10">
+      <section className="section-reveal stagger-3 rounded-md border border-slate-300 dark:border-slate-700 bg-gradient-to-r from-[#081323] via-[#0a1a2e] to-[#0c2242] text-slate-100 p-8 md:p-10">
         <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
           <div>
             <h2 className="text-4xl md:text-5xl uppercase tracking-[0.06em] font-bold">Atendimento rapido e humano</h2>
@@ -189,7 +189,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
               href="https://linktr.ee/nuvle"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-white text-black hover:bg-slate-200 font-semibold px-5 py-3 rounded-md transition-colors"
+              className="inline-flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-5 py-3 rounded-md transition-colors"
             >
               Abrir canais oficiais
             </a>

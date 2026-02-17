@@ -41,8 +41,8 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
   }, [isAdmin, isAuthenticated]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
-      <div className="bg-black text-white text-center text-[11px] py-2 px-4 tracking-[0.2em] font-semibold uppercase">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-black/75 backdrop-blur-xl">
+      <div className="bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 text-white text-center text-[11px] py-2 px-4 tracking-[0.2em] font-semibold uppercase">
         Frete rapido | suporte no WhatsApp | trocas facilitadas
       </div>
 
@@ -64,8 +64,8 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                 className={({ isActive }) =>
                   `px-3 lg:px-4 py-2 rounded-md text-[12px] lg:text-[13px] font-semibold tracking-wide uppercase transition-colors ${
                     isActive
-                      ? 'bg-black text-white dark:bg-white dark:text-black'
-                      : 'text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900/80'
                   }`
                 }
               >
@@ -98,7 +98,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
             >
               <ShoppingCart size={19} />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-black text-white dark:bg-white dark:text-black text-xs font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-sky-400 text-black text-xs font-bold flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
@@ -107,7 +107,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
             {!isAuthenticated ? (
               <Link
                 to="/login"
-                className="hidden sm:inline-flex items-center gap-2 bg-black text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
+                className="hidden sm:inline-flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
               >
                 <UserCircle2 size={16} />
                 Entrar
@@ -116,7 +116,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               <>
                 <Link
                   to={isAdmin ? '/admin' : '/conta'}
-                  className="hidden sm:inline-flex items-center gap-2 bg-black text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
+                  className="hidden sm:inline-flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
                 >
                   {isAdmin ? <ShieldCheck size={16} /> : <UserCircle2 size={16} />}
                   {currentUser?.name?.split(' ')[0] ?? 'Conta'}
@@ -145,7 +145,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black/95">
           <nav className="max-w-[1440px] mx-auto px-4 py-4 flex flex-col gap-2">
             {navItems.map((item) => (
               <NavLink
@@ -155,7 +155,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                 className={({ isActive }) =>
                   `px-4 py-3 rounded-xl text-sm font-semibold tracking-wide uppercase transition-colors ${
                     isActive
-                      ? 'bg-black text-white dark:bg-white dark:text-black'
+                      ? 'bg-blue-600 text-white'
                       : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-slate-900'
                   }`
                 }
@@ -167,7 +167,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               <Link
                 to="/login"
                 onClick={() => setIsMenuOpen(false)}
-                className="px-4 py-3 rounded-xl text-sm font-semibold bg-black text-white dark:bg-white dark:text-black"
+                className="px-4 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white"
               >
                 Entrar na conta
               </Link>

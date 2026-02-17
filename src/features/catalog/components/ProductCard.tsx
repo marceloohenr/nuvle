@@ -66,12 +66,12 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
             {getCategoryLabel(product.category)}
           </span>
           {discount > 0 && (
-            <span className="rounded-md bg-black text-white px-2.5 py-1 text-xs font-bold dark:bg-white dark:text-black">
+            <span className="rounded-md bg-red-500 text-white px-2.5 py-1 text-xs font-bold">
               -{discount}%
             </span>
           )}
           {product.isFeatured && (
-            <span className="rounded-md bg-white text-black px-2.5 py-1 text-xs font-black uppercase tracking-wide dark:bg-black dark:text-white">
+            <span className="rounded-md bg-cyan-300 text-black px-2.5 py-1 text-xs font-black uppercase tracking-wide">
               Em alta
             </span>
           )}
@@ -110,7 +110,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
               R$ {product.originalPrice.toFixed(2)}
             </p>
           )}
-          <p className="text-3xl font-black text-slate-900 dark:text-white">
+          <p className="text-3xl font-black text-sky-700 dark:text-cyan-200">
             R$ {product.price.toFixed(2)}
           </p>
         </div>
@@ -143,7 +143,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           <button
             onClick={handleAddToCart}
             disabled={isOutOfStock}
-            className="bg-black text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 disabled:bg-slate-500 disabled:text-slate-800 font-semibold py-2.5 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
+            className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-slate-500 disabled:text-slate-800 font-semibold py-2.5 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
           >
             <ShoppingCart size={16} />
             {isOutOfStock ? 'Indisponivel' : 'Comprar'}
