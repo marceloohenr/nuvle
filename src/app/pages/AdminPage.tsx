@@ -147,7 +147,7 @@ const socialPlatforms: Array<{ id: SocialPlatform; label: string; Icon: typeof I
 ];
 
 const AdminPage = () => {
-  const { currentUser, isAdmin, users, deleteUser } = useAuth();
+  const { currentUser, isAdmin, users, deleteUser, promoteUserToAdmin } = useAuth();
   const { settings, setSettings } = useStoreSettings();
   const {
     products,
@@ -2588,44 +2588,85 @@ const AdminPage = () => {
                       {currencyFormatter.format(customer.totalSpent)}
                     </p>
                     {customer.userId ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void (async () => {
-                            if (
-                              typeof window !== 'undefined' &&
-                              !window.confirm(
-                                `Deseja apagar o usuario ${customer.name} (${customer.email})?`
-                              )
-                            ) {
-                              return;
-                            }
-
-                            const result = await deleteUser(customer.userId);
-                            if (!result.success) {
-                              setCustomerMessage(
-                                result.error ?? 'Nao foi possivel apagar este usuario.'
-                              );
-                              return;
-                            }
-
-                            setCustomerMessage('Usuario apagado com sucesso.');
-                            await refreshOrders();
-                            await registerAdminLog(
-                              'system',
-                              'delete_user',
-                              `Usuario apagado: ${customer.name} (${customer.email})`,
-                              {
-                                userId: customer.userId,
-                                email: customer.email,
+                      <div className="mt-2 flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void (async () => {
+                              if (
+                                typeof window !== 'undefined' &&
+                                !window.confirm(
+                                  `Deseja tornar ${customer.name} (${customer.email}) admin?`
+                                )
+                              ) {
+                                return;
                               }
-                            );
-                          })();
-                        }}
-                        className="mt-2 inline-flex items-center justify-center rounded-xl border border-red-200 dark:border-red-900 px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      >
-                        Apagar usuario
-                      </button>
+
+                              const result = await promoteUserToAdmin(customer.userId);
+                              if (!result.success) {
+                                setCustomerMessage(
+                                  result.error ?? 'Nao foi possivel promover este usuario.'
+                                );
+                                return;
+                              }
+
+                              setCustomerMessage('Usuario promovido para admin com sucesso.');
+                              await refreshOrders();
+                              await registerAdminLog(
+                                'system',
+                                'promote_user_admin',
+                                `Usuario promovido para admin: ${customer.name} (${customer.email})`,
+                                {
+                                  userId: customer.userId,
+                                  email: customer.email,
+                                }
+                              );
+                            })();
+                          }}
+                          className="inline-flex items-center justify-center rounded-xl border border-emerald-200 dark:border-emerald-900 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                        >
+                          Tornar admin
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void (async () => {
+                              if (
+                                typeof window !== 'undefined' &&
+                                !window.confirm(
+                                  `Deseja apagar o usuario ${customer.name} (${customer.email})?`
+                                )
+                              ) {
+                                return;
+                              }
+
+                              const result = await deleteUser(customer.userId);
+                              if (!result.success) {
+                                setCustomerMessage(
+                                  result.error ?? 'Nao foi possivel apagar este usuario.'
+                                );
+                                return;
+                              }
+
+                              setCustomerMessage('Usuario apagado com sucesso.');
+                              await refreshOrders();
+                              await registerAdminLog(
+                                'system',
+                                'delete_user',
+                                `Usuario apagado: ${customer.name} (${customer.email})`,
+                                {
+                                  userId: customer.userId,
+                                  email: customer.email,
+                                }
+                              );
+                            })();
+                          }}
+                          className="inline-flex items-center justify-center rounded-xl border border-red-200 dark:border-red-900 px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                        >
+                          Apagar usuario
+                        </button>
+                      </div>
                     ) : (
                       <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
                         Sem conta para apagar

@@ -41,6 +41,7 @@ interface AuthContextValue {
   resendSignupConfirmation: (email: string) => Promise<ActionResult>;
   requestPasswordReset: (email: string) => Promise<ActionResult>;
   deleteUser: (userId: string) => Promise<ActionResult>;
+  promoteUserToAdmin: (userId: string) => Promise<ActionResult>;
   logout: () => Promise<void>;
 }
 
@@ -698,6 +699,48 @@ const resendSignupConfirmation = useCallback(async (email: string): Promise<Acti
     [currentStoredUser, sessionUserId, storedUsers, supabaseCurrentUser]
   );
 
+  const promoteUserToAdmin = useCallback(
+    async (userId: string): Promise<ActionResult> => {
+      const normalizedUserId = userId.trim();
+      if (!normalizedUserId) {
+        return { success: false, error: 'Usuario invalido.' };
+      }
+
+      const actingUser = isSupabaseConfigured ? supabaseCurrentUser : currentStoredUser;
+      if (!actingUser || actingUser.role !== 'admin') {
+        return { success: false, error: 'Sem permissao para promover usuario.' };
+      }
+
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', normalizedUserId);
+
+        if (error) {
+          return { success: false, error: error.message };
+        }
+
+        setSupabaseUsers(await fetchSupabaseUsers());
+        return { success: true, message: 'Usuario promovido para admin.' };
+      }
+
+      const exists = storedUsers.some((user) => user.id === normalizedUserId);
+      if (!exists) {
+        return { success: false, error: 'Usuario nao encontrado.' };
+      }
+
+      setStoredUsers((previous) =>
+        previous.map((user) =>
+          user.id === normalizedUserId ? { ...user, role: 'admin' } : user
+        )
+      );
+
+      return { success: true, message: 'Usuario promovido para admin.' };
+    },
+    [currentStoredUser, storedUsers, supabaseCurrentUser]
+  );
+
   const logout = useCallback(async () => {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
@@ -732,6 +775,7 @@ const resendSignupConfirmation = useCallback(async (email: string): Promise<Acti
       resendSignupConfirmation,
       requestPasswordReset,
       deleteUser,
+      promoteUserToAdmin,
       logout,
     }),
     [
@@ -743,6 +787,7 @@ const resendSignupConfirmation = useCallback(async (email: string): Promise<Acti
       resendSignupConfirmation,
       requestPasswordReset,
       deleteUser,
+      promoteUserToAdmin,
       logout,
     ]
   );
