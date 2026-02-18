@@ -4,11 +4,13 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import {
   advanceLocalOrderStatus,
+  canEditDeliveryAddressByStatus,
   getLocalOrderById,
   orderPaymentLabel,
   orderStatusLabel,
   orderStatusTimeline,
   removeLocalOrder,
+  updateLocalOrderDeliveryAddress,
 } from '../../features/orders';
 import type { LocalOrder } from '../../features/orders';
 import { isSupabaseConfigured } from '../../shared/lib/supabase';
@@ -23,12 +25,26 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   timeStyle: 'short',
 });
 
+const formatZipCode = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+};
+
 const OrderDetailsPage = () => {
   const { orderId } = useParams();
   const { currentUser, isAdmin, isAuthenticated } = useAuth();
   const [order, setOrder] = useState<LocalOrder | null>(null);
   const [isRemoved, setIsRemoved] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [isSavingDeliveryAddress, setIsSavingDeliveryAddress] = useState(false);
+  const [deliveryAddressMessage, setDeliveryAddressMessage] = useState('');
+  const [deliveryAddressForm, setDeliveryAddressForm] = useState({
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+  });
 
   const refreshOrder = useCallback(async () => {
     if (!orderId) {
@@ -41,6 +57,16 @@ const OrderDetailsPage = () => {
   useEffect(() => {
     void refreshOrder();
   }, [refreshOrder]);
+
+  useEffect(() => {
+    if (!order) return;
+    setDeliveryAddressForm({
+      address: order.customer.address,
+      city: order.customer.city,
+      state: order.customer.state,
+      zipCode: order.customer.zipCode,
+    });
+  }, [order]);
 
   const activeIndex = useMemo(() => {
     if (!order) return -1;
@@ -85,6 +111,18 @@ const OrderDetailsPage = () => {
   }
 
   const canAdvanceStatus = order.status !== 'delivered';
+  const canEditDeliveryAddress = !isAdmin && canEditDeliveryAddressByStatus(order.status);
+  const hasDeliveryAddressChanges =
+    deliveryAddressForm.address.trim() !== order.customer.address.trim() ||
+    deliveryAddressForm.city.trim() !== order.customer.city.trim() ||
+    deliveryAddressForm.state.trim().toUpperCase() !== order.customer.state.trim().toUpperCase() ||
+    deliveryAddressForm.zipCode.trim() !== order.customer.zipCode.trim();
+
+  const isDeliveryAddressValid =
+    deliveryAddressForm.address.trim().length >= 6 &&
+    deliveryAddressForm.city.trim().length >= 2 &&
+    deliveryAddressForm.state.trim().length >= 2 &&
+    deliveryAddressForm.zipCode.trim().length >= 8;
 
   return (
     <div className="space-y-8">
@@ -192,18 +230,103 @@ const OrderDetailsPage = () => {
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
               Entrega para
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-              {order.customer.name}
-            </p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              {order.customer.address}
-            </p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              {order.customer.city} - {order.customer.state}
-            </p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              CEP {order.customer.zipCode}
-            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{order.customer.name}</p>
+
+            {canEditDeliveryAddress ? (
+              <div className="mt-3 grid gap-2">
+                <input
+                  value={deliveryAddressForm.address}
+                  onChange={(event) => {
+                    setDeliveryAddressForm((prev) => ({ ...prev, address: event.target.value }));
+                  }}
+                  placeholder="Endereco completo"
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <input
+                    value={deliveryAddressForm.city}
+                    onChange={(event) => {
+                      setDeliveryAddressForm((prev) => ({ ...prev, city: event.target.value }));
+                    }}
+                    placeholder="Cidade"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                  />
+                  <input
+                    value={deliveryAddressForm.state}
+                    onChange={(event) => {
+                      setDeliveryAddressForm((prev) => ({
+                        ...prev,
+                        state: event.target.value.slice(0, 2).toUpperCase(),
+                      }));
+                    }}
+                    placeholder="UF"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+                <input
+                  value={deliveryAddressForm.zipCode}
+                  onChange={(event) => {
+                    setDeliveryAddressForm((prev) => ({
+                      ...prev,
+                      zipCode: formatZipCode(event.target.value),
+                    }));
+                  }}
+                  placeholder="CEP"
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <button
+                  type="button"
+                  disabled={!hasDeliveryAddressChanges || !isDeliveryAddressValid || isSavingDeliveryAddress}
+                  onClick={() => {
+                    void (async () => {
+                      setActionError('');
+                      setDeliveryAddressMessage('');
+                      setIsSavingDeliveryAddress(true);
+                      try {
+                        await updateLocalOrderDeliveryAddress(order.id, deliveryAddressForm);
+                        await refreshOrder();
+                        setDeliveryAddressMessage('Endereco de entrega atualizado com sucesso.');
+                      } catch (error) {
+                        setActionError(
+                          error instanceof Error
+                            ? error.message
+                            : 'Nao foi possivel atualizar o endereco de entrega.'
+                        );
+                      } finally {
+                        setIsSavingDeliveryAddress(false);
+                      }
+                    })();
+                  }}
+                  className="inline-flex items-center justify-center rounded-xl border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-blue-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSavingDeliveryAddress ? 'Salvando...' : 'Salvar endereco de entrega'}
+                </button>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Endereco editavel somente enquanto o pedido nao entrou em separacao.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-1">
+                <p className="text-sm text-slate-600 dark:text-slate-300">{order.customer.address}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  {order.customer.city} - {order.customer.state}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  CEP {order.customer.zipCode}
+                </p>
+                {!isAdmin && !canEditDeliveryAddressByStatus(order.status) && (
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Endereco bloqueado: pedido em separacao ou em etapa posterior.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {deliveryAddressMessage && (
+              <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                {deliveryAddressMessage}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">

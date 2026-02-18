@@ -1,0 +1,158 @@
+import { isSupabaseConfigured, supabase } from '../../../shared/lib/supabase';
+import type { CustomerProfile } from '../types/profile';
+
+const CUSTOMER_PROFILE_STORAGE_KEY = 'nuvle-customer-profiles-v1';
+
+const emptyProfile: CustomerProfile = {
+  phone: '',
+  cpf: '',
+  address: '',
+  city: '',
+  state: '',
+  zipCode: '',
+};
+
+interface ProfileRow {
+  phone: string | null;
+  cpf: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
+}
+
+type StoredProfilesMap = Record<string, CustomerProfile>;
+
+const normalizeProfile = (profile: Partial<CustomerProfile> | null | undefined): CustomerProfile => {
+  if (!profile) return { ...emptyProfile };
+
+  return {
+    phone: String(profile.phone ?? '').trim(),
+    cpf: String(profile.cpf ?? '').trim(),
+    address: String(profile.address ?? '').trim(),
+    city: String(profile.city ?? '').trim(),
+    state: String(profile.state ?? '').trim().toUpperCase(),
+    zipCode: String(profile.zipCode ?? '').trim(),
+  };
+};
+
+const normalizeProfileRow = (value: unknown): CustomerProfile | null => {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Partial<ProfileRow>;
+
+  return normalizeProfile({
+    phone: row.phone ?? '',
+    cpf: row.cpf ?? '',
+    address: row.address ?? '',
+    city: row.city ?? '',
+    state: row.state ?? '',
+    zipCode: row.zip_code ?? '',
+  });
+};
+
+const toFriendlyProfileError = (message: string) => {
+  const normalized = message.toLowerCase();
+  if (
+    normalized.includes('column') &&
+    (normalized.includes('phone') ||
+      normalized.includes('cpf') ||
+      normalized.includes('address') ||
+      normalized.includes('zip_code'))
+  ) {
+    return 'Campos de endereco da conta ainda nao existem no banco. Execute o schema.sql atualizado.';
+  }
+
+  return message;
+};
+
+const getStoredProfilesMap = (): StoredProfilesMap => {
+  if (typeof window === 'undefined') return {};
+
+  try {
+    const raw = localStorage.getItem(CUSTOMER_PROFILE_STORAGE_KEY);
+    if (!raw) return {};
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+
+    const nextMap: StoredProfilesMap = {};
+    Object.entries(parsed as Record<string, unknown>).forEach(([userId, value]) => {
+      nextMap[userId] = normalizeProfile(value as Partial<CustomerProfile>);
+    });
+
+    return nextMap;
+  } catch {
+    return {};
+  }
+};
+
+const saveStoredProfilesMap = (profilesMap: StoredProfilesMap) => {
+  if (typeof window === 'undefined') return;
+
+  localStorage.setItem(CUSTOMER_PROFILE_STORAGE_KEY, JSON.stringify(profilesMap));
+};
+
+const getLocalCustomerProfile = (userId: string): CustomerProfile => {
+  const profilesMap = getStoredProfilesMap();
+  return profilesMap[userId] ? normalizeProfile(profilesMap[userId]) : { ...emptyProfile };
+};
+
+const saveLocalCustomerProfile = (userId: string, profile: CustomerProfile): CustomerProfile => {
+  const profilesMap = getStoredProfilesMap();
+  const normalized = normalizeProfile(profile);
+  profilesMap[userId] = normalized;
+  saveStoredProfilesMap(profilesMap);
+  return normalized;
+};
+
+export const getCustomerProfile = async (userId: string): Promise<CustomerProfile> => {
+  if (!userId) return { ...emptyProfile };
+
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('phone, cpf, address, city, state, zip_code')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!error) {
+      const profile = normalizeProfileRow(data);
+      if (profile) return profile;
+    }
+  }
+
+  return getLocalCustomerProfile(userId);
+};
+
+export const upsertCustomerProfile = async (
+  userId: string,
+  profile: CustomerProfile
+): Promise<CustomerProfile> => {
+  const normalized = normalizeProfile(profile);
+  if (!userId) return normalized;
+
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        phone: normalized.phone,
+        cpf: normalized.cpf,
+        address: normalized.address,
+        city: normalized.city,
+        state: normalized.state,
+        zip_code: normalized.zipCode,
+      })
+      .eq('id', userId)
+      .select('phone, cpf, address, city, state, zip_code')
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(toFriendlyProfileError(error.message));
+    }
+
+    const saved = normalizeProfileRow(data);
+    if (saved) return saved;
+  }
+
+  return saveLocalCustomerProfile(userId, normalized);
+};

@@ -169,26 +169,28 @@ const ProductDetailsPage = () => {
 
       <section className="grid gap-8 lg:grid-cols-2">
         <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-          <img
-            src={productImages[activeImageIndex] ?? product.image}
-            alt={product.name}
-            className="w-full h-[520px] object-cover rounded-2xl"
-          />
+          <div className="rounded-2xl bg-slate-100 dark:bg-slate-950/50 overflow-hidden">
+            <img
+              src={productImages[activeImageIndex] ?? product.image}
+              alt={product.name}
+              className="w-full max-h-[72vh] min-h-[260px] object-contain sm:min-h-[360px] lg:min-h-[520px]"
+            />
+          </div>
           {productImages.length > 1 && (
-            <div className="mt-3 grid grid-cols-5 gap-2">
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
               {productImages.map((url, index) => (
                 <button
                   key={`${product.id}-thumb-${url}`}
                   type="button"
                   onClick={() => setActiveImageIndex(index)}
-                    className={`rounded-xl border overflow-hidden transition-colors ${
+                  className={`h-16 w-16 sm:h-20 sm:w-20 flex-none rounded-xl border overflow-hidden transition-colors ${
                     index === activeImageIndex
                       ? 'border-black dark:border-white'
                       : 'border-slate-200 dark:border-slate-800 hover:border-slate-600 dark:hover:border-slate-500'
                   }`}
                   aria-label={`Ver imagem ${index + 1} do produto`}
                 >
-                  <img src={url} alt="" className="h-16 w-full object-cover" />
+                  <img src={url} alt="" className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>

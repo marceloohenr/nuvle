@@ -4,6 +4,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import { useCart } from '../../features/cart';
 import { useCatalog } from '../../features/catalog';
+import { getCustomerProfile, upsertCustomerProfile } from '../../features/customerProfile';
 import type { CheckoutForm } from '../../features/cart';
 import { addLocalOrder } from '../../features/orders';
 import type { OrderPaymentMethod, OrderStatus } from '../../features/orders';
@@ -217,6 +218,34 @@ const CheckoutPage = () => {
     }));
   }, [currentUser]);
 
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let active = true;
+    void (async () => {
+      try {
+        const customerProfile = await getCustomerProfile(currentUser.id);
+        if (!active) return;
+
+        setFormData((prev) => ({
+          ...prev,
+          phone: prev.phone || customerProfile.phone,
+          cpf: prev.cpf || customerProfile.cpf,
+          address: prev.address || customerProfile.address,
+          city: prev.city || customerProfile.city,
+          state: prev.state || customerProfile.state,
+          zipCode: prev.zipCode || customerProfile.zipCode,
+        }));
+      } catch {
+        // Ignore profile prefill failures and keep checkout working.
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser]);
+
   if (state.items.length === 0 && !orderId) {
     return <Navigate to="/carrinho" replace />;
   }
@@ -365,6 +394,21 @@ const CheckoutPage = () => {
             items: orderItemsSnapshot,
             customer: customerSnapshot,
           });
+
+          if (currentUser) {
+            try {
+              await upsertCustomerProfile(currentUser.id, {
+                phone: customerSnapshot.phone,
+                cpf: customerSnapshot.cpf,
+                address: customerSnapshot.address,
+                city: customerSnapshot.city,
+                state: customerSnapshot.state,
+                zipCode: customerSnapshot.zipCode,
+              });
+            } catch {
+              // Profile save failure must not block successful order placement.
+            }
+          }
 
           setOrderId(generatedOrder);
           dispatch({ type: 'CLEAR_CART' });

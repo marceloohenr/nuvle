@@ -2,9 +2,12 @@ import { CreditCard, Heart, LogOut, MapPin, ShieldCheck, UserCircle2 } from 'luc
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
+import { getCustomerProfile, upsertCustomerProfile } from '../../features/customerProfile';
+import type { CustomerProfile } from '../../features/customerProfile';
 import { useFavorites } from '../../features/favorites';
 import { getLocalOrders, orderStatusLabel } from '../../features/orders';
 import type { LocalOrder } from '../../features/orders';
+import { useToast } from '../../shared/providers';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
@@ -24,7 +27,7 @@ const accountBlocks = [
   },
   {
     title: 'Enderecos',
-    description: 'Endereco principal recuperado dos pedidos realizados.',
+    description: 'Endereco principal salvo para agilizar futuros checkouts.',
     icon: MapPin,
   },
   {
@@ -44,33 +47,127 @@ const canAccessOrder = (order: LocalOrder, userId: string, email: string) => {
   return order.customer.email.toLowerCase() === email.toLowerCase();
 };
 
+const initialProfileForm: CustomerProfile = {
+  phone: '',
+  cpf: '',
+  address: '',
+  city: '',
+  state: '',
+  zipCode: '',
+};
+
+const digitsOnly = (value: string) => value.replace(/\D/g, '');
+
+const formatCpf = (value: string) => {
+  const digits = digitsOnly(value).slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  }
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+};
+
+const formatPhone = (value: string) => {
+  const digits = digitsOnly(value).slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
+const formatZipCode = (value: string) => {
+  const digits = digitsOnly(value).slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+};
+
 const AccountPage = () => {
   const { currentUser, isAdmin, isAuthenticated, logout } = useAuth();
   const { favorites, removeFavorite } = useFavorites();
+  const { showToast } = useToast();
   const location = useLocation();
   const [userOrders, setUserOrders] = useState<LocalOrder[]>([]);
+  const [isOrdersLoaded, setIsOrdersLoaded] = useState(false);
+  const [profileForm, setProfileForm] = useState<CustomerProfile>(initialProfileForm);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
   useEffect(() => {
     if (!currentUser || isAdmin) {
       setUserOrders([]);
+      setIsOrdersLoaded(true);
       return;
     }
 
     let active = true;
+    setIsOrdersLoaded(false);
 
     void (async () => {
-      const allOrders = await getLocalOrders();
-      if (!active) return;
+      try {
+        const allOrders = await getLocalOrders();
+        if (!active) return;
 
-      setUserOrders(
-        allOrders.filter((order) => canAccessOrder(order, currentUser.id, currentUser.email))
-      );
+        setUserOrders(
+          allOrders.filter((order) => canAccessOrder(order, currentUser.id, currentUser.email))
+        );
+      } finally {
+        if (active) {
+          setIsOrdersLoaded(true);
+        }
+      }
     })();
 
     return () => {
       active = false;
     };
   }, [currentUser, isAdmin]);
+
+  useEffect(() => {
+    setIsProfileLoaded(false);
+    setProfileError('');
+  }, [currentUser?.id, isAdmin]);
+
+  useEffect(() => {
+    if (!currentUser || isAdmin || isProfileLoaded || !isOrdersLoaded) return;
+
+    let active = true;
+    void (async () => {
+      try {
+        const savedProfile = await getCustomerProfile(currentUser.id);
+        if (!active) return;
+
+        const lastOrder = userOrders[0]?.customer;
+        setProfileForm({
+          phone: savedProfile.phone || lastOrder?.phone || '',
+          cpf: savedProfile.cpf || lastOrder?.cpf || '',
+          address: savedProfile.address || lastOrder?.address || '',
+          city: savedProfile.city || lastOrder?.city || '',
+          state: savedProfile.state || lastOrder?.state || '',
+          zipCode: savedProfile.zipCode || lastOrder?.zipCode || '',
+        });
+        setProfileError('');
+      } catch (error) {
+        if (!active) return;
+        setProfileError(
+          error instanceof Error
+            ? error.message
+            : 'Nao foi possivel carregar o endereco salvo da conta.'
+        );
+      } finally {
+        if (active) {
+          setIsProfileLoaded(true);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser, isAdmin, isOrdersLoaded, isProfileLoaded, userOrders]);
 
   useEffect(() => {
     if (location.hash !== '#favoritos') return;
@@ -136,9 +233,56 @@ const AccountPage = () => {
 
   const totalSpent = userOrders.reduce((sum, order) => sum + order.total, 0);
   const lastOrder = userOrders[0] ?? null;
-  const addressFromOrder = lastOrder?.customer.address
-    ? `${lastOrder.customer.address}, ${lastOrder.customer.city} - ${lastOrder.customer.state}`
-    : 'Nenhum endereco registrado ainda';
+  const addressFromProfile = profileForm.address
+    ? `${profileForm.address}, ${profileForm.city} - ${profileForm.state}`
+    : 'Nenhum endereco principal cadastrado';
+  const isProfileFormValid =
+    profileForm.address.trim().length >= 6 &&
+    profileForm.city.trim().length >= 2 &&
+    profileForm.state.trim().length >= 2 &&
+    digitsOnly(profileForm.zipCode).length === 8;
+
+  const handleProfileInputChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = event.target;
+    let nextValue = value;
+
+    if (name === 'cpf') nextValue = formatCpf(value);
+    if (name === 'phone') nextValue = formatPhone(value);
+    if (name === 'zipCode') nextValue = formatZipCode(value);
+    if (name === 'state') nextValue = value.slice(0, 2).toUpperCase();
+
+    setProfileForm((prev) => ({ ...prev, [name]: nextValue }));
+  };
+
+  const handleSaveProfile = () => {
+    if (!currentUser) return;
+
+    if (!isProfileFormValid) {
+      setProfileError('Preencha endereco, cidade, estado e CEP validos para salvar.');
+      return;
+    }
+
+    setProfileError('');
+    setIsSavingProfile(true);
+
+    void (async () => {
+      try {
+        const savedProfile = await upsertCustomerProfile(currentUser.id, profileForm);
+        setProfileForm(savedProfile);
+        showToast('Endereco principal salvo na sua conta.', { variant: 'success' });
+      } catch (error) {
+        setProfileError(
+          error instanceof Error
+            ? error.message
+            : 'Nao foi possivel salvar o endereco principal.'
+        );
+      } finally {
+        setIsSavingProfile(false);
+      }
+    })();
+  };
 
   return (
     <div className="space-y-8">
@@ -222,7 +366,9 @@ const AccountPage = () => {
             )}
 
             {title === 'Enderecos' && (
-              <p className="mt-4 text-sm text-slate-700 dark:text-slate-200">{addressFromOrder}</p>
+              <p className="mt-4 text-sm text-slate-700 dark:text-slate-200">
+                {addressFromProfile}
+              </p>
             )}
 
             {title === 'Pagamentos' && (
@@ -240,6 +386,78 @@ const AccountPage = () => {
             )}
           </article>
         ))}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+          Endereco principal
+        </h2>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          Este endereco sera usado para preencher o checkout automaticamente.
+        </p>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <input
+            name="phone"
+            value={profileForm.phone}
+            onChange={handleProfileInputChange}
+            placeholder="Telefone"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+          <input
+            name="cpf"
+            value={profileForm.cpf}
+            onChange={handleProfileInputChange}
+            placeholder="CPF"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+          <input
+            name="address"
+            value={profileForm.address}
+            onChange={handleProfileInputChange}
+            placeholder="Endereco completo"
+            className="md:col-span-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+          <input
+            name="city"
+            value={profileForm.city}
+            onChange={handleProfileInputChange}
+            placeholder="Cidade"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+          <input
+            name="state"
+            value={profileForm.state}
+            onChange={handleProfileInputChange}
+            placeholder="UF"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+          <input
+            name="zipCode"
+            value={profileForm.zipCode}
+            onChange={handleProfileInputChange}
+            placeholder="CEP"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSaveProfile}
+            disabled={isSavingProfile}
+            className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+          >
+            {isSavingProfile ? 'Salvando...' : 'Salvar endereco principal'}
+          </button>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Atualize sempre que seu endereco de entrega mudar.
+          </p>
+        </div>
+
+        {profileError && (
+          <p className="mt-3 text-sm text-red-600 dark:text-red-400">{profileError}</p>
+        )}
       </section>
 
       <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">

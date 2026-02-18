@@ -26,6 +26,13 @@ const statusProgression: Record<OrderStatus, OrderStatus> = {
   delivered: 'delivered',
 };
 
+export interface DeliveryAddressUpdatePayload {
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
+
 interface OrderItemRow {
   product_id: string;
   name: string;
@@ -234,6 +241,18 @@ const mapRowToLocalOrder = (row: OrderRow): LocalOrder => {
   };
 };
 
+const normalizeDeliveryAddressPayload = (
+  payload: DeliveryAddressUpdatePayload
+): DeliveryAddressUpdatePayload => ({
+  address: payload.address.trim(),
+  city: payload.city.trim(),
+  state: payload.state.trim().toUpperCase(),
+  zipCode: payload.zipCode.trim(),
+});
+
+export const canEditDeliveryAddressByStatus = (status: OrderStatus) =>
+  status === 'pending_payment' || status === 'paid';
+
 const sortByDateDesc = (orders: LocalOrder[]) =>
   [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -365,6 +384,71 @@ export const advanceLocalOrderStatus = async (orderId: string): Promise<OrderSta
   const nextStatus = statusProgression[targetOrder.status];
   await updateLocalOrderStatus(orderId, nextStatus);
   return nextStatus;
+};
+
+export const updateLocalOrderDeliveryAddress = async (
+  orderId: string,
+  payload: DeliveryAddressUpdatePayload
+) => {
+  const normalizedPayload = normalizeDeliveryAddressPayload(payload);
+  if (
+    !normalizedPayload.address ||
+    !normalizedPayload.city ||
+    !normalizedPayload.state ||
+    !normalizedPayload.zipCode
+  ) {
+    throw new Error('Preencha endereco, cidade, estado e CEP para atualizar a entrega.');
+  }
+
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase.rpc('update_order_delivery_address', {
+      p_order_id: orderId,
+      p_customer_address: normalizedPayload.address,
+      p_customer_city: normalizedPayload.city,
+      p_customer_state: normalizedPayload.state,
+      p_customer_zip_code: normalizedPayload.zipCode,
+    });
+
+    if (error) {
+      if (error.message.includes('update_order_delivery_address')) {
+        throw new Error(
+          'Funcao update_order_delivery_address nao encontrada. Execute novamente supabase/schema.sql.'
+        );
+      }
+      throw new Error(error.message);
+    }
+
+    return;
+  }
+
+  const currentOrders = getOrdersLocal();
+  const targetOrder = currentOrders.find((order) => order.id === orderId);
+  if (!targetOrder) {
+    throw new Error('Pedido nao encontrado.');
+  }
+
+  if (!canEditDeliveryAddressByStatus(targetOrder.status)) {
+    throw new Error(
+      'Nao e possivel alterar o endereco de entrega. Pedido ja esta em separacao ou enviado.'
+    );
+  }
+
+  const nextOrders = currentOrders.map((order) =>
+    order.id === orderId
+      ? {
+          ...order,
+          customer: {
+            ...order.customer,
+            address: normalizedPayload.address,
+            city: normalizedPayload.city,
+            state: normalizedPayload.state,
+            zipCode: normalizedPayload.zipCode,
+          },
+        }
+      : order
+  );
+
+  saveOrdersLocal(nextOrders);
 };
 
 export const removeLocalOrder = async (orderId: string) => {

@@ -83,6 +83,38 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
   }, [location.pathname, location.hash]);
 
   useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname, location.hash]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const previousOverflow = document.body.style.overflow;
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMenuOpen]);
+
+  useEffect(() => {
+    if (!isMenuOpen || typeof window === 'undefined') return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMenuOpen]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const SCROLL_DELTA_THRESHOLD = 1;
@@ -128,17 +160,17 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
         isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
       }`}
     >
-      <div className="bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 text-white text-center text-[11px] py-2 px-4 tracking-[0.2em] font-semibold uppercase">
+      <div className="bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 text-white text-center text-[10px] sm:text-[11px] py-2 px-3 sm:px-4 tracking-[0.08em] sm:tracking-[0.2em] font-semibold uppercase whitespace-nowrap overflow-hidden text-ellipsis">
         Frete rapido | suporte no WhatsApp | trocas facilitadas
       </div>
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="h-[86px] flex items-center justify-between gap-4">
+        <div className="h-[74px] sm:h-[86px] flex items-center justify-between gap-2 sm:gap-4">
           <Link to="/" className="flex items-center gap-3 min-w-[130px]">
             <img
               src={nuvleLogo}
               alt="Nuvle"
-              className="h-10 sm:h-11 md:h-12 w-auto"
+              className="h-9 sm:h-11 md:h-12 w-auto"
             />
           </Link>
 
@@ -234,47 +266,78 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black/95">
-          <nav className="max-w-[1440px] mx-auto px-4 py-4 flex flex-col gap-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={() => {
-                  if (item.to === '/conta#favoritos') {
-                    scrollToFavoritesSection();
-                  }
-                  setIsMenuOpen(false);
-                }}
-                className={`px-4 py-3 rounded-xl text-sm font-semibold tracking-wide uppercase transition-colors ${
-                  isNavItemActive(item.to)
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-slate-900'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-            {!isAuthenticated ? (
-              <Link
-                to="/login"
-                onClick={() => setIsMenuOpen(false)}
-                className="px-4 py-3 rounded-xl text-sm font-semibold bg-blue-600 text-white"
-              >
-                Entrar na conta
-              </Link>
-            ) : (
-              <button
-                onClick={() => {
-                  void logout();
-                  setIsMenuOpen(false);
-                }}
-                className="px-4 py-3 rounded-xl text-sm font-semibold border border-slate-300 text-slate-700 bg-slate-100 text-left dark:border-slate-700 dark:text-slate-100 dark:bg-slate-900"
-              >
-                Sair da conta
-              </button>
-            )}
-          </nav>
+        <div className="md:hidden fixed inset-x-0 top-[106px] sm:top-[118px] bottom-0 z-40">
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen(false)}
+            className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
+            aria-label="Fechar menu"
+          />
+          <aside
+            className="relative ml-auto h-full w-[88%] max-w-sm border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-black/95 shadow-2xl overflow-y-auto"
+            aria-label="Menu mobile"
+          >
+            <div className="p-4 space-y-4">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3">
+                {isAuthenticated ? (
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {currentUser?.name ?? 'Conta logada'}
+                  </p>
+                ) : (
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Navegacao da loja
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Menu otimizado para mobile
+                </p>
+              </div>
+
+              <nav className="flex flex-col gap-2">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => {
+                      if (item.to === '/conta#favoritos') {
+                        scrollToFavoritesSection();
+                      }
+                      setIsMenuOpen(false);
+                    }}
+                    className={`px-4 py-3.5 rounded-xl text-sm font-semibold transition-colors ${
+                      isNavItemActive(item.to)
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-slate-900'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+
+              <div className="grid gap-2">
+                {!isAuthenticated ? (
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="inline-flex items-center justify-center px-4 py-3.5 rounded-xl text-sm font-semibold bg-blue-600 text-white"
+                  >
+                    Entrar na conta
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => {
+                      void logout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="inline-flex items-center justify-center px-4 py-3.5 rounded-xl text-sm font-semibold border border-slate-300 text-slate-700 bg-slate-100 dark:border-slate-700 dark:text-slate-100 dark:bg-slate-900"
+                  >
+                    Sair da conta
+                  </button>
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
       )}
     </header>
