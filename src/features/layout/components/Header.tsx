@@ -291,9 +291,6 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                     Navegacao da loja
                   </p>
                 )}
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Menu otimizado para mobile
-                </p>
               </div>
 
               <nav className="flex flex-col gap-2">
