@@ -552,6 +552,7 @@ const CheckoutPage = () => {
             paymentMethod,
             status: orderStatus,
             total: orderTotal,
+            couponCode: appliedCoupon?.code,
             items: orderItemsSnapshot,
             customer: customerSnapshot,
           });

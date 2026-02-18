@@ -37,6 +37,7 @@ export interface LocalOrder {
   status: OrderStatus;
   paymentMethod: OrderPaymentMethod;
   total: number;
+  couponCode?: string;
   items: LocalOrderItem[];
   customer: LocalOrderCustomer;
 }

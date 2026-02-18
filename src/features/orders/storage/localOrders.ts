@@ -52,6 +52,7 @@ interface OrderRow {
   status: OrderStatus;
   payment_method: OrderPaymentMethod;
   total: number;
+  coupon_code: string | null;
   customer_name: string;
   customer_email: string;
   customer_phone: string;
@@ -165,6 +166,7 @@ const normalizeOrder = (value: unknown): LocalOrder | null => {
     total: Number(order.total),
     status: order.status,
     paymentMethod: order.paymentMethod,
+    couponCode: order.couponCode ? String(order.couponCode) : undefined,
     items,
     customer,
   };
@@ -227,6 +229,7 @@ const normalizeOrderRow = (value: unknown): OrderRow | null => {
     status: row.status,
     payment_method: row.payment_method,
     total: Number(row.total),
+    coupon_code: typeof row.coupon_code === 'string' ? row.coupon_code : null,
     customer_name: String(row.customer_name),
     customer_email: String(row.customer_email),
     customer_phone: String(row.customer_phone),
@@ -259,6 +262,7 @@ const mapRowToLocalOrder = (row: OrderRow): LocalOrder => {
     status: row.status,
     paymentMethod: row.payment_method,
     total: row.total,
+    couponCode: row.coupon_code ?? undefined,
     items,
     customer: {
       name: row.customer_name,
@@ -324,13 +328,22 @@ const getOrdersSupabase = async (): Promise<LocalOrder[]> => {
 
   const baseSelection =
     'id, user_id, created_at, status, payment_method, total, customer_name, customer_email, customer_phone, customer_cpf, customer_address, customer_city, customer_state, customer_zip_code, order_items (product_id, name, image, quantity, price, size)';
-  const extendedSelection =
+  const intermediateSelection =
     'id, user_id, created_at, status, payment_method, total, customer_name, customer_email, customer_phone, customer_cpf, customer_address, customer_address_number, customer_address_complement, customer_reference_point, customer_city, customer_state, customer_zip_code, order_items (product_id, name, image, quantity, price, size)';
+  const extendedSelection =
+    'id, user_id, created_at, status, payment_method, total, coupon_code, customer_name, customer_email, customer_phone, customer_cpf, customer_address, customer_address_number, customer_address_complement, customer_reference_point, customer_city, customer_state, customer_zip_code, order_items (product_id, name, image, quantity, price, size)';
 
   let query = await supabase
     .from('orders')
     .select(extendedSelection)
     .order('created_at', { ascending: false });
+
+  if (query.error && isUndefinedColumnError(query.error)) {
+    query = await supabase
+      .from('orders')
+      .select(intermediateSelection)
+      .order('created_at', { ascending: false });
+  }
 
   if (query.error && isUndefinedColumnError(query.error)) {
     query = await supabase
@@ -370,6 +383,7 @@ export const addLocalOrder = async (order: LocalOrder) => {
       p_status: order.status,
       p_payment_method: order.paymentMethod,
       p_total: order.total,
+      p_coupon_code: order.couponCode ?? null,
       p_customer_name: order.customer.name,
       p_customer_email: order.customer.email,
       p_customer_phone: order.customer.phone,

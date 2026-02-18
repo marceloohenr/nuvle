@@ -237,6 +237,7 @@ const AdminPage = () => {
       code: string;
       description: string;
       discountPercentage: number;
+      maxUsesPerCustomer: number;
       isActive: boolean;
       createdAt: string;
     }>
@@ -247,6 +248,7 @@ const AdminPage = () => {
     code: '',
     description: '',
     discountPercentage: '10',
+    maxUsesPerCustomer: '1',
     isActive: true,
   });
   const [editingCouponCode, setEditingCouponCode] = useState<string | null>(null);
@@ -705,7 +707,7 @@ const AdminPage = () => {
   };
 
   const handleCouponDraftChange = (
-    field: 'code' | 'description' | 'discountPercentage' | 'isActive',
+    field: 'code' | 'description' | 'discountPercentage' | 'maxUsesPerCustomer' | 'isActive',
     value: string | boolean
   ) => {
     setCouponDraft((previous) => ({
@@ -721,10 +723,15 @@ const AdminPage = () => {
     const normalizedCode = couponDraft.code.trim().toUpperCase();
 
     const discount = Number(String(couponDraft.discountPercentage).replace(',', '.'));
+    const maxUsesPerCustomer = Math.max(
+      1,
+      Math.floor(Number(String(couponDraft.maxUsesPerCustomer).replace(',', '.')) || 1)
+    );
     const result = await upsertCoupon({
       code: couponDraft.code,
       description: couponDraft.description,
       discountPercentage: discount,
+      maxUsesPerCustomer,
       isActive: couponDraft.isActive,
     });
 
@@ -735,7 +742,13 @@ const AdminPage = () => {
 
     setCouponMessage(editingCouponCode ? 'Cupom atualizado.' : 'Cupom criado.');
     setEditingCouponCode(null);
-    setCouponDraft({ code: '', description: '', discountPercentage: '10', isActive: true });
+    setCouponDraft({
+      code: '',
+      description: '',
+      discountPercentage: '10',
+      maxUsesPerCustomer: '1',
+      isActive: true,
+    });
     await refreshCoupons();
     await registerAdminLog(
       'coupon',
@@ -744,6 +757,7 @@ const AdminPage = () => {
       {
         code: normalizedCode,
         discountPercentage: discount,
+        maxUsesPerCustomer,
       }
     );
   };
@@ -752,6 +766,7 @@ const AdminPage = () => {
     code: string;
     description: string;
     discountPercentage: number;
+    maxUsesPerCustomer: number;
     isActive: boolean;
   }) => {
     setEditingCouponCode(coupon.code);
@@ -759,6 +774,7 @@ const AdminPage = () => {
       code: coupon.code,
       description: coupon.description,
       discountPercentage: String(coupon.discountPercentage),
+      maxUsesPerCustomer: String(coupon.maxUsesPerCustomer),
       isActive: coupon.isActive,
     });
     setCouponMessage('');
@@ -766,7 +782,13 @@ const AdminPage = () => {
 
   const cancelEditingCoupon = () => {
     setEditingCouponCode(null);
-    setCouponDraft({ code: '', description: '', discountPercentage: '10', isActive: true });
+    setCouponDraft({
+      code: '',
+      description: '',
+      discountPercentage: '10',
+      maxUsesPerCustomer: '1',
+      isActive: true,
+    });
     setCouponMessage('');
   };
 
@@ -3354,7 +3376,7 @@ const AdminPage = () => {
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               Crie cupons como <strong>NUVLE10</strong> para o cliente digitar no checkout e ganhar
-              desconto no total.
+              desconto no total, com limite por cliente.
             </p>
 
             <form onSubmit={handleSubmitCoupon} className="mt-4 grid gap-3 md:grid-cols-12">
@@ -3390,7 +3412,21 @@ const AdminPage = () => {
                 />
               </div>
 
-              <div className="md:col-span-5">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Limite cliente
+                </label>
+                <input
+                  value={couponDraft.maxUsesPerCustomer}
+                  onChange={(event) =>
+                    handleCouponDraftChange('maxUsesPerCustomer', event.target.value)
+                  }
+                  placeholder="1"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="md:col-span-3">
                 <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
                   Descricao
                 </label>
@@ -3479,7 +3515,9 @@ const AdminPage = () => {
                           </p>
                           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             {coupon.isActive ? 'Ativo' : 'Desativado'}
-                            {' · '}
+                            {' | '}
+                            Limite por cliente: {coupon.maxUsesPerCustomer}
+                            {' | '}
                             {coupon.description || 'Sem descricao'}
                           </p>
                         </div>
@@ -3511,6 +3549,7 @@ const AdminPage = () => {
                                 code: coupon.code,
                                 description: coupon.description,
                                 discountPercentage: coupon.discountPercentage,
+                                maxUsesPerCustomer: coupon.maxUsesPerCustomer,
                                 isActive: !coupon.isActive,
                               });
                               if (!result.success) {
@@ -3695,3 +3734,4 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
+

@@ -369,9 +369,13 @@ create table if not exists public.coupons (
   code text primary key,
   description text not null default '',
   discount_percentage numeric(5,2) not null check (discount_percentage > 0 and discount_percentage <= 95),
+  max_uses_per_customer integer not null default 1 check (max_uses_per_customer > 0),
   is_active boolean not null default true,
   created_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.coupons
+  add column if not exists max_uses_per_customer integer not null default 1;
 
 alter table public.coupons enable row level security;
 
@@ -383,25 +387,94 @@ to authenticated
 using (public.is_admin())
 with check (public.is_admin());
 
+create table if not exists public.coupon_redemptions (
+  id uuid primary key default gen_random_uuid(),
+  coupon_code text not null references public.coupons(code) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  order_id text not null unique,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+create index if not exists coupon_redemptions_coupon_user_idx
+  on public.coupon_redemptions (coupon_code, user_id);
+
+alter table public.coupon_redemptions enable row level security;
+
+drop policy if exists coupon_redemptions_select_owner_or_admin on public.coupon_redemptions;
+create policy coupon_redemptions_select_owner_or_admin
+on public.coupon_redemptions
+for select
+to authenticated
+using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists coupon_redemptions_write_admin on public.coupon_redemptions;
+create policy coupon_redemptions_write_admin
+on public.coupon_redemptions
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
 create or replace function public.validate_coupon(p_code text)
 returns table (
   code text,
   description text,
-  discount_percentage numeric
+  discount_percentage numeric,
+  max_uses_per_customer integer
 )
-language sql
+language plpgsql
 stable
 security definer
 set search_path = public
 as $$
+declare
+  normalized_code text;
+  coupon_limit integer;
+  customer_uses integer;
+  current_user_id uuid;
+begin
+  normalized_code := upper(trim(coalesce(p_code, '')));
+  if normalized_code = '' then
+    return;
+  end if;
+
   select
     c.code,
     c.description,
-    c.discount_percentage
+    c.discount_percentage,
+    c.max_uses_per_customer
+  into
+    code,
+    description,
+    discount_percentage,
+    max_uses_per_customer
   from public.coupons c
   where c.is_active = true
-    and upper(trim(c.code)) = upper(trim(p_code))
+    and upper(trim(c.code)) = normalized_code
   limit 1;
+
+  if not found then
+    return;
+  end if;
+
+  current_user_id := auth.uid();
+  coupon_limit := coalesce(max_uses_per_customer, 1);
+
+  if current_user_id is not null then
+    select count(*)
+    into customer_uses
+    from public.coupon_redemptions cr
+    where cr.coupon_code = code
+      and cr.user_id = current_user_id;
+
+    if customer_uses >= coupon_limit then
+      raise exception 'Limite de uso deste cupom por cliente foi atingido.';
+    end if;
+  end if;
+
+  return next;
+  return;
+end;
 $$;
 
 grant execute on function public.validate_coupon(text) to anon, authenticated;
@@ -476,6 +549,7 @@ create table if not exists public.orders (
   status text not null check (status in ('pending_payment', 'paid', 'preparing', 'shipped', 'delivered')),
   payment_method text not null check (payment_method in ('pix', 'credit', 'debit')),
   total numeric(12,2) not null check (total >= 0),
+  coupon_code text,
   customer_name text not null,
   customer_email text not null,
   customer_phone text not null,
@@ -502,6 +576,7 @@ create table if not exists public.order_items (
 
 -- Ensure new columns exist in projects created before this version.
 alter table public.orders
+  add column if not exists coupon_code text,
   add column if not exists customer_address_number text not null default '',
   add column if not exists customer_address_complement text not null default '',
   add column if not exists customer_reference_point text not null default '';
@@ -524,7 +599,8 @@ create or replace function public.create_order_with_stock(
   p_customer_city text,
   p_customer_state text,
   p_customer_zip_code text,
-  p_items jsonb
+  p_items jsonb,
+  p_coupon_code text default null
 )
 returns void
 language plpgsql
@@ -534,6 +610,9 @@ as $$
 declare
   item_record record;
   normalized_size text;
+  normalized_coupon_code text;
+  coupon_limit integer;
+  customer_coupon_uses integer;
   requested_quantity integer;
   current_stock integer;
 begin
@@ -547,6 +626,34 @@ begin
 
   if auth.uid() <> p_user_id and not public.is_admin() then
     raise exception 'Sem permissao para criar pedido para outro usuario';
+  end if;
+
+  normalized_coupon_code := upper(trim(coalesce(p_coupon_code, '')));
+  if normalized_coupon_code = '' then
+    normalized_coupon_code := null;
+  end if;
+
+  if normalized_coupon_code is not null then
+    select c.max_uses_per_customer
+    into coupon_limit
+    from public.coupons c
+    where c.code = normalized_coupon_code
+      and c.is_active = true
+    limit 1;
+
+    if coupon_limit is null then
+      raise exception 'Cupom invalido ou desativado.';
+    end if;
+
+    select count(*)
+    into customer_coupon_uses
+    from public.coupon_redemptions cr
+    where cr.coupon_code = normalized_coupon_code
+      and cr.user_id = p_user_id;
+
+    if customer_coupon_uses >= coupon_limit then
+      raise exception 'Limite de uso deste cupom por cliente foi atingido.';
+    end if;
   end if;
 
   for item_record in
@@ -590,6 +697,7 @@ begin
     status,
     payment_method,
     total,
+    coupon_code,
     customer_name,
     customer_email,
     customer_phone,
@@ -609,6 +717,7 @@ begin
     p_status,
     p_payment_method,
     p_total,
+    normalized_coupon_code,
     p_customer_name,
     p_customer_email,
     p_customer_phone,
@@ -653,11 +762,25 @@ begin
   ) as grouped
   where ps.product_id = grouped.product_id
     and ps.size = grouped.size;
+
+  if normalized_coupon_code is not null then
+    insert into public.coupon_redemptions (
+      coupon_code,
+      user_id,
+      order_id
+    )
+    values (
+      normalized_coupon_code,
+      p_user_id,
+      p_order_id
+    )
+    on conflict (order_id) do nothing;
+  end if;
 end;
 $$;
 
 grant execute on function public.create_order_with_stock(
-  text, uuid, timestamptz, text, text, numeric, text, text, text, text, text, text, text, text, text, text, text, jsonb
+  text, uuid, timestamptz, text, text, numeric, text, text, text, text, text, text, text, text, text, text, text, jsonb, text
 ) to authenticated;
 
 create or replace function public.update_order_delivery_address(
