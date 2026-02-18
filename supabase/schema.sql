@@ -415,6 +415,7 @@ to authenticated
 using (public.is_admin())
 with check (public.is_admin());
 
+drop function if exists public.validate_coupon(text);
 create or replace function public.validate_coupon(p_code text)
 returns table (
   code text,

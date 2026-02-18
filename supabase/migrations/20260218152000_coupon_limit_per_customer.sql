@@ -40,6 +40,7 @@ with check (public.is_admin());
 alter table public.orders
   add column if not exists coupon_code text;
 
+drop function if exists public.validate_coupon(text);
 create or replace function public.validate_coupon(p_code text)
 returns table (
   code text,
