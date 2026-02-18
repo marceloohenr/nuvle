@@ -95,7 +95,7 @@ function App() {
             onSearchToggle={() => setIsSearchOpen(true)}
           />
 
-          <main className="relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-8 md:py-10">
+          <main className="relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 pt-[124px] pb-8 md:pb-10">
             <Routes>
               <Route path="/" element={<HomePage onProductClick={handleProductClick} />} />
               <Route

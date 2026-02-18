@@ -1,5 +1,5 @@
 import { LogOut, Menu, Moon, Search, ShieldCheck, ShoppingCart, Sun, UserCircle2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useCart } from '../../cart/context/CartContext';
@@ -17,6 +17,8 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
   const { currentUser, isAuthenticated, isAdmin, logout } = useAuth();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
 
   const totalItems = useMemo(
     () => state.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -76,8 +78,56 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
     });
   };
 
+  useEffect(() => {
+    setIsHeaderVisible(true);
+  }, [location.pathname, location.hash]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const SCROLL_DELTA_THRESHOLD = 1;
+
+    const resolveScrollTop = (target: EventTarget | null) => {
+      if (target && target instanceof HTMLElement) {
+        return target.scrollTop;
+      }
+      return window.scrollY || document.documentElement.scrollTop || 0;
+    };
+
+    const handleScroll = (event: Event) => {
+      const currentY = Math.max(0, resolveScrollTop(event.target));
+      const previousY = lastScrollYRef.current;
+      const delta = currentY - previousY;
+
+      if (isMenuOpen) {
+        setIsHeaderVisible(true);
+        lastScrollYRef.current = currentY;
+        return;
+      }
+
+      if (delta > SCROLL_DELTA_THRESHOLD) {
+        setIsHeaderVisible(false);
+      } else if (delta < -SCROLL_DELTA_THRESHOLD) {
+        setIsHeaderVisible(true);
+      }
+
+      lastScrollYRef.current = currentY;
+    };
+
+    lastScrollYRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isMenuOpen]);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-black/75 backdrop-blur-xl">
+    <header
+      className={`fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-black/75 backdrop-blur-xl transition-transform duration-300 will-change-transform ${
+        isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
+      }`}
+    >
       <div className="bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 text-white text-center text-[11px] py-2 px-4 tracking-[0.2em] font-semibold uppercase">
         Frete rapido | suporte no WhatsApp | trocas facilitadas
       </div>
