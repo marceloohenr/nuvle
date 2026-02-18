@@ -12,6 +12,9 @@ create table if not exists public.profiles (
   phone text not null default '',
   cpf text not null default '',
   address text not null default '',
+  address_number text not null default '',
+  address_complement text not null default '',
+  reference_point text not null default '',
   city text not null default '',
   state text not null default '',
   zip_code text not null default '',
@@ -24,6 +27,9 @@ alter table public.profiles
   add column if not exists phone text not null default '',
   add column if not exists cpf text not null default '',
   add column if not exists address text not null default '',
+  add column if not exists address_number text not null default '',
+  add column if not exists address_complement text not null default '',
+  add column if not exists reference_point text not null default '',
   add column if not exists city text not null default '',
   add column if not exists state text not null default '',
   add column if not exists zip_code text not null default '';
@@ -475,6 +481,9 @@ create table if not exists public.orders (
   customer_phone text not null,
   customer_cpf text not null,
   customer_address text not null,
+  customer_address_number text not null default '',
+  customer_address_complement text not null default '',
+  customer_reference_point text not null default '',
   customer_city text not null,
   customer_state text not null,
   customer_zip_code text not null
@@ -491,6 +500,12 @@ create table if not exists public.order_items (
   size text
 );
 
+-- Ensure new columns exist in projects created before this version.
+alter table public.orders
+  add column if not exists customer_address_number text not null default '',
+  add column if not exists customer_address_complement text not null default '',
+  add column if not exists customer_reference_point text not null default '';
+
 create or replace function public.create_order_with_stock(
   p_order_id text,
   p_user_id uuid,
@@ -503,6 +518,9 @@ create or replace function public.create_order_with_stock(
   p_customer_phone text,
   p_customer_cpf text,
   p_customer_address text,
+  p_customer_address_number text,
+  p_customer_address_complement text,
+  p_customer_reference_point text,
   p_customer_city text,
   p_customer_state text,
   p_customer_zip_code text,
@@ -577,6 +595,9 @@ begin
     customer_phone,
     customer_cpf,
     customer_address,
+    customer_address_number,
+    customer_address_complement,
+    customer_reference_point,
     customer_city,
     customer_state,
     customer_zip_code
@@ -593,6 +614,9 @@ begin
     p_customer_phone,
     p_customer_cpf,
     p_customer_address,
+    coalesce(p_customer_address_number, ''),
+    coalesce(p_customer_address_complement, ''),
+    coalesce(p_customer_reference_point, ''),
     p_customer_city,
     p_customer_state,
     p_customer_zip_code
@@ -633,7 +657,7 @@ end;
 $$;
 
 grant execute on function public.create_order_with_stock(
-  text, uuid, timestamptz, text, text, numeric, text, text, text, text, text, text, text, text, jsonb
+  text, uuid, timestamptz, text, text, numeric, text, text, text, text, text, text, text, text, text, text, text, jsonb
 ) to authenticated;
 
 create or replace function public.update_order_delivery_address(
@@ -641,7 +665,10 @@ create or replace function public.update_order_delivery_address(
   p_customer_address text,
   p_customer_city text,
   p_customer_state text,
-  p_customer_zip_code text
+  p_customer_zip_code text,
+  p_customer_address_number text default '',
+  p_customer_address_complement text default '',
+  p_customer_reference_point text default ''
 )
 returns void
 language plpgsql
@@ -692,6 +719,9 @@ begin
   update public.orders
   set
     customer_address = trim(p_customer_address),
+    customer_address_number = trim(coalesce(p_customer_address_number, '')),
+    customer_address_complement = trim(coalesce(p_customer_address_complement, '')),
+    customer_reference_point = trim(coalesce(p_customer_reference_point, '')),
     customer_city = trim(p_customer_city),
     customer_state = upper(trim(p_customer_state)),
     customer_zip_code = trim(p_customer_zip_code)
@@ -699,7 +729,7 @@ begin
 end;
 $$;
 
-grant execute on function public.update_order_delivery_address(text, text, text, text, text)
+grant execute on function public.update_order_delivery_address(text, text, text, text, text, text, text, text)
 to authenticated;
 
 alter table public.orders enable row level security;

@@ -7,6 +7,9 @@ const emptyProfile: CustomerProfile = {
   phone: '',
   cpf: '',
   address: '',
+  addressNumber: '',
+  addressComplement: '',
+  referencePoint: '',
   city: '',
   state: '',
   zipCode: '',
@@ -16,6 +19,9 @@ interface ProfileRow {
   phone: string | null;
   cpf: string | null;
   address: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  reference_point: string | null;
   city: string | null;
   state: string | null;
   zip_code: string | null;
@@ -30,6 +36,9 @@ const normalizeProfile = (profile: Partial<CustomerProfile> | null | undefined):
     phone: String(profile.phone ?? '').trim(),
     cpf: String(profile.cpf ?? '').trim(),
     address: String(profile.address ?? '').trim(),
+    addressNumber: String(profile.addressNumber ?? '').trim(),
+    addressComplement: String(profile.addressComplement ?? '').trim(),
+    referencePoint: String(profile.referencePoint ?? '').trim(),
     city: String(profile.city ?? '').trim(),
     state: String(profile.state ?? '').trim().toUpperCase(),
     zipCode: String(profile.zipCode ?? '').trim(),
@@ -44,6 +53,9 @@ const normalizeProfileRow = (value: unknown): CustomerProfile | null => {
     phone: row.phone ?? '',
     cpf: row.cpf ?? '',
     address: row.address ?? '',
+    addressNumber: row.address_number ?? '',
+    addressComplement: row.address_complement ?? '',
+    referencePoint: row.reference_point ?? '',
     city: row.city ?? '',
     state: row.state ?? '',
     zipCode: row.zip_code ?? '',
@@ -57,6 +69,9 @@ const toFriendlyProfileError = (message: string) => {
     (normalized.includes('phone') ||
       normalized.includes('cpf') ||
       normalized.includes('address') ||
+      normalized.includes('address_number') ||
+      normalized.includes('address_complement') ||
+      normalized.includes('reference_point') ||
       normalized.includes('zip_code'))
   ) {
     return 'Campos de endereco da conta ainda nao existem no banco. Execute o schema.sql atualizado.';
@@ -109,12 +124,23 @@ export const getCustomerProfile = async (userId: string): Promise<CustomerProfil
   if (!userId) return { ...emptyProfile };
 
   if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase
+    let query = await supabase
       .from('profiles')
-      .select('phone, cpf, address, city, state, zip_code')
+      .select(
+        'phone, cpf, address, address_number, address_complement, reference_point, city, state, zip_code'
+      )
       .eq('id', userId)
       .maybeSingle();
 
+    if (query.error && toFriendlyProfileError(query.error.message).includes('schema.sql')) {
+      query = await supabase
+        .from('profiles')
+        .select('phone, cpf, address, city, state, zip_code')
+        .eq('id', userId)
+        .maybeSingle();
+    }
+
+    const { data, error } = query;
     if (!error) {
       const profile = normalizeProfileRow(data);
       if (profile) return profile;
@@ -132,19 +158,42 @@ export const upsertCustomerProfile = async (
   if (!userId) return normalized;
 
   if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase
+    let query = await supabase
       .from('profiles')
       .update({
         phone: normalized.phone,
         cpf: normalized.cpf,
         address: normalized.address,
+        address_number: normalized.addressNumber,
+        address_complement: normalized.addressComplement,
+        reference_point: normalized.referencePoint,
         city: normalized.city,
         state: normalized.state,
         zip_code: normalized.zipCode,
       })
       .eq('id', userId)
-      .select('phone, cpf, address, city, state, zip_code')
+      .select(
+        'phone, cpf, address, address_number, address_complement, reference_point, city, state, zip_code'
+      )
       .maybeSingle();
+
+    if (query.error && toFriendlyProfileError(query.error.message).includes('schema.sql')) {
+      query = await supabase
+        .from('profiles')
+        .update({
+          phone: normalized.phone,
+          cpf: normalized.cpf,
+          address: normalized.address,
+          city: normalized.city,
+          state: normalized.state,
+          zip_code: normalized.zipCode,
+        })
+        .eq('id', userId)
+        .select('phone, cpf, address, city, state, zip_code')
+        .maybeSingle();
+    }
+
+    const { data, error } = query;
 
     if (error) {
       throw new Error(toFriendlyProfileError(error.message));

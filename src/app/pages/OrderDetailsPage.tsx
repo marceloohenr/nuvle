@@ -1,5 +1,5 @@
 import { ArrowLeft, PackageSearch, RotateCcw, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import {
@@ -13,6 +13,16 @@ import {
   updateLocalOrderDeliveryAddress,
 } from '../../features/orders';
 import type { LocalOrder } from '../../features/orders';
+import {
+  BRAZIL_STATE_OPTIONS,
+  fetchCitiesByState,
+  normalizeBrazilStateCode,
+} from '../../shared/lib/brazilLocations';
+import {
+  buildAddressLineFromZipCode,
+  lookupAddressByZipCode,
+  normalizeZipCodeDigits,
+} from '../../shared/lib/zipCode';
 import { isSupabaseConfigured } from '../../shared/lib/supabase';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
@@ -41,10 +51,19 @@ const OrderDetailsPage = () => {
   const [deliveryAddressMessage, setDeliveryAddressMessage] = useState('');
   const [deliveryAddressForm, setDeliveryAddressForm] = useState({
     address: '',
+    addressNumber: '',
+    addressComplement: '',
+    referencePoint: '',
     city: '',
     state: '',
     zipCode: '',
   });
+  const [zipLookupMessage, setZipLookupMessage] = useState('');
+  const [isZipLookupLoading, setIsZipLookupLoading] = useState(false);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [isCityOptionsLoading, setIsCityOptionsLoading] = useState(false);
+  const [cityOptionsMessage, setCityOptionsMessage] = useState('');
+  const lastZipLookupRef = useRef('');
 
   const refreshOrder = useCallback(async () => {
     if (!orderId) {
@@ -62,10 +81,16 @@ const OrderDetailsPage = () => {
     if (!order) return;
     setDeliveryAddressForm({
       address: order.customer.address,
+      addressNumber: order.customer.addressNumber ?? '',
+      addressComplement: order.customer.addressComplement ?? '',
+      referencePoint: order.customer.referencePoint ?? '',
       city: order.customer.city,
       state: order.customer.state,
       zipCode: order.customer.zipCode,
     });
+    setZipLookupMessage('');
+    setIsZipLookupLoading(false);
+    lastZipLookupRef.current = '';
   }, [order]);
 
   const activeIndex = useMemo(() => {
@@ -114,15 +139,97 @@ const OrderDetailsPage = () => {
   const canEditDeliveryAddress = !isAdmin && canEditDeliveryAddressByStatus(order.status);
   const hasDeliveryAddressChanges =
     deliveryAddressForm.address.trim() !== order.customer.address.trim() ||
+    deliveryAddressForm.addressNumber.trim() !== (order.customer.addressNumber ?? '').trim() ||
+    deliveryAddressForm.addressComplement.trim() !==
+      (order.customer.addressComplement ?? '').trim() ||
+    deliveryAddressForm.referencePoint.trim() !==
+      (order.customer.referencePoint ?? '').trim() ||
     deliveryAddressForm.city.trim() !== order.customer.city.trim() ||
     deliveryAddressForm.state.trim().toUpperCase() !== order.customer.state.trim().toUpperCase() ||
     deliveryAddressForm.zipCode.trim() !== order.customer.zipCode.trim();
 
   const isDeliveryAddressValid =
     deliveryAddressForm.address.trim().length >= 6 &&
+    deliveryAddressForm.addressNumber.trim().length >= 1 &&
     deliveryAddressForm.city.trim().length >= 2 &&
     deliveryAddressForm.state.trim().length >= 2 &&
     deliveryAddressForm.zipCode.trim().length >= 8;
+
+  const handleDeliveryZipCodeChange = (value: string) => {
+    const formatted = formatZipCode(value);
+    setDeliveryAddressForm((prev) => ({
+      ...prev,
+      zipCode: formatted,
+    }));
+
+    const normalizedZip = normalizeZipCodeDigits(formatted);
+    if (normalizedZip.length !== 8) {
+      lastZipLookupRef.current = '';
+      setZipLookupMessage('');
+      setIsZipLookupLoading(false);
+      return;
+    }
+
+    if (lastZipLookupRef.current === normalizedZip) return;
+    lastZipLookupRef.current = normalizedZip;
+    setIsZipLookupLoading(true);
+    setZipLookupMessage('Consultando CEP...');
+
+    void (async () => {
+      try {
+        const lookup = await lookupAddressByZipCode(normalizedZip);
+        if (!lookup) {
+          setZipLookupMessage('CEP nao encontrado. Preencha endereco manualmente.');
+          return;
+        }
+
+        const addressFromZip = buildAddressLineFromZipCode(lookup);
+        setDeliveryAddressForm((prev) => ({
+          ...prev,
+          zipCode: formatZipCode(lookup.zipCode || normalizedZip),
+          address: addressFromZip || prev.address,
+          city: lookup.city || prev.city,
+          state: lookup.state || prev.state,
+        }));
+        setZipLookupMessage('Endereco preenchido automaticamente pelo CEP.');
+      } catch {
+        setZipLookupMessage('Nao foi possivel consultar o CEP agora.');
+      } finally {
+        setIsZipLookupLoading(false);
+      }
+    })();
+  };
+
+  useEffect(() => {
+    const stateCode = normalizeBrazilStateCode(deliveryAddressForm.state);
+    if (!stateCode) {
+      setCityOptions([]);
+      setIsCityOptionsLoading(false);
+      setCityOptionsMessage('');
+      return;
+    }
+
+    let active = true;
+    setIsCityOptionsLoading(true);
+    setCityOptionsMessage('');
+
+    void (async () => {
+      const cities = await fetchCitiesByState(stateCode);
+      if (!active) return;
+
+      setCityOptions(cities);
+      setIsCityOptionsLoading(false);
+      if (cities.length === 0) {
+        setCityOptionsMessage(
+          'Nao foi possivel listar cidades agora. Voce pode preencher manualmente.'
+        );
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [deliveryAddressForm.state]);
 
   return (
     <div className="space-y-8">
@@ -235,11 +342,52 @@ const OrderDetailsPage = () => {
             {canEditDeliveryAddress ? (
               <div className="mt-3 grid gap-2">
                 <input
+                  value={deliveryAddressForm.zipCode}
+                  onChange={(event) => {
+                    handleDeliveryZipCodeChange(event.target.value);
+                  }}
+                  placeholder="CEP"
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <input
                   value={deliveryAddressForm.address}
                   onChange={(event) => {
                     setDeliveryAddressForm((prev) => ({ ...prev, address: event.target.value }));
                   }}
                   placeholder="Endereco completo"
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <input
+                  value={deliveryAddressForm.addressNumber}
+                  onChange={(event) => {
+                    setDeliveryAddressForm((prev) => ({
+                      ...prev,
+                      addressNumber: event.target.value,
+                    }));
+                  }}
+                  placeholder="Numero"
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <input
+                  value={deliveryAddressForm.addressComplement}
+                  onChange={(event) => {
+                    setDeliveryAddressForm((prev) => ({
+                      ...prev,
+                      addressComplement: event.target.value,
+                    }));
+                  }}
+                  placeholder="Complemento"
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                />
+                <input
+                  value={deliveryAddressForm.referencePoint}
+                  onChange={(event) => {
+                    setDeliveryAddressForm((prev) => ({
+                      ...prev,
+                      referencePoint: event.target.value,
+                    }));
+                  }}
+                  placeholder="Ponto de referencia"
                   className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                 />
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -248,32 +396,49 @@ const OrderDetailsPage = () => {
                     onChange={(event) => {
                       setDeliveryAddressForm((prev) => ({ ...prev, city: event.target.value }));
                     }}
-                    placeholder="Cidade"
+                    list="order-details-city-options"
+                    placeholder={
+                      deliveryAddressForm.state
+                        ? 'Cidade'
+                        : 'Selecione o estado para listar cidades'
+                    }
                     className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                   />
-                  <input
+                  <select
                     value={deliveryAddressForm.state}
                     onChange={(event) => {
+                      const nextState = normalizeBrazilStateCode(event.target.value);
                       setDeliveryAddressForm((prev) => ({
                         ...prev,
-                        state: event.target.value.slice(0, 2).toUpperCase(),
+                        state: nextState,
+                        city: prev.state === nextState ? prev.city : '',
                       }));
                     }}
-                    placeholder="UF"
                     className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
-                  />
+                  >
+                    <option value="">Estado (UF)</option>
+                    {BRAZIL_STATE_OPTIONS.map((stateOption) => (
+                      <option key={stateOption.code} value={stateOption.code}>
+                        {stateOption.code} - {stateOption.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <input
-                  value={deliveryAddressForm.zipCode}
-                  onChange={(event) => {
-                    setDeliveryAddressForm((prev) => ({
-                      ...prev,
-                      zipCode: formatZipCode(event.target.value),
-                    }));
-                  }}
-                  placeholder="CEP"
-                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
-                />
+                <datalist id="order-details-city-options">
+                  {cityOptions.map((cityOption) => (
+                    <option key={cityOption} value={cityOption} />
+                  ))}
+                </datalist>
+                {(zipLookupMessage || isZipLookupLoading) && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {isZipLookupLoading ? 'Consultando CEP...' : zipLookupMessage}
+                  </p>
+                )}
+                {(isCityOptionsLoading || cityOptionsMessage) && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {isCityOptionsLoading ? 'Carregando cidades...' : cityOptionsMessage}
+                  </p>
+                )}
                 <button
                   type="button"
                   disabled={!hasDeliveryAddressChanges || !isDeliveryAddressValid || isSavingDeliveryAddress}
@@ -307,7 +472,19 @@ const OrderDetailsPage = () => {
               </div>
             ) : (
               <div className="mt-1">
-                <p className="text-sm text-slate-600 dark:text-slate-300">{order.customer.address}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  {order.customer.address}, {order.customer.addressNumber || 's/n'}
+                </p>
+                {order.customer.addressComplement && (
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Complemento: {order.customer.addressComplement}
+                  </p>
+                )}
+                {order.customer.referencePoint && (
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Referencia: {order.customer.referencePoint}
+                  </p>
+                )}
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   {order.customer.city} - {order.customer.state}
                 </p>

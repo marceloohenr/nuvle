@@ -28,6 +28,9 @@ const statusProgression: Record<OrderStatus, OrderStatus> = {
 
 export interface DeliveryAddressUpdatePayload {
   address: string;
+  addressNumber: string;
+  addressComplement: string;
+  referencePoint: string;
   city: string;
   state: string;
   zipCode: string;
@@ -54,11 +57,34 @@ interface OrderRow {
   customer_phone: string;
   customer_cpf: string;
   customer_address: string;
+  customer_address_number: string;
+  customer_address_complement: string;
+  customer_reference_point: string;
   customer_city: string;
   customer_state: string;
   customer_zip_code: string;
   order_items?: OrderItemRow[];
 }
+
+type PostgrestLikeError = {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+};
+
+const isUndefinedColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const payload = error as PostgrestLikeError;
+  const combined = `${payload.message ?? ''} ${payload.details ?? ''}`.toLowerCase();
+  return (
+    payload.code === '42703' ||
+    payload.code === 'PGRST204' ||
+    (combined.includes('column') && combined.includes('does not exist')) ||
+    (combined.includes('schema cache') && combined.includes('column')) ||
+    (combined.includes('could not find') && combined.includes('column'))
+  );
+};
 
 const normalizeOrderItem = (value: unknown): LocalOrderItem | null => {
   if (!value || typeof value !== 'object') return null;
@@ -98,6 +124,9 @@ const normalizeCustomer = (value: unknown): LocalOrderCustomer | null => {
     phone: customer.phone ?? '',
     cpf: customer.cpf ?? '',
     address: customer.address ?? '',
+    addressNumber: customer.addressNumber ?? '',
+    addressComplement: customer.addressComplement ?? '',
+    referencePoint: customer.referencePoint ?? '',
     city: customer.city ?? '',
     state: customer.state ?? '',
     zipCode: customer.zipCode ?? '',
@@ -203,6 +232,9 @@ const normalizeOrderRow = (value: unknown): OrderRow | null => {
     customer_phone: String(row.customer_phone),
     customer_cpf: String(row.customer_cpf),
     customer_address: String(row.customer_address),
+    customer_address_number: String(row.customer_address_number ?? ''),
+    customer_address_complement: String(row.customer_address_complement ?? ''),
+    customer_reference_point: String(row.customer_reference_point ?? ''),
     customer_city: String(row.customer_city),
     customer_state: String(row.customer_state),
     customer_zip_code: String(row.customer_zip_code),
@@ -234,6 +266,9 @@ const mapRowToLocalOrder = (row: OrderRow): LocalOrder => {
       phone: row.customer_phone,
       cpf: row.customer_cpf,
       address: row.customer_address,
+      addressNumber: row.customer_address_number,
+      addressComplement: row.customer_address_complement,
+      referencePoint: row.customer_reference_point,
       city: row.customer_city,
       state: row.customer_state,
       zipCode: row.customer_zip_code,
@@ -245,6 +280,9 @@ const normalizeDeliveryAddressPayload = (
   payload: DeliveryAddressUpdatePayload
 ): DeliveryAddressUpdatePayload => ({
   address: payload.address.trim(),
+  addressNumber: payload.addressNumber.trim(),
+  addressComplement: payload.addressComplement.trim(),
+  referencePoint: payload.referencePoint.trim(),
   city: payload.city.trim(),
   state: payload.state.trim().toUpperCase(),
   zipCode: payload.zipCode.trim(),
@@ -284,13 +322,24 @@ const getOrdersLocal = (): LocalOrder[] => {
 const getOrdersSupabase = async (): Promise<LocalOrder[]> => {
   if (!supabase) return [];
 
-  const { data, error } = await supabase
+  const baseSelection =
+    'id, user_id, created_at, status, payment_method, total, customer_name, customer_email, customer_phone, customer_cpf, customer_address, customer_city, customer_state, customer_zip_code, order_items (product_id, name, image, quantity, price, size)';
+  const extendedSelection =
+    'id, user_id, created_at, status, payment_method, total, customer_name, customer_email, customer_phone, customer_cpf, customer_address, customer_address_number, customer_address_complement, customer_reference_point, customer_city, customer_state, customer_zip_code, order_items (product_id, name, image, quantity, price, size)';
+
+  let query = await supabase
     .from('orders')
-    .select(
-      'id, user_id, created_at, status, payment_method, total, customer_name, customer_email, customer_phone, customer_cpf, customer_address, customer_city, customer_state, customer_zip_code, order_items (product_id, name, image, quantity, price, size)'
-    )
+    .select(extendedSelection)
     .order('created_at', { ascending: false });
 
+  if (query.error && isUndefinedColumnError(query.error)) {
+    query = await supabase
+      .from('orders')
+      .select(baseSelection)
+      .order('created_at', { ascending: false });
+  }
+
+  const { data, error } = query;
   if (error || !Array.isArray(data)) return [];
 
   return data
@@ -314,7 +363,7 @@ export const getLocalOrderById = async (orderId: string): Promise<LocalOrder | n
 
 export const addLocalOrder = async (order: LocalOrder) => {
   if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.rpc('create_order_with_stock', {
+    const rpcPayload = {
       p_order_id: order.id,
       p_user_id: order.userId ?? null,
       p_created_at: order.createdAt,
@@ -326,6 +375,9 @@ export const addLocalOrder = async (order: LocalOrder) => {
       p_customer_phone: order.customer.phone,
       p_customer_cpf: order.customer.cpf,
       p_customer_address: order.customer.address,
+      p_customer_address_number: order.customer.addressNumber ?? '',
+      p_customer_address_complement: order.customer.addressComplement ?? '',
+      p_customer_reference_point: order.customer.referencePoint ?? '',
       p_customer_city: order.customer.city,
       p_customer_state: order.customer.state,
       p_customer_zip_code: order.customer.zipCode,
@@ -337,7 +389,39 @@ export const addLocalOrder = async (order: LocalOrder) => {
         price: item.price,
         size: item.size ?? null,
       })),
-    });
+    };
+
+    let { error } = await supabase.rpc('create_order_with_stock', rpcPayload);
+
+    if (error && error.message.includes('create_order_with_stock')) {
+      const legacyPayload = {
+        p_order_id: order.id,
+        p_user_id: order.userId ?? null,
+        p_created_at: order.createdAt,
+        p_status: order.status,
+        p_payment_method: order.paymentMethod,
+        p_total: order.total,
+        p_customer_name: order.customer.name,
+        p_customer_email: order.customer.email,
+        p_customer_phone: order.customer.phone,
+        p_customer_cpf: order.customer.cpf,
+        p_customer_address: order.customer.address,
+        p_customer_city: order.customer.city,
+        p_customer_state: order.customer.state,
+        p_customer_zip_code: order.customer.zipCode,
+        p_items: order.items.map((item) => ({
+          product_id: item.id,
+          name: item.name,
+          image: item.image,
+          quantity: item.quantity,
+          price: item.price,
+          size: item.size ?? null,
+        })),
+      };
+
+      const legacyResult = await supabase.rpc('create_order_with_stock', legacyPayload);
+      error = legacyResult.error;
+    }
 
     if (error) {
       if (error.message.includes('create_order_with_stock')) {
@@ -393,21 +477,38 @@ export const updateLocalOrderDeliveryAddress = async (
   const normalizedPayload = normalizeDeliveryAddressPayload(payload);
   if (
     !normalizedPayload.address ||
+    !normalizedPayload.addressNumber ||
     !normalizedPayload.city ||
     !normalizedPayload.state ||
     !normalizedPayload.zipCode
   ) {
-    throw new Error('Preencha endereco, cidade, estado e CEP para atualizar a entrega.');
+    throw new Error('Preencha endereco, numero, cidade, estado e CEP para atualizar a entrega.');
   }
 
   if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.rpc('update_order_delivery_address', {
+    const rpcPayload = {
       p_order_id: orderId,
       p_customer_address: normalizedPayload.address,
+      p_customer_address_number: normalizedPayload.addressNumber,
+      p_customer_address_complement: normalizedPayload.addressComplement,
+      p_customer_reference_point: normalizedPayload.referencePoint,
       p_customer_city: normalizedPayload.city,
       p_customer_state: normalizedPayload.state,
       p_customer_zip_code: normalizedPayload.zipCode,
-    });
+    };
+
+    let { error } = await supabase.rpc('update_order_delivery_address', rpcPayload);
+
+    if (error && error.message.includes('update_order_delivery_address')) {
+      const legacyResult = await supabase.rpc('update_order_delivery_address', {
+        p_order_id: orderId,
+        p_customer_address: normalizedPayload.address,
+        p_customer_city: normalizedPayload.city,
+        p_customer_state: normalizedPayload.state,
+        p_customer_zip_code: normalizedPayload.zipCode,
+      });
+      error = legacyResult.error;
+    }
 
     if (error) {
       if (error.message.includes('update_order_delivery_address')) {
@@ -440,6 +541,9 @@ export const updateLocalOrderDeliveryAddress = async (
           customer: {
             ...order.customer,
             address: normalizedPayload.address,
+            addressNumber: normalizedPayload.addressNumber,
+            addressComplement: normalizedPayload.addressComplement,
+            referencePoint: normalizedPayload.referencePoint,
             city: normalizedPayload.city,
             state: normalizedPayload.state,
             zipCode: normalizedPayload.zipCode,

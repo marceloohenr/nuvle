@@ -1,5 +1,5 @@
 import { CreditCard, Heart, LogOut, MapPin, ShieldCheck, UserCircle2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import { getCustomerProfile, upsertCustomerProfile } from '../../features/customerProfile';
@@ -7,6 +7,16 @@ import type { CustomerProfile } from '../../features/customerProfile';
 import { useFavorites } from '../../features/favorites';
 import { getLocalOrders, orderStatusLabel } from '../../features/orders';
 import type { LocalOrder } from '../../features/orders';
+import {
+  BRAZIL_STATE_OPTIONS,
+  fetchCitiesByState,
+  normalizeBrazilStateCode,
+} from '../../shared/lib/brazilLocations';
+import {
+  buildAddressLineFromZipCode,
+  lookupAddressByZipCode,
+  normalizeZipCodeDigits,
+} from '../../shared/lib/zipCode';
 import { useToast } from '../../shared/providers';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
@@ -51,6 +61,9 @@ const initialProfileForm: CustomerProfile = {
   phone: '',
   cpf: '',
   address: '',
+  addressNumber: '',
+  addressComplement: '',
+  referencePoint: '',
   city: '',
   state: '',
   zipCode: '',
@@ -95,6 +108,12 @@ const AccountPage = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
+  const [zipLookupMessage, setZipLookupMessage] = useState('');
+  const [isZipLookupLoading, setIsZipLookupLoading] = useState(false);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [isCityOptionsLoading, setIsCityOptionsLoading] = useState(false);
+  const [cityOptionsMessage, setCityOptionsMessage] = useState('');
+  const lastZipLookupRef = useRef('');
 
   useEffect(() => {
     if (!currentUser || isAdmin) {
@@ -145,6 +164,9 @@ const AccountPage = () => {
           phone: savedProfile.phone || lastOrder?.phone || '',
           cpf: savedProfile.cpf || lastOrder?.cpf || '',
           address: savedProfile.address || lastOrder?.address || '',
+          addressNumber: savedProfile.addressNumber || lastOrder?.addressNumber || '',
+          addressComplement: savedProfile.addressComplement || lastOrder?.addressComplement || '',
+          referencePoint: savedProfile.referencePoint || lastOrder?.referencePoint || '',
           city: savedProfile.city || lastOrder?.city || '',
           state: savedProfile.state || lastOrder?.state || '',
           zipCode: savedProfile.zipCode || lastOrder?.zipCode || '',
@@ -234,10 +256,17 @@ const AccountPage = () => {
   const totalSpent = userOrders.reduce((sum, order) => sum + order.total, 0);
   const lastOrder = userOrders[0] ?? null;
   const addressFromProfile = profileForm.address
-    ? `${profileForm.address}, ${profileForm.city} - ${profileForm.state}`
+    ? [
+        `${profileForm.address}, ${profileForm.addressNumber || 's/n'} - ${profileForm.city} - ${profileForm.state}`,
+        profileForm.addressComplement ? `Compl.: ${profileForm.addressComplement}` : '',
+        profileForm.referencePoint ? `Ref.: ${profileForm.referencePoint}` : '',
+      ]
+        .filter(Boolean)
+        .join(' | ')
     : 'Nenhum endereco principal cadastrado';
   const isProfileFormValid =
     profileForm.address.trim().length >= 6 &&
+    profileForm.addressNumber.trim().length >= 1 &&
     profileForm.city.trim().length >= 2 &&
     profileForm.state.trim().length >= 2 &&
     digitsOnly(profileForm.zipCode).length === 8;
@@ -251,10 +280,87 @@ const AccountPage = () => {
     if (name === 'cpf') nextValue = formatCpf(value);
     if (name === 'phone') nextValue = formatPhone(value);
     if (name === 'zipCode') nextValue = formatZipCode(value);
-    if (name === 'state') nextValue = value.slice(0, 2).toUpperCase();
+    if (name === 'state') {
+      nextValue = normalizeBrazilStateCode(value);
+      setProfileForm((prev) => ({
+        ...prev,
+        state: nextValue,
+        city: prev.state === nextValue ? prev.city : '',
+      }));
+    } else {
+      setProfileForm((prev) => ({ ...prev, [name]: nextValue }));
+    }
 
-    setProfileForm((prev) => ({ ...prev, [name]: nextValue }));
+    if (name === 'zipCode') {
+      const normalizedZip = normalizeZipCodeDigits(nextValue);
+      if (normalizedZip.length !== 8) {
+        lastZipLookupRef.current = '';
+        setZipLookupMessage('');
+        setIsZipLookupLoading(false);
+        return;
+      }
+
+      if (lastZipLookupRef.current === normalizedZip) return;
+      lastZipLookupRef.current = normalizedZip;
+      setIsZipLookupLoading(true);
+      setZipLookupMessage('Consultando CEP...');
+
+      void (async () => {
+        try {
+          const lookup = await lookupAddressByZipCode(normalizedZip);
+          if (!lookup) {
+            setZipLookupMessage('CEP nao encontrado. Preencha endereco manualmente.');
+            return;
+          }
+
+          const addressFromZip = buildAddressLineFromZipCode(lookup);
+          setProfileForm((prev) => ({
+            ...prev,
+            zipCode: formatZipCode(lookup.zipCode || normalizedZip),
+            address: addressFromZip || prev.address,
+            city: lookup.city || prev.city,
+            state: lookup.state || prev.state,
+          }));
+          setZipLookupMessage('Endereco preenchido automaticamente pelo CEP.');
+        } catch {
+          setZipLookupMessage('Nao foi possivel consultar o CEP agora.');
+        } finally {
+          setIsZipLookupLoading(false);
+        }
+      })();
+    }
   };
+
+  useEffect(() => {
+    const stateCode = normalizeBrazilStateCode(profileForm.state);
+    if (!stateCode) {
+      setCityOptions([]);
+      setIsCityOptionsLoading(false);
+      setCityOptionsMessage('');
+      return;
+    }
+
+    let active = true;
+    setIsCityOptionsLoading(true);
+    setCityOptionsMessage('');
+
+    void (async () => {
+      const cities = await fetchCitiesByState(stateCode);
+      if (!active) return;
+
+      setCityOptions(cities);
+      setIsCityOptionsLoading(false);
+      if (cities.length === 0) {
+        setCityOptionsMessage(
+          'Nao foi possivel listar cidades agora. Voce pode preencher manualmente.'
+        );
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [profileForm.state]);
 
   const handleSaveProfile = () => {
     if (!currentUser) return;
@@ -412,6 +518,26 @@ const AccountPage = () => {
             className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <input
+            name="zipCode"
+            value={profileForm.zipCode}
+            onChange={handleProfileInputChange}
+            placeholder="CEP"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+          <select
+            name="state"
+            value={profileForm.state}
+            onChange={handleProfileInputChange}
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          >
+            <option value="">Estado (UF)</option>
+            {BRAZIL_STATE_OPTIONS.map((stateOption) => (
+              <option key={stateOption.code} value={stateOption.code}>
+                {stateOption.code} - {stateOption.name}
+              </option>
+            ))}
+          </select>
+          <input
             name="address"
             value={profileForm.address}
             onChange={handleProfileInputChange}
@@ -419,27 +545,52 @@ const AccountPage = () => {
             className="md:col-span-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <input
+            name="addressNumber"
+            value={profileForm.addressNumber}
+            onChange={handleProfileInputChange}
+            placeholder="Numero"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+          <input
+            name="addressComplement"
+            value={profileForm.addressComplement}
+            onChange={handleProfileInputChange}
+            placeholder="Complemento"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+          <input
+            name="referencePoint"
+            value={profileForm.referencePoint}
+            onChange={handleProfileInputChange}
+            placeholder="Ponto de referencia"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+          />
+          <input
             name="city"
             value={profileForm.city}
             onChange={handleProfileInputChange}
-            placeholder="Cidade"
+            list="account-city-options"
+            placeholder={
+              profileForm.state ? 'Cidade' : 'Selecione o estado para listar cidades'
+            }
             className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
           />
-          <input
-            name="state"
-            value={profileForm.state}
-            onChange={handleProfileInputChange}
-            placeholder="UF"
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
-          />
-          <input
-            name="zipCode"
-            value={profileForm.zipCode}
-            onChange={handleProfileInputChange}
-            placeholder="CEP"
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
-          />
+          <datalist id="account-city-options">
+            {cityOptions.map((cityOption) => (
+              <option key={cityOption} value={cityOption} />
+            ))}
+          </datalist>
         </div>
+        {(zipLookupMessage || isZipLookupLoading) && (
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            {isZipLookupLoading ? 'Consultando CEP...' : zipLookupMessage}
+          </p>
+        )}
+        {(isCityOptionsLoading || cityOptionsMessage) && (
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {isCityOptionsLoading ? 'Carregando cidades...' : cityOptionsMessage}
+          </p>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button

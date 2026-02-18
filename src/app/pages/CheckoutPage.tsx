@@ -1,5 +1,5 @@
 import { CheckCircle2, ChevronLeft, CreditCard, Smartphone } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import { useCart } from '../../features/cart';
@@ -9,6 +9,17 @@ import type { CheckoutForm } from '../../features/cart';
 import { addLocalOrder } from '../../features/orders';
 import type { OrderPaymentMethod, OrderStatus } from '../../features/orders';
 import { validateCoupon, type ValidatedCoupon } from '../../features/coupons';
+import { useStoreSettings } from '../../features/settings';
+import {
+  BRAZIL_STATE_OPTIONS,
+  fetchCitiesByState,
+  normalizeBrazilStateCode,
+} from '../../shared/lib/brazilLocations';
+import {
+  buildAddressLineFromZipCode,
+  lookupAddressByZipCode,
+  normalizeZipCodeDigits,
+} from '../../shared/lib/zipCode';
 import { isSupabaseConfigured } from '../../shared/lib/supabase';
 
 type PaymentMethod = OrderPaymentMethod;
@@ -18,6 +29,15 @@ type CardData = {
   name: string;
   expiry: string;
   cvv: string;
+};
+
+type CompletedOrderSummary = {
+  id: string;
+  paymentMethod: PaymentMethod;
+  total: number;
+  customerName: string;
+  itemCount: number;
+  itemsPreview: string;
 };
 
 const CHECKOUT_DRAFT_KEY = 'nuvle-checkout-draft-v1';
@@ -34,6 +54,9 @@ const initialForm: CheckoutForm = {
   phone: '',
   cpf: '',
   address: '',
+  addressNumber: '',
+  addressComplement: '',
+  referencePoint: '',
   city: '',
   state: '',
   zipCode: '',
@@ -90,10 +113,16 @@ const formatCardExpiry = (value: string) => {
 
 const formatCardCvv = (value: string) => digitsOnly(value).slice(0, 4);
 
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
+
 const CheckoutPage = () => {
   const { state, dispatch } = useCart();
   const { currentUser } = useAuth();
   const { consumeProductStock } = useCatalog();
+  const { settings } = useStoreSettings();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>(1);
   const [formData, setFormData] = useState<CheckoutForm>(initialForm);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
@@ -103,10 +132,19 @@ const CheckoutPage = () => {
   const [stepErrorMessage, setStepErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [completedOrder, setCompletedOrder] = useState<CompletedOrderSummary | null>(null);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<ValidatedCoupon | null>(null);
   const [couponMessage, setCouponMessage] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [pixWhatsAppAttempted, setPixWhatsAppAttempted] = useState(false);
+  const [pixWhatsAppBlocked, setPixWhatsAppBlocked] = useState(false);
+  const [zipLookupMessage, setZipLookupMessage] = useState('');
+  const [isZipLookupLoading, setIsZipLookupLoading] = useState(false);
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [isCityOptionsLoading, setIsCityOptionsLoading] = useState(false);
+  const [cityOptionsMessage, setCityOptionsMessage] = useState('');
+  const lastZipLookupRef = useRef('');
 
   const itemCount = useMemo(
     () => state.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -123,6 +161,7 @@ const CheckoutPage = () => {
       digitsOnly(formData.phone).length >= 10 &&
       digitsOnly(formData.cpf).length === 11 &&
       formData.address.trim().length >= 6 &&
+      formData.addressNumber.trim().length >= 1 &&
       formData.city.trim().length >= 2 &&
       formData.state.trim().length >= 2 &&
       digitsOnly(formData.zipCode).length === 8
@@ -151,6 +190,30 @@ const CheckoutPage = () => {
     () => Math.max(0, Math.round((state.total - couponDiscountAmount) * 100) / 100),
     [couponDiscountAmount, state.total]
   );
+  const whatsappBaseUrl = useMemo(() => {
+    const raw = settings.contact.whatsappUrl.trim() || settings.socialLinks.whatsapp.trim();
+    if (!raw) return '';
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    return `https://${raw}`;
+  }, [settings.contact.whatsappUrl, settings.socialLinks.whatsapp]);
+  const pixWhatsAppMessage = useMemo(() => {
+    if (!completedOrder || completedOrder.paymentMethod !== 'pix') return '';
+    const lines = [
+      'Novo pedido PIX - Nuvle',
+      `Pedido: #${completedOrder.id}`,
+      `Cliente: ${completedOrder.customerName}`,
+      `Total: ${currencyFormatter.format(completedOrder.total)}`,
+      `Itens (${completedOrder.itemCount}): ${completedOrder.itemsPreview}`,
+      'Pagamento selecionado: PIX',
+      'Pode me enviar a chave PIX para finalizar o pagamento?',
+    ];
+    return lines.join('\n');
+  }, [completedOrder]);
+  const pixWhatsAppHref = useMemo(() => {
+    if (!whatsappBaseUrl || !pixWhatsAppMessage) return '';
+    const separator = whatsappBaseUrl.includes('?') ? '&' : '?';
+    return `${whatsappBaseUrl}${separator}text=${encodeURIComponent(pixWhatsAppMessage)}`;
+  }, [pixWhatsAppMessage, whatsappBaseUrl]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -209,6 +272,37 @@ const CheckoutPage = () => {
   }, [acceptedTerms, currentStep, formData, orderId, paymentMethod]);
 
   useEffect(() => {
+    const stateCode = normalizeBrazilStateCode(formData.state);
+    if (!stateCode) {
+      setCityOptions([]);
+      setIsCityOptionsLoading(false);
+      setCityOptionsMessage('');
+      return;
+    }
+
+    let active = true;
+    setIsCityOptionsLoading(true);
+    setCityOptionsMessage('');
+
+    void (async () => {
+      const cities = await fetchCitiesByState(stateCode);
+      if (!active) return;
+
+      setCityOptions(cities);
+      setIsCityOptionsLoading(false);
+      if (cities.length === 0) {
+        setCityOptionsMessage(
+          'Nao foi possivel listar cidades agora. Voce pode preencher manualmente.'
+        );
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [formData.state]);
+
+  useEffect(() => {
     if (!currentUser) return;
 
     setFormData((prev) => ({
@@ -217,6 +311,23 @@ const CheckoutPage = () => {
       email: prev.email || currentUser.email,
     }));
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!orderId || !completedOrder || completedOrder.paymentMethod !== 'pix') return;
+    if (!pixWhatsAppHref || pixWhatsAppAttempted || typeof window === 'undefined') return;
+
+    setPixWhatsAppAttempted(true);
+    const timeoutId = window.setTimeout(() => {
+      const popup = window.open(pixWhatsAppHref, '_blank', 'noopener,noreferrer');
+      if (!popup) {
+        setPixWhatsAppBlocked(true);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [completedOrder, orderId, pixWhatsAppAttempted, pixWhatsAppHref]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -232,6 +343,9 @@ const CheckoutPage = () => {
           phone: prev.phone || customerProfile.phone,
           cpf: prev.cpf || customerProfile.cpf,
           address: prev.address || customerProfile.address,
+          addressNumber: prev.addressNumber || customerProfile.addressNumber,
+          addressComplement: prev.addressComplement || customerProfile.addressComplement,
+          referencePoint: prev.referencePoint || customerProfile.referencePoint,
           city: prev.city || customerProfile.city,
           state: prev.state || customerProfile.state,
           zipCode: prev.zipCode || customerProfile.zipCode,
@@ -263,8 +377,55 @@ const CheckoutPage = () => {
     if (name === 'cpf') nextValue = formatCpf(value);
     if (name === 'phone') nextValue = formatPhone(value);
     if (name === 'zipCode') nextValue = formatZipCode(value);
+    if (name === 'state') {
+      nextValue = normalizeBrazilStateCode(value);
+      setFormData((prev) => ({
+        ...prev,
+        state: nextValue,
+        city: prev.state === nextValue ? prev.city : '',
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: nextValue }));
+    }
 
-    setFormData((prev) => ({ ...prev, [name]: nextValue }));
+    if (name === 'zipCode') {
+      const normalizedZip = normalizeZipCodeDigits(nextValue);
+      if (normalizedZip.length !== 8) {
+        lastZipLookupRef.current = '';
+        setZipLookupMessage('');
+        setIsZipLookupLoading(false);
+        return;
+      }
+
+      if (lastZipLookupRef.current === normalizedZip) return;
+      lastZipLookupRef.current = normalizedZip;
+      setIsZipLookupLoading(true);
+      setZipLookupMessage('Consultando CEP...');
+
+      void (async () => {
+        try {
+          const lookup = await lookupAddressByZipCode(normalizedZip);
+          if (!lookup) {
+            setZipLookupMessage('CEP nao encontrado. Preencha endereco manualmente.');
+            return;
+          }
+
+          const addressFromZip = buildAddressLineFromZipCode(lookup);
+          setFormData((prev) => ({
+            ...prev,
+            zipCode: formatZipCode(lookup.zipCode || normalizedZip),
+            address: addressFromZip || prev.address,
+            city: lookup.city || prev.city,
+            state: lookup.state || prev.state,
+          }));
+          setZipLookupMessage('Endereco preenchido automaticamente pelo CEP.');
+        } catch {
+          setZipLookupMessage('Nao foi possivel consultar o CEP agora.');
+        } finally {
+          setIsZipLookupLoading(false);
+        }
+      })();
+    }
   };
 
   const handleCardInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -401,6 +562,9 @@ const CheckoutPage = () => {
                 phone: customerSnapshot.phone,
                 cpf: customerSnapshot.cpf,
                 address: customerSnapshot.address,
+                addressNumber: customerSnapshot.addressNumber,
+                addressComplement: customerSnapshot.addressComplement,
+                referencePoint: customerSnapshot.referencePoint,
                 city: customerSnapshot.city,
                 state: customerSnapshot.state,
                 zipCode: customerSnapshot.zipCode,
@@ -410,6 +574,21 @@ const CheckoutPage = () => {
             }
           }
 
+          const itemsPreview = orderItemsSnapshot
+            .slice(0, 3)
+            .map((item) => `${item.name} x${item.quantity}${item.size ? ` (${item.size})` : ''}`)
+            .join(', ');
+
+          setCompletedOrder({
+            id: generatedOrder,
+            paymentMethod,
+            total: orderTotal,
+            customerName: customerSnapshot.name,
+            itemCount: orderItemsSnapshot.reduce((sum, item) => sum + item.quantity, 0),
+            itemsPreview: itemsPreview || 'Sem itens',
+          });
+          setPixWhatsAppAttempted(false);
+          setPixWhatsAppBlocked(false);
           setOrderId(generatedOrder);
           dispatch({ type: 'CLEAR_CART' });
           if (typeof window !== 'undefined') {
@@ -446,6 +625,32 @@ const CheckoutPage = () => {
             ? 'Pedido vinculado a sua conta para acompanhamento.'
             : 'Fluxo de checkout pronto para integrar pagamento real e backend.'}
         </p>
+        {completedOrder?.paymentMethod === 'pix' && (
+          <div className="mt-4 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 p-4 text-left max-w-2xl mx-auto">
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+              Pedido PIX: envio no WhatsApp
+            </p>
+            <p className="mt-1 text-xs text-emerald-700/90 dark:text-emerald-300/90">
+              Tentamos abrir o WhatsApp automaticamente com a mensagem do pedido para o contato
+              PIX cadastrado.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href={pixWhatsAppHref || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-sm font-semibold transition-colors"
+              >
+                Enviar mensagem no WhatsApp
+              </a>
+              {pixWhatsAppBlocked && (
+                <p className="text-xs text-amber-700 dark:text-amber-300 self-center">
+                  O navegador bloqueou a abertura automatica. Toque no botao para enviar.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
             to={`/pedidos/${orderId}`}
@@ -565,18 +770,10 @@ const CheckoutPage = () => {
                 <div className="mt-3 grid gap-4 md:grid-cols-2">
                   <input
                     required
-                    name="address"
-                    value={formData.address}
+                    name="zipCode"
+                    value={formData.zipCode}
                     onChange={handleInputChange}
-                    placeholder="Endereco completo"
-                    className={`md:col-span-2 ${inputClass}`}
-                  />
-                  <input
-                    required
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    placeholder="Cidade"
+                    placeholder="CEP"
                     className={inputClass}
                   />
                   <select
@@ -586,22 +783,70 @@ const CheckoutPage = () => {
                     onChange={handleInputChange}
                     className={inputClass}
                   >
-                    <option value="">Estado</option>
-                    <option value="PE">Pernambuco</option>
-                    <option value="SP">Sao Paulo</option>
-                    <option value="RJ">Rio de Janeiro</option>
-                    <option value="MG">Minas Gerais</option>
-                    <option value="BA">Bahia</option>
+                    <option value="">Estado (UF)</option>
+                    {BRAZIL_STATE_OPTIONS.map((stateOption) => (
+                      <option key={stateOption.code} value={stateOption.code}>
+                        {stateOption.code} - {stateOption.name}
+                      </option>
+                    ))}
                   </select>
                   <input
                     required
-                    name="zipCode"
-                    value={formData.zipCode}
+                    name="address"
+                    value={formData.address}
                     onChange={handleInputChange}
-                    placeholder="CEP"
+                    placeholder="Endereco completo"
+                    className={`md:col-span-2 ${inputClass}`}
+                  />
+                  <input
+                    required
+                    name="addressNumber"
+                    value={formData.addressNumber}
+                    onChange={handleInputChange}
+                    placeholder="Numero"
                     className={inputClass}
                   />
+                  <input
+                    name="addressComplement"
+                    value={formData.addressComplement}
+                    onChange={handleInputChange}
+                    placeholder="Complemento"
+                    className={inputClass}
+                  />
+                  <input
+                    name="referencePoint"
+                    value={formData.referencePoint}
+                    onChange={handleInputChange}
+                    placeholder="Ponto de referencia"
+                    className={inputClass}
+                  />
+                  <input
+                    required
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    list="checkout-city-options"
+                    placeholder={
+                      formData.state ? 'Cidade' : 'Selecione o estado para listar cidades'
+                    }
+                    className={inputClass}
+                  />
+                  <datalist id="checkout-city-options">
+                    {cityOptions.map((cityOption) => (
+                      <option key={cityOption} value={cityOption} />
+                    ))}
+                  </datalist>
                 </div>
+                {(zipLookupMessage || isZipLookupLoading) && (
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    {isZipLookupLoading ? 'Consultando CEP...' : zipLookupMessage}
+                  </p>
+                )}
+                {(isCityOptionsLoading || cityOptionsMessage) && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {isCityOptionsLoading ? 'Carregando cidades...' : cityOptionsMessage}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -707,8 +952,20 @@ const CheckoutPage = () => {
                   {formData.name} - {formData.email}
                 </p>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
-                  {formData.address}, {formData.city} - {formData.state}
+                  {formData.address}, {formData.addressNumber || 's/n'} - {formData.city} -{' '}
+                  {formData.state}
                 </p>
+                {(formData.addressComplement || formData.referencePoint) && (
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    {formData.addressComplement
+                      ? `Complemento: ${formData.addressComplement}`
+                      : ''}
+                    {formData.addressComplement && formData.referencePoint ? ' | ' : ''}
+                    {formData.referencePoint
+                      ? `Referencia: ${formData.referencePoint}`
+                      : ''}
+                  </p>
+                )}
               </div>
 
               <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
