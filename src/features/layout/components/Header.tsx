@@ -258,6 +258,8 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               onClick={() => setIsMenuOpen((prev) => !prev)}
               className="md:hidden p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
               aria-label="Alternar menu"
+              aria-controls="mobile-nav-menu"
+              aria-expanded={isMenuOpen}
             >
               {isMenuOpen ? <X size={19} /> : <Menu size={19} />}
             </button>
@@ -266,7 +268,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden fixed inset-x-0 top-[106px] sm:top-[118px] bottom-0 z-40">
+        <div className="md:hidden absolute inset-x-0 top-full z-40 h-[calc(100dvh-106px)] sm:h-[calc(100dvh-118px)]">
           <button
             type="button"
             onClick={() => setIsMenuOpen(false)}
@@ -274,6 +276,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
             aria-label="Fechar menu"
           />
           <aside
+            id="mobile-nav-menu"
             className="relative ml-auto h-full w-[88%] max-w-sm border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-black/95 shadow-2xl overflow-y-auto"
             aria-label="Menu mobile"
           >
