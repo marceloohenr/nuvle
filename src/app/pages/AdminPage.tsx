@@ -15,7 +15,7 @@ import {
   UserCircle2,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import { useCatalog } from '../../features/catalog';
@@ -113,6 +113,13 @@ const roundCurrency = (value: number) => Math.round(value * 100) / 100;
 
 const parseNumericInput = (value: string) => Number(value.replace(',', '.'));
 
+const normalizeSizeToken = (value: string) => {
+  const normalized = value.trim().toUpperCase();
+  return normalized.length > 0 ? normalized : 'UN';
+};
+
+const defaultBulkGuideSizes = ['P', 'M', 'G', 'GG'];
+
 const clampDiscountPercentage = (value: number) => Math.min(95, Math.max(0, value));
 
 const resolveFinalPriceFromDiscount = (basePrice: number, discountPercentage: number) => {
@@ -201,6 +208,12 @@ const AdminPage = () => {
   const [editingProductSizeGuide, setEditingProductSizeGuide] = useState<
     Record<string, { widthCm: string; lengthCm: string; sleeveCm: string }>
   >({});
+  const [bulkGuideCategoryId, setBulkGuideCategoryId] = useState('');
+  const [bulkGuideDraft, setBulkGuideDraft] = useState<
+    Record<string, { widthCm: string; lengthCm: string; sleeveCm: string }>
+  >({});
+  const [bulkGuideMessage, setBulkGuideMessage] = useState('');
+  const [isBulkGuideApplying, setIsBulkGuideApplying] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '',
     imageUrls: '',
@@ -345,6 +358,75 @@ const AdminPage = () => {
     });
   }, [categories]);
 
+  const createBulkGuideDraftByCategory = useCallback((categoryId: string) => {
+    const categoryProducts = products.filter((product) => product.category === categoryId);
+    const sizeSet = new Set<string>();
+
+    categoryProducts.forEach((product) => {
+      const fromSizes = product.sizes?.length
+        ? product.sizes.map((size) => normalizeSizeToken(size))
+        : [];
+      const fromGuide = product.sizeGuide?.length
+        ? product.sizeGuide.map((row) => normalizeSizeToken(row.size))
+        : [];
+
+      [...fromSizes, ...fromGuide].forEach((size) => sizeSet.add(size));
+    });
+
+    if (sizeSet.size === 0) {
+      defaultBulkGuideSizes.forEach((size) => sizeSet.add(size));
+    }
+
+    const sizes = Array.from(sizeSet);
+
+    const draft = sizes.reduce<
+      Record<string, { widthCm: string; lengthCm: string; sleeveCm: string }>
+    >((accumulator, size) => {
+      const guideRow = categoryProducts
+        .map((product) =>
+          product.sizeGuide?.find(
+            (row) => normalizeSizeToken(row.size) === normalizeSizeToken(size)
+          )
+        )
+        .find((row) => Boolean(row));
+
+      accumulator[size] = {
+        widthCm: String(guideRow?.widthCm ?? ''),
+        lengthCm: String(guideRow?.lengthCm ?? ''),
+        sleeveCm: String(guideRow?.sleeveCm ?? ''),
+      };
+
+      return accumulator;
+    }, {});
+
+    return draft;
+  }, [products]);
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      setBulkGuideCategoryId('');
+      setBulkGuideDraft({});
+      return;
+    }
+
+    setBulkGuideCategoryId((previous) => {
+      if (previous && categories.some((category) => category.id === previous)) {
+        return previous;
+      }
+      return categories[0].id;
+    });
+  }, [categories]);
+
+  useEffect(() => {
+    if (!bulkGuideCategoryId) {
+      setBulkGuideDraft({});
+      return;
+    }
+
+    setBulkGuideDraft(createBulkGuideDraftByCategory(bulkGuideCategoryId));
+    setBulkGuideMessage('');
+  }, [bulkGuideCategoryId, createBulkGuideDraftByCategory]);
+
   const filteredProducts = useMemo(() => {
     const query = productSearch.trim().toLowerCase();
     let next = products;
@@ -406,6 +488,13 @@ const AdminPage = () => {
       count: products.filter((product) => product.category === category.id).length,
     }));
   }, [categories, products]);
+
+  const bulkGuideSizes = useMemo(() => Object.keys(bulkGuideDraft), [bulkGuideDraft]);
+  const bulkGuideCategoryProductCount = useMemo(() => {
+    return (
+      categoriesWithCount.find((category) => category.id === bulkGuideCategoryId)?.count ?? 0
+    );
+  }, [bulkGuideCategoryId, categoriesWithCount]);
 
   const adminUsers = useMemo(() => {
     return users
@@ -866,6 +955,109 @@ const AdminPage = () => {
         [field]: value,
       },
     }));
+  };
+
+  const handleBulkGuideDraftChange = (
+    size: string,
+    field: 'widthCm' | 'lengthCm' | 'sleeveCm',
+    value: string
+  ) => {
+    setBulkGuideDraft((previous) => ({
+      ...previous,
+      [size]: {
+        widthCm: previous[size]?.widthCm ?? '',
+        lengthCm: previous[size]?.lengthCm ?? '',
+        sleeveCm: previous[size]?.sleeveCm ?? '',
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleApplyBulkGuideToCategory = async () => {
+    const categoryId = bulkGuideCategoryId.trim();
+    if (!categoryId) {
+      setBulkGuideMessage('Selecione uma categoria para aplicar as medidas.');
+      return;
+    }
+
+    const categoryProducts = products.filter((product) => product.category === categoryId);
+    if (categoryProducts.length === 0) {
+      setBulkGuideMessage('Nao ha produtos nesta categoria.');
+      return;
+    }
+
+    const toGuideNumber = (value: string | number | undefined) => {
+      if (typeof value === 'number') {
+        return Number.isFinite(value) && value >= 0 ? value : 0;
+      }
+
+      const parsed = parseNumericInput(value ?? '0');
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    };
+
+    setIsBulkGuideApplying(true);
+    setBulkGuideMessage('');
+
+    let updatedCount = 0;
+    const failedProducts: string[] = [];
+
+    for (const product of categoryProducts) {
+      const productSizes = product.sizes?.length
+        ? product.sizes.map((size) => normalizeSizeToken(size))
+        : bulkGuideSizes.length > 0
+        ? bulkGuideSizes.map((size) => normalizeSizeToken(size))
+        : ['UN'];
+
+      const existingGuideBySize = new Map(
+        (product.sizeGuide ?? []).map((row) => [normalizeSizeToken(row.size), row])
+      );
+
+      const nextGuide = productSizes.map((size) => {
+        const normalizedSize = normalizeSizeToken(size);
+        const template = bulkGuideDraft[normalizedSize];
+        const existing = existingGuideBySize.get(normalizedSize);
+
+        return {
+          size: normalizedSize,
+          widthCm: toGuideNumber(template?.widthCm ?? existing?.widthCm),
+          lengthCm: toGuideNumber(template?.lengthCm ?? existing?.lengthCm),
+          sleeveCm: toGuideNumber(template?.sleeveCm ?? existing?.sleeveCm),
+        };
+      });
+
+      const updated = await updateProduct(product.id, { sizeGuide: nextGuide });
+      if (updated) {
+        updatedCount += 1;
+      } else {
+        failedProducts.push(product.name);
+      }
+    }
+
+    if (updatedCount > 0) {
+      const label = getCategoryLabel(categoryId);
+      await registerAdminLog(
+        'product',
+        'bulk_update_size_guide',
+        `Guia de medidas atualizado em lote para categoria: ${label}`,
+        { categoryId, updatedCount, failedCount: failedProducts.length }
+      );
+    }
+
+    if (failedProducts.length === 0) {
+      setBulkGuideMessage(
+        `Medidas aplicadas com sucesso em ${updatedCount} produto(s) da categoria.`
+      );
+    } else if (updatedCount === 0) {
+      setBulkGuideMessage(
+        'Nao foi possivel aplicar as medidas nesta categoria. Tente novamente.'
+      );
+    } else {
+      setBulkGuideMessage(
+        `Atualizado em ${updatedCount} produto(s). Falha em ${failedProducts.length}.`
+      );
+    }
+
+    setIsBulkGuideApplying(false);
   };
 
   const handleSaveProductEdit = async (
@@ -2150,6 +2342,105 @@ const AdminPage = () => {
               {categoryMessage && (
                 <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{categoryMessage}</p>
               )}
+            </div>
+
+            <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                Medidas por categoria
+              </h2>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                Altere uma vez e aplique em todos os produtos da categoria.
+              </p>
+
+              <div className="mt-3 space-y-3">
+                <select
+                  value={bulkGuideCategoryId}
+                  onChange={(event) => setBulkGuideCategoryId(event.target.value)}
+                  disabled={categories.length === 0}
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400"
+                >
+                  {categories.length === 0 ? (
+                    <option value="">Cadastre uma categoria primeiro</option>
+                  ) : (
+                    categories.map((category) => (
+                      <option key={`bulk-guide-${category.id}`} value={category.id}>
+                        {category.label}
+                      </option>
+                    ))
+                  )}
+                </select>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {bulkGuideCategoryProductCount} produto(s) nesta categoria.
+                </p>
+
+                {bulkGuideSizes.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-4 text-xs text-slate-500 dark:text-slate-400">
+                    Nenhum tamanho encontrado para esta categoria.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {bulkGuideSizes.map((size) => (
+                      <div
+                        key={`bulk-guide-row-${size}`}
+                        className="grid gap-2 grid-cols-4 items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-2"
+                      >
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                          {size}
+                        </p>
+                        <input
+                          value={bulkGuideDraft[size]?.widthCm ?? ''}
+                          onChange={(event) =>
+                            handleBulkGuideDraftChange(size, 'widthCm', event.target.value)
+                          }
+                          placeholder="Largura"
+                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                        />
+                        <input
+                          value={bulkGuideDraft[size]?.lengthCm ?? ''}
+                          onChange={(event) =>
+                            handleBulkGuideDraftChange(size, 'lengthCm', event.target.value)
+                          }
+                          placeholder="Comprimento"
+                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                        />
+                        <input
+                          value={bulkGuideDraft[size]?.sleeveCm ?? ''}
+                          onChange={(event) =>
+                            handleBulkGuideDraftChange(size, 'sleeveCm', event.target.value)
+                          }
+                          placeholder="Manga"
+                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  disabled={
+                    isBulkGuideApplying ||
+                    !bulkGuideCategoryId ||
+                    bulkGuideCategoryProductCount === 0 ||
+                    bulkGuideSizes.length === 0
+                  }
+                  onClick={() => {
+                    void handleApplyBulkGuideToCategory();
+                  }}
+                  className="w-full inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:text-slate-700 text-white px-4 py-2.5 text-sm font-semibold transition-colors"
+                >
+                  {isBulkGuideApplying
+                    ? 'Aplicando medidas...'
+                    : 'Aplicar medidas em toda categoria'}
+                </button>
+
+                {bulkGuideMessage && (
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    {bulkGuideMessage}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
