@@ -62,33 +62,33 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
 
         <div className="relative z-10 mx-auto max-w-[1440px] grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end px-4 py-10 sm:px-6 sm:py-14 lg:px-10 lg:py-16 min-h-[72vh] sm:min-h-[78vh] lg:min-h-[86vh]">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full bg-black text-white dark:bg-white dark:text-black px-4 py-1 text-xs tracking-[0.18em] font-semibold uppercase mb-5">
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/95 text-black px-4 py-1 text-xs tracking-[0.18em] font-semibold uppercase mb-5">
               <BadgePercent size={16} />
               Drop com preco promocional
             </p>
-            <p className="mt-1 text-sm sm:text-base md:text-lg text-slate-900 dark:text-slate-100 max-w-xl">
+            <p className="mt-1 text-sm sm:text-base md:text-lg text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] max-w-xl">
               A Nuvle mistura shape moderno, caimento premium e compra simples.
               Escolha seu tamanho, feche seu carrinho e acompanhe tudo pela conta.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 to="/produtos"
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-black hover:bg-slate-900 text-white font-semibold px-5 py-3 rounded-md transition-colors dark:bg-white dark:text-black dark:hover:bg-slate-200"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-white text-black border border-white hover:bg-slate-200 font-semibold px-5 py-3 rounded-md transition-colors dark:bg-white dark:text-black dark:hover:bg-slate-200"
               >
                 Ver catalogo
                 <ArrowRight size={16} />
               </Link>
               <Link
                 to="/pedidos"
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 border border-slate-400 text-slate-900 dark:border-slate-500 dark:text-slate-100 font-semibold px-5 py-3 rounded-md hover:bg-white/90 dark:hover:bg-slate-900/80 transition-colors"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 border border-white/85 text-white font-semibold px-5 py-3 rounded-md hover:bg-white hover:text-black transition-colors"
               >
                 Acompanhar pedidos
               </Link>
             </div>
-            <ul className="mt-8 grid gap-2 text-sm text-slate-800 dark:text-slate-200">
+            <ul className="mt-8 grid gap-2 text-sm text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]">
               {benefits.map((item) => (
                 <li key={item} className="flex items-start gap-2">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-black dark:bg-white" />
+                  <span className="mt-1 h-2 w-2 rounded-full bg-white" />
                   {item}
                 </li>
               ))}
