@@ -12,7 +12,7 @@ const benefits = [
   'PIX, credito e debito',
   'Troca e suporte com atendimento humano',
 ];
-const campaignImage = 'https://i.postimg.cc/7Yvy555R/VENHA_CONFERIR.png';
+const campaignImage = 'https://i.postimg.cc/0jnfGsYP/arte-new.png';
 
 const HomePage = ({ onProductClick }: HomePageProps) => {
   const { products, categories, getCategoryLabel } = useCatalog();
