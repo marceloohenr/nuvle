@@ -213,9 +213,9 @@ const AccountPage = () => {
 
   if (isAdmin) {
     return (
-      <section className="max-w-4xl mx-auto rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 md:p-10 space-y-6">
+      <section className="max-w-4xl mx-auto rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-8 md:p-10 space-y-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
             Conta administrativa
           </p>
           <h1 className="mt-2 text-4xl font-black text-slate-900 dark:text-white">
@@ -229,7 +229,7 @@ const AccountPage = () => {
         <div className="flex flex-wrap gap-3">
           <Link
             to="/admin"
-            className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+            className="inline-flex items-center justify-center bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 px-5 py-3 rounded-xl font-semibold transition-colors"
           >
             Abrir painel admin
           </Link>
@@ -392,8 +392,8 @@ const AccountPage = () => {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 md:p-10">
-        <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">
+      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-8 md:p-10">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-400">
           Minha conta
         </p>
         <h1 className="text-4xl font-black text-slate-900 dark:text-white mt-2">
@@ -406,7 +406,7 @@ const AccountPage = () => {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             to="/pedidos"
-            className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+            className="inline-flex items-center justify-center bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 px-5 py-3 rounded-xl font-semibold transition-colors"
           >
             Ver meus pedidos
           </Link>
@@ -423,7 +423,7 @@ const AccountPage = () => {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
           <p className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
             E-mail
           </p>
@@ -431,13 +431,13 @@ const AccountPage = () => {
             {currentUser.email}
           </p>
         </article>
-        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
           <p className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
             Pedidos
           </p>
           <p className="mt-2 text-2xl font-black text-slate-900 dark:text-white">{userOrders.length}</p>
         </article>
-        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
           <p className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
             Total gasto
           </p>
@@ -445,7 +445,7 @@ const AccountPage = () => {
             {currencyFormatter.format(totalSpent)}
           </p>
         </article>
-        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
           <p className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
             Ultimo status
           </p>
@@ -459,9 +459,9 @@ const AccountPage = () => {
         {accountBlocks.map(({ title, description, icon: Icon }) => (
           <article
             key={title}
-            className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6"
+            className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6"
           >
-            <Icon className="text-blue-600 dark:text-blue-400" size={24} />
+            <Icon className="text-slate-600 dark:text-slate-400" size={24} />
             <h2 className="mt-4 text-xl font-semibold text-slate-900 dark:text-white">{title}</h2>
             <p className="mt-2 text-slate-600 dark:text-slate-300 text-sm">{description}</p>
 
@@ -494,7 +494,7 @@ const AccountPage = () => {
         ))}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6 md:p-8">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
           Endereco principal
         </h2>
@@ -508,27 +508,27 @@ const AccountPage = () => {
             value={profileForm.phone}
             onChange={handleProfileInputChange}
             placeholder="Telefone"
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <input
             name="cpf"
             value={profileForm.cpf}
             onChange={handleProfileInputChange}
             placeholder="CPF"
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <input
             name="zipCode"
             value={profileForm.zipCode}
             onChange={handleProfileInputChange}
             placeholder="CEP"
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <select
             name="state"
             value={profileForm.state}
             onChange={handleProfileInputChange}
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
           >
             <option value="">Estado (UF)</option>
             {BRAZIL_STATE_OPTIONS.map((stateOption) => (
@@ -542,28 +542,28 @@ const AccountPage = () => {
             value={profileForm.address}
             onChange={handleProfileInputChange}
             placeholder="Endereco completo"
-            className="md:col-span-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+            className="md:col-span-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <input
             name="addressNumber"
             value={profileForm.addressNumber}
             onChange={handleProfileInputChange}
             placeholder="Numero"
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <input
             name="addressComplement"
             value={profileForm.addressComplement}
             onChange={handleProfileInputChange}
             placeholder="Complemento"
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <input
             name="referencePoint"
             value={profileForm.referencePoint}
             onChange={handleProfileInputChange}
             placeholder="Ponto de referencia"
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <input
             name="city"
@@ -573,7 +573,7 @@ const AccountPage = () => {
             placeholder={
               profileForm.state ? 'Cidade' : 'Selecione o estado para listar cidades'
             }
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
           />
           <datalist id="account-city-options">
             {cityOptions.map((cityOption) => (
@@ -597,7 +597,7 @@ const AccountPage = () => {
             type="button"
             onClick={handleSaveProfile}
             disabled={isSavingProfile}
-            className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+            className="inline-flex items-center justify-center bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 dark:disabled:bg-slate-600 dark:disabled:text-slate-300 px-5 py-3 rounded-xl font-semibold transition-colors"
           >
             {isSavingProfile ? 'Salvando...' : 'Salvar endereco principal'}
           </button>
@@ -611,7 +611,7 @@ const AccountPage = () => {
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6 md:p-8">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Pedidos recentes</h2>
 
         {userOrders.length === 0 ? (
@@ -633,7 +633,7 @@ const AccountPage = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
                       {currencyFormatter.format(order.total)}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -649,19 +649,19 @@ const AccountPage = () => {
 
       <section
         id="favoritos"
-        className="scroll-mt-32 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8"
+        className="scroll-mt-32 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6 md:p-8"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white inline-flex items-center gap-2">
-              <Heart size={18} className="text-blue-600 dark:text-blue-400" />
+              <Heart size={18} className="text-slate-600 dark:text-slate-400" />
               Meus favoritos
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               Produtos que voce marcou com coracao no catalogo.
             </p>
           </div>
-          <span className="rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-3 py-1 text-xs font-semibold">
+          <span className="rounded-full bg-slate-100 dark:bg-black/40 text-slate-700 dark:text-slate-300 px-3 py-1 text-xs font-semibold">
             {favorites.length} item(ns)
           </span>
         </div>

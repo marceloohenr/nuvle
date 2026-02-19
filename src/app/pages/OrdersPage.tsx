@@ -139,7 +139,7 @@ const OrdersPage = () => {
 
   if (!isAuthenticated) {
     return (
-      <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-10 text-center">
+      <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-black p-10 text-center">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
           Faca login para acompanhar seus pedidos
         </h1>
@@ -148,7 +148,7 @@ const OrdersPage = () => {
         </p>
         <Link
           to="/login?redirect=/pedidos"
-          className="mt-5 inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+          className="mt-5 inline-flex items-center justify-center bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 px-5 py-3 rounded-xl font-semibold transition-colors"
         >
           Ir para login
         </Link>
@@ -158,10 +158,10 @@ const OrdersPage = () => {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 md:p-10">
+      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-8 md:p-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-400">
               {isAdmin ? 'Painel administrativo' : 'Meus pedidos'}
             </p>
             <h1 className="text-4xl font-black text-slate-900 dark:text-white mt-2">
@@ -195,9 +195,9 @@ const OrdersPage = () => {
       )}
 
       {!hasOrders && (
-        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center">
+        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-8 text-center">
           <div className="mx-auto h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-            <PackageSearch className="text-blue-600 dark:text-blue-400" size={30} />
+            <PackageSearch className="text-slate-600 dark:text-slate-400" size={30} />
           </div>
           <h2 className="mt-5 text-2xl font-semibold text-slate-900 dark:text-white">
             Nenhum pedido encontrado
@@ -208,7 +208,7 @@ const OrdersPage = () => {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               to="/produtos"
-              className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+              className="inline-flex items-center justify-center bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 px-5 py-3 rounded-xl font-semibold transition-colors"
             >
               Ver produtos
             </Link>
@@ -224,18 +224,18 @@ const OrdersPage = () => {
 
       {hasOrders && (
         <>
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 md:p-5">
+          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-4 md:p-5">
             <div className="grid gap-3 md:grid-cols-[1fr_260px]">
               <input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar por numero, nome ou cidade"
-                className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+                className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
               />
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as 'all' | OrderStatus)}
-                className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-slate-800 dark:text-slate-100"
+                className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-slate-800 dark:text-slate-100"
               >
                 {statusFilterOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -247,7 +247,7 @@ const OrdersPage = () => {
           </section>
 
           {!hasResults && (
-            <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 text-center">
+            <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-black p-8 text-center">
               <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
                 Nenhum resultado com esses filtros
               </h2>
@@ -256,7 +256,7 @@ const OrdersPage = () => {
                   setSearchTerm('');
                   setStatusFilter('all');
                 }}
-                className="mt-4 inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+                className="mt-4 inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 font-semibold hover:underline"
               >
                 <RotateCcw size={14} />
                 Limpar filtros
@@ -275,7 +275,7 @@ const OrdersPage = () => {
                 return (
                   <article
                     key={order.id}
-                    className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6"
+                    className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6"
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                       <div>
@@ -291,7 +291,7 @@ const OrdersPage = () => {
                         <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1 text-xs font-semibold">
                           {orderPaymentLabel[order.paymentMethod]}
                         </span>
-                        <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 px-3 py-1 text-xs font-semibold">
+                        <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-black/50 text-slate-700 dark:text-slate-300 px-3 py-1 text-xs font-semibold">
                           {orderStatusLabel[order.status]}
                         </span>
                       </div>
@@ -308,7 +308,7 @@ const OrdersPage = () => {
                             key={step.key}
                             className={`rounded-xl border p-3 flex items-center gap-2 ${
                               isDone
-                                ? 'border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30'
+                                ? 'border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-black/30'
                                 : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800'
                             }`}
                           >
@@ -316,14 +316,14 @@ const OrdersPage = () => {
                               size={16}
                               className={
                                 isDone
-                                  ? 'text-blue-600 dark:text-blue-400'
+                                  ? 'text-slate-600 dark:text-slate-400'
                                   : 'text-slate-400 dark:text-slate-500'
                               }
                             />
                             <span
                               className={`text-xs font-medium ${
                                 isCurrent
-                                  ? 'text-blue-700 dark:text-blue-300'
+                                  ? 'text-slate-700 dark:text-slate-300'
                                   : 'text-slate-600 dark:text-slate-300'
                               }`}
                             >
@@ -391,7 +391,7 @@ const OrdersPage = () => {
                     <div className="mt-5 flex flex-wrap gap-2">
                       <Link
                         to={`/pedidos/${order.id}`}
-                        className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                        className="inline-flex items-center justify-center bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
                       >
                         Ver detalhes
                       </Link>
@@ -400,7 +400,7 @@ const OrdersPage = () => {
                           onClick={() => {
                             void handleAdvanceStatus(order.id);
                           }}
-                          className="inline-flex items-center justify-center border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+                          className="inline-flex items-center justify-center border border-slate-200 dark:border-slate-900 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-950/40 transition-colors"
                         >
                           Avancar status
                         </button>
@@ -424,7 +424,7 @@ const OrdersPage = () => {
         </>
       )}
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6 md:p-8">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
           Etapas de rastreio da loja
         </h2>
@@ -434,8 +434,8 @@ const OrdersPage = () => {
               key={key}
               className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 flex items-center gap-3"
             >
-              <div className="h-10 w-10 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
-                <Icon size={18} className="text-blue-600 dark:text-blue-400" />
+              <div className="h-10 w-10 rounded-lg bg-white dark:bg-black border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                <Icon size={18} className="text-slate-600 dark:text-slate-400" />
               </div>
               <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
             </div>

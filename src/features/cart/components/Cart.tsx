@@ -25,7 +25,7 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
 
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-900 shadow-xl">
+      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-black shadow-xl">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -41,11 +41,11 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
-            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900 rounded-lg border border-yellow-200 dark:border-yellow-700">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+            <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">
                 Atencao: verifique estoque antes de comprar
               </p>
-              <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
                 Frete negociavel no WhatsApp
               </p>
             </div>
@@ -76,7 +76,7 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose }) => {
                           Tamanho: {item.size}
                         </p>
                       )}
-                      <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                      <p className="text-sm font-bold text-slate-600 dark:text-slate-400">
                         R$ {item.price.toFixed(2)}
                       </p>
                     </div>
@@ -104,7 +104,7 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose }) => {
 
                       <button
                         onClick={() => removeItem(`${item.id}-${item.size}`)}
-                        className="p-1 text-red-500 hover:text-red-700 ml-2"
+                        className="p-1 text-red-600 dark:text-red-400 hover:text-red-700 ml-2"
                         aria-label="Remover item"
                       >
                         <Trash2 size={14} />
@@ -131,7 +131,7 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose }) => {
               <Link
                 to="/checkout"
                 onClick={onClose}
-                className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors"
+                className="block w-full text-center bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 font-medium py-3 px-4 rounded-md transition-colors"
               >
                 Finalizar compra
               </Link>

@@ -106,7 +106,7 @@ const ResetPasswordPage = () => {
         <div className="mt-6">
           <Link
             to="/login"
-            className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+            className="inline-flex items-center justify-center bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 px-5 py-3 rounded-xl font-semibold transition-colors"
           >
             Voltar para o login
           </Link>
@@ -126,7 +126,7 @@ const ResetPasswordPage = () => {
   return (
     <div className="max-w-5xl mx-auto grid gap-8 lg:grid-cols-2 lg:items-stretch">
       <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 md:p-10">
-        <p className="text-xs font-semibold tracking-widest uppercase text-blue-600 dark:text-blue-400">
+        <p className="text-xs font-semibold tracking-widest uppercase text-slate-600 dark:text-slate-400">
           Seguranca da conta
         </p>
         <h1 className="mt-2 text-4xl font-black text-slate-900 dark:text-white">
@@ -137,7 +137,7 @@ const ResetPasswordPage = () => {
         </p>
 
         {!sessionEmail && (
-          <div className="mt-6 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-800 dark:text-amber-200 space-y-2">
+          <div className="mt-6 rounded-xl border border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-950/30 p-3 text-sm text-slate-800 dark:text-slate-200 space-y-2">
             <p>
               Nenhuma sessao de recuperacao foi detectada.
             </p>
@@ -147,7 +147,7 @@ const ResetPasswordPage = () => {
             </p>
             <Link
               to="/login"
-              className="inline-flex items-center justify-center rounded-xl border border-amber-300 dark:border-amber-800 px-4 py-2 text-sm font-semibold text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-800 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-950/40 transition-colors"
             >
               Ir para o login
             </Link>
@@ -176,7 +176,7 @@ const ResetPasswordPage = () => {
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, password: event.target.value }))
                 }
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 pl-10 pr-12 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 pl-10 pr-12 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500"
                 placeholder="Minimo de 6 caracteres"
                 autoComplete="new-password"
               />
@@ -206,7 +206,7 @@ const ResetPasswordPage = () => {
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, confirmPassword: event.target.value }))
                 }
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 pl-10 pr-12 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 pl-10 pr-12 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500"
                 placeholder="Digite novamente"
                 autoComplete="new-password"
               />
@@ -222,11 +222,11 @@ const ResetPasswordPage = () => {
           </label>
 
           {infoMessage && (
-            <div className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30 p-3 text-sm text-blue-800 dark:text-blue-200 space-y-2">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-950/30 p-3 text-sm text-slate-800 dark:text-slate-200 space-y-2">
               <p>{infoMessage}</p>
               <Link
                 to="/login"
-                className="inline-flex items-center justify-center rounded-xl border border-blue-300 dark:border-blue-800 px-4 py-2 text-sm font-semibold text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-800 px-4 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-950/40 transition-colors"
               >
                 Voltar para o login
               </Link>
@@ -234,7 +234,7 @@ const ResetPasswordPage = () => {
           )}
 
           {errorMessage && (
-            <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-700 dark:text-red-300">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-3 text-sm text-slate-700 dark:text-slate-300">
               {errorMessage}
             </div>
           )}
@@ -242,7 +242,7 @@ const ResetPasswordPage = () => {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 rounded-xl transition-colors"
+            className="w-full bg-black hover:bg-slate-800 disabled:bg-slate-400 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 dark:disabled:bg-slate-600 dark:disabled:text-slate-300 font-semibold py-3 rounded-xl transition-colors"
           >
             {isSaving ? 'Salvando...' : 'Atualizar senha'}
           </button>

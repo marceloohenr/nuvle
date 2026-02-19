@@ -59,7 +59,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
       ? 'border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-200'
       : toast?.variant === 'error'
       ? 'border-red-200 dark:border-red-900 text-red-700 dark:text-red-200'
-      : 'border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-200';
+      : 'border-slate-200 dark:border-slate-900 text-slate-700 dark:text-slate-200';
 
   const Icon =
     toast?.variant === 'success'

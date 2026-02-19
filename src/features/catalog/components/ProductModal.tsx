@@ -81,7 +81,7 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
                 className="w-full h-80 object-cover rounded-xl"
               />
               {discount > 0 && (
-                <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                <div className="absolute top-3 left-3 bg-slate-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                   -{discount}% OFF
                 </div>
               )}
@@ -111,8 +111,8 @@ const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
               <p
                 className={`mb-4 text-sm font-medium ${
                   isOutOfStock
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-emerald-600 dark:text-emerald-400'
+                    ? 'text-slate-600 dark:text-slate-400'
+                    : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
                 {isOutOfStock

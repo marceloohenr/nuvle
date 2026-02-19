@@ -210,8 +210,8 @@ const ProductDetailsPage = () => {
           <p
             className={`mt-3 text-sm font-medium ${
               isOutOfStock
-                ? 'text-red-600 dark:text-red-400'
-                : 'text-emerald-600 dark:text-emerald-400'
+                ? 'text-slate-600 dark:text-slate-400'
+                : 'text-slate-600 dark:text-slate-400'
             }`}
           >
             {isOutOfStock
@@ -234,7 +234,7 @@ const ProductDetailsPage = () => {
                 R$ {product.price.toFixed(2)}
               </p>
               {discount > 0 && (
-                <span className="rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-3 py-1 text-xs font-bold">
+                <span className="rounded-full bg-slate-100 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 px-3 py-1 text-xs font-bold">
                   -{discount}% OFF
                 </span>
               )}
@@ -358,7 +358,7 @@ const ProductDetailsPage = () => {
                       size={14}
                       className={
                         index < review.rating
-                          ? 'text-amber-500 fill-amber-500'
+                          ? 'text-slate-500 fill-slate-500'
                           : 'text-slate-300 dark:text-slate-600'
                       }
                     />

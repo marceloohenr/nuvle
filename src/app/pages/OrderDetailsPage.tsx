@@ -122,7 +122,7 @@ const OrderDetailsPage = () => {
         </p>
         <Link
           to="/pedidos"
-          className="mt-5 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+          className="mt-5 inline-flex items-center gap-2 bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 px-5 py-3 rounded-xl font-semibold transition-colors"
         >
           <ArrowLeft size={15} />
           Voltar para pedidos
@@ -236,7 +236,7 @@ const OrderDetailsPage = () => {
       <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 md:p-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-400">
               Detalhes do pedido
             </p>
             <h1 className="text-4xl font-black text-slate-900 dark:text-white mt-2">
@@ -250,7 +250,7 @@ const OrderDetailsPage = () => {
             <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1 text-xs font-semibold">
               {orderPaymentLabel[order.paymentMethod]}
             </span>
-            <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 px-3 py-1 text-xs font-semibold">
+            <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-950/50 text-slate-700 dark:text-slate-300 px-3 py-1 text-xs font-semibold">
               {orderStatusLabel[order.status]}
             </span>
           </div>
@@ -301,7 +301,7 @@ const OrderDetailsPage = () => {
                     key={step.key}
                     className={`rounded-xl border p-3 flex items-center gap-2 ${
                       isDone
-                        ? 'border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30'
+                        ? 'border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-950/30'
                         : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800'
                     }`}
                   >
@@ -309,7 +309,7 @@ const OrderDetailsPage = () => {
                       size={16}
                       className={
                         isDone
-                          ? 'text-blue-600 dark:text-blue-400'
+                          ? 'text-slate-600 dark:text-slate-400'
                           : 'text-slate-400 dark:text-slate-500'
                       }
                     />
@@ -462,7 +462,7 @@ const OrderDetailsPage = () => {
                       }
                     })();
                   }}
-                  className="inline-flex items-center justify-center rounded-xl border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-blue-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-900 text-slate-700 dark:text-slate-300 font-semibold py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isSavingDeliveryAddress ? 'Salvando...' : 'Salvar endereco de entrega'}
                 </button>
@@ -500,7 +500,7 @@ const OrderDetailsPage = () => {
             )}
 
             {deliveryAddressMessage && (
-              <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+              <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
                 {deliveryAddressMessage}
               </p>
             )}
@@ -528,7 +528,7 @@ const OrderDetailsPage = () => {
                     }
                   })();
                 }}
-                className="inline-flex items-center justify-center gap-2 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold py-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+                className="inline-flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-900 text-slate-700 dark:text-slate-300 font-semibold py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-950/40 transition-colors"
               >
                 <PackageSearch size={14} />
                 Avancar status
@@ -548,7 +548,7 @@ const OrderDetailsPage = () => {
                     }
                   })();
                 }}
-                className="inline-flex items-center justify-center gap-2 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 font-semibold py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                className="inline-flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-900 text-slate-600 dark:text-slate-400 font-semibold py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-950/30 transition-colors"
               >
                 <Trash2 size={14} />
                 Remover pedido
@@ -560,14 +560,14 @@ const OrderDetailsPage = () => {
             onClick={() => {
               void refreshOrder();
             }}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
           >
             <RotateCcw size={13} />
             Atualizar dados
           </button>
 
           {actionError && (
-            <p className="text-xs text-red-600 dark:text-red-400">{actionError}</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400">{actionError}</p>
           )}
         </aside>
       </section>

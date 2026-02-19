@@ -1207,14 +1207,14 @@ const AdminPage = () => {
 
   if (!isAdmin) {
     return (
-      <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-10 text-center">
+      <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-black p-10 text-center">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Acesso restrito</h1>
         <p className="mt-2 text-slate-600 dark:text-slate-300">
           Esta area e exclusiva para administradores da loja.
         </p>
         <Link
           to="/conta"
-          className="mt-5 inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+          className="mt-5 inline-flex items-center justify-center rounded-xl bg-black px-5 py-3 font-semibold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200"
         >
           Voltar para minha conta
         </Link>
@@ -1224,10 +1224,10 @@ const AdminPage = () => {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 md:p-10">
+      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-8 md:p-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
               Painel administrativo
             </p>
             <h1 className="mt-2 text-4xl font-black text-slate-900 dark:text-white">
@@ -1279,13 +1279,13 @@ const AdminPage = () => {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-3">
         <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-6 sm:overflow-visible sm:pb-0">
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`flex-none whitespace-nowrap rounded-xl px-4 py-3 text-sm font-semibold transition-colors sm:w-auto ${
               activeTab === 'dashboard'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
             }`}
           >
@@ -1295,7 +1295,7 @@ const AdminPage = () => {
             onClick={() => setActiveTab('products')}
             className={`flex-none whitespace-nowrap rounded-xl px-4 py-3 text-sm font-semibold transition-colors sm:w-auto ${
               activeTab === 'products'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
             }`}
           >
@@ -1305,7 +1305,7 @@ const AdminPage = () => {
             onClick={() => setActiveTab('orders')}
             className={`flex-none whitespace-nowrap rounded-xl px-4 py-3 text-sm font-semibold transition-colors sm:w-auto ${
               activeTab === 'orders'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
             }`}
           >
@@ -1315,7 +1315,7 @@ const AdminPage = () => {
             onClick={() => setActiveTab('customers')}
             className={`flex-none whitespace-nowrap rounded-xl px-4 py-3 text-sm font-semibold transition-colors sm:w-auto ${
               activeTab === 'customers'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
             }`}
           >
@@ -1325,7 +1325,7 @@ const AdminPage = () => {
             onClick={() => setActiveTab('settings')}
             className={`flex-none whitespace-nowrap rounded-xl px-4 py-3 text-sm font-semibold transition-colors sm:w-auto ${
               activeTab === 'settings'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
             }`}
           >
@@ -1335,7 +1335,7 @@ const AdminPage = () => {
             onClick={() => setActiveTab('logs')}
             className={`flex-none whitespace-nowrap rounded-xl px-4 py-3 text-sm font-semibold transition-colors sm:w-auto ${
               activeTab === 'logs'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
             }`}
           >
@@ -1346,7 +1346,7 @@ const AdminPage = () => {
 
       {activeTab === 'dashboard' && (
         <section className="space-y-6">
-          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-white inline-flex items-center gap-2">
@@ -1364,7 +1364,7 @@ const AdminPage = () => {
                   onChange={(event) =>
                     setAnalyticsRange(event.target.value as typeof analyticsRange)
                   }
-                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100"
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100"
                   aria-label="Selecionar periodo do relatorio"
                 >
                   <option value="7d">Ultimos 7 dias</option>
@@ -1654,7 +1654,7 @@ const AdminPage = () => {
                   </div>
 
                   <div className="grid gap-6 lg:grid-cols-3">
-                    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+                    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-5">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                         Novos usuarios
                       </h3>
@@ -1673,7 +1673,7 @@ const AdminPage = () => {
                             </span>
                             <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                               <div
-                                className="h-full bg-blue-600 rounded-full"
+                                className="h-full bg-slate-600 rounded-full"
                                 style={{
                                   width: `${(point.value / Math.max(1, newUsersYear)) * 100}%`,
                                 }}
@@ -1687,7 +1687,7 @@ const AdminPage = () => {
                       </div>
                     </article>
 
-                    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+                    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-5">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                         Pedidos
                       </h3>
@@ -1706,7 +1706,7 @@ const AdminPage = () => {
                             </span>
                             <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                               <div
-                                className="h-full bg-emerald-600 rounded-full"
+                                className="h-full bg-slate-600 rounded-full"
                                 style={{
                                   width: `${(point.value / Math.max(1, ordersYear)) * 100}%`,
                                 }}
@@ -1720,7 +1720,7 @@ const AdminPage = () => {
                       </div>
                     </article>
 
-                    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+                    <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-5">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                         Camisas mais vendidas
                       </h3>
@@ -1745,7 +1745,7 @@ const AdminPage = () => {
                               </div>
                               <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                                 <div
-                                  className="h-full bg-blue-600 rounded-full"
+                                  className="h-full bg-slate-600 rounded-full"
                                   style={{ width: `${(row.quantity / maxTopQty) * 100}%` }}
                                 />
                               </div>
@@ -1768,7 +1768,7 @@ const AdminPage = () => {
 
       {activeTab === 'products' && (
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -1781,7 +1781,7 @@ const AdminPage = () => {
                       : `${featuredProducts.length} produto(s) marcado(s). A Home mostra ate 8.`}
                   </p>
                   {featuredOverflow.length > 0 && (
-                    <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                    <p className="mt-1 text-xs text-slate-700 dark:text-slate-300">
                       {featuredOverflow.length} marcado(s) a mais nao aparecem na Home.
                     </p>
                   )}
@@ -1790,7 +1790,7 @@ const AdminPage = () => {
                   to="/"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900 transition-colors"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-black/40 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-900 transition-colors"
                 >
                   Abrir Home
                 </Link>
@@ -1811,8 +1811,8 @@ const AdminPage = () => {
                     onClick={() => setProductFeaturedFilter(option.id)}
                     className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                       productFeaturedFilter === option.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900/70'
+                        ? 'bg-black text-white dark:bg-white dark:text-black'
+                        : 'bg-white dark:bg-black text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900/70'
                     }`}
                   >
                     {option.label}
@@ -1829,7 +1829,7 @@ const AdminPage = () => {
                     {featuredVisible.map((product) => (
                       <div
                         key={`featured-preview-${product.id}`}
-                        className="flex flex-col gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 sm:flex-row sm:items-center"
+                        className="flex flex-col gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-black p-3 sm:flex-row sm:items-center"
                       >
                         <img
                           src={product.images?.[0] ?? product.image}
@@ -1867,14 +1867,14 @@ const AdminPage = () => {
                               );
                             })();
                           }}
-                          className="w-full rounded-xl border border-amber-200 dark:border-amber-900 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors sm:w-auto"
+                          className="w-full rounded-xl border border-red-200 dark:border-red-900 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors sm:w-auto"
                         >
                           Remover
                         </button>
                         <button
                           type="button"
                           onClick={() => startEditingProduct(product)}
-                          className="w-full rounded-xl border border-blue-200 dark:border-blue-900 px-3 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors sm:w-auto"
+                          className="w-full rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors sm:w-auto"
                         >
                           Editar
                         </button>
@@ -2005,7 +2005,7 @@ const AdminPage = () => {
                             }}
                             className={`rounded-lg border px-2 py-1 text-xs font-semibold transition-colors ${
                               product.isFeatured
-                                ? 'border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/20'
+                                ? 'border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30'
                                 : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/70'
                             }`}
                           >
@@ -2013,19 +2013,19 @@ const AdminPage = () => {
                           </button>
                           <button
                             onClick={() => startEditingProduct(product)}
-                            className="rounded-lg border border-blue-200 dark:border-blue-900 px-2 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                            className="rounded-lg border border-slate-300 dark:border-slate-700 px-2 py-1 text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                           >
                             Editar produto
                           </button>
                         </div>
 
                         {editingProductId === product.id && (
-                          <div className="mt-3 space-y-3 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-3">
+                          <div className="mt-3 space-y-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/40 p-3">
                             <input
                               value={editingProductName}
                               onChange={(event) => setEditingProductName(event.target.value)}
                               placeholder="Nome do produto"
-                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                             />
                             <textarea
                               value={editingProductDescription}
@@ -2033,10 +2033,10 @@ const AdminPage = () => {
                                 setEditingProductDescription(event.target.value)
                               }
                               placeholder="Descricao do produto"
-                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 min-h-20"
+                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2 text-sm text-slate-800 dark:text-slate-100 min-h-20"
                             />
 
-                            <div className="flex flex-col gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-col gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-black/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                               <div>
                                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                                   Em alta (Home)
@@ -2053,7 +2053,7 @@ const AdminPage = () => {
                                 onClick={() => setEditingProductIsFeatured((previous) => !previous)}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                                   editingProductIsFeatured
-                                    ? 'bg-blue-600'
+                                    ? 'bg-black'
                                     : 'bg-slate-300 dark:bg-slate-700'
                                 }`}
                               >
@@ -2093,7 +2093,7 @@ const AdminPage = () => {
                                   }
                                 }}
                                 placeholder="Preco base"
-                                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                               />
                               <input
                                 value={editingProductDiscount}
@@ -2112,7 +2112,7 @@ const AdminPage = () => {
                                   }
                                 }}
                                 placeholder="Desconto (%)"
-                                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                               />
                             </div>
                             <input
@@ -2132,7 +2132,7 @@ const AdminPage = () => {
                                 }
                               }}
                               placeholder="Preco final"
-                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                             />
 
                             {(() => {
@@ -2164,10 +2164,10 @@ const AdminPage = () => {
                               value={editingProductImagesText}
                               onChange={(event) => setEditingProductImagesText(event.target.value)}
                               placeholder="URLs das imagens (uma por linha)"
-                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 min-h-24"
+                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2 text-sm text-slate-800 dark:text-slate-100 min-h-24"
                             />
 
-                            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+                            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-black/60 p-3">
                               <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
                                 Upload de imagens (opcional)
                               </p>
@@ -2180,7 +2180,7 @@ const AdminPage = () => {
                                   const files = event.target.files ? Array.from(event.target.files) : [];
                                   setEditingProductFiles(files);
                                 }}
-                                className="mt-2 block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
+                                className="mt-2 block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-3 file:rounded-lg file:border-0 file:bg-black file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800 dark:file:bg-white dark:file:text-black"
                               />
                               {!isSupabaseConfigured && (
                                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -2211,7 +2211,7 @@ const AdminPage = () => {
                               </div>
                             )}
 
-                            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+                            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-black/60 p-3">
                               <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
                                 Guia rapido de caimento deste produto
                               </p>
@@ -2230,7 +2230,7 @@ const AdminPage = () => {
                                         handleGuideChange(size, 'widthCm', event.target.value)
                                       }
                                       placeholder="Largura"
-                                      className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                                      className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
                                     />
                                     <input
                                       value={editingProductSizeGuide[size]?.lengthCm ?? ''}
@@ -2238,7 +2238,7 @@ const AdminPage = () => {
                                         handleGuideChange(size, 'lengthCm', event.target.value)
                                       }
                                       placeholder="Comprimento"
-                                      className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                                      className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
                                     />
                                     <input
                                       value={editingProductSizeGuide[size]?.sleeveCm ?? ''}
@@ -2246,7 +2246,7 @@ const AdminPage = () => {
                                         handleGuideChange(size, 'sleeveCm', event.target.value)
                                       }
                                       placeholder="Manga"
-                                      className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                                      className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
                                     />
                                   </div>
                                 ))}
@@ -2262,7 +2262,7 @@ const AdminPage = () => {
                                     product.stockBySize
                                   )
                                 }
-                                className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-xs font-semibold transition-colors"
+                                className="rounded-lg bg-black px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200"
                               >
                                 Salvar
                               </button>
@@ -2311,7 +2311,7 @@ const AdminPage = () => {
             </div>
           </div>
 
-          <aside className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 h-fit space-y-6 lg:sticky lg:top-28">
+          <aside className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6 h-fit space-y-6 lg:sticky lg:top-28">
             <div>
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                 Gerenciar categorias
@@ -2325,11 +2325,11 @@ const AdminPage = () => {
                   value={newCategoryName}
                   onChange={(event) => setNewCategoryName(event.target.value)}
                   placeholder="Nova categoria"
-                  className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100"
+                  className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100"
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm font-semibold transition-colors"
+                  className="inline-flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200"
                 >
                   Criar
                 </button>
@@ -2379,7 +2379,7 @@ const AdminPage = () => {
                   value={bulkGuideCategoryId}
                   onChange={(event) => setBulkGuideCategoryId(event.target.value)}
                   disabled={categories.length === 0}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400"
                 >
                   {categories.length === 0 ? (
                     <option value="">Cadastre uma categoria primeiro</option>
@@ -2416,7 +2416,7 @@ const AdminPage = () => {
                             handleBulkGuideDraftChange(size, 'widthCm', event.target.value)
                           }
                           placeholder="Largura"
-                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
                         />
                         <input
                           value={bulkGuideDraft[size]?.lengthCm ?? ''}
@@ -2424,7 +2424,7 @@ const AdminPage = () => {
                             handleBulkGuideDraftChange(size, 'lengthCm', event.target.value)
                           }
                           placeholder="Comprimento"
-                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
                         />
                         <input
                           value={bulkGuideDraft[size]?.sleeveCm ?? ''}
@@ -2432,7 +2432,7 @@ const AdminPage = () => {
                             handleBulkGuideDraftChange(size, 'sleeveCm', event.target.value)
                           }
                           placeholder="Manga"
-                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
+                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100"
                         />
                       </div>
                     ))}
@@ -2450,7 +2450,7 @@ const AdminPage = () => {
                   onClick={() => {
                     void handleApplyBulkGuideToCategory();
                   }}
-                  className="w-full inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:text-slate-700 text-white px-4 py-2.5 text-sm font-semibold transition-colors"
+                  className="w-full inline-flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:bg-slate-400 disabled:text-slate-700 dark:bg-white dark:text-black dark:hover:bg-slate-200 dark:disabled:bg-slate-600 dark:disabled:text-slate-300"
                 >
                   {isBulkGuideApplying
                     ? 'Aplicando medidas...'
@@ -2480,7 +2480,7 @@ const AdminPage = () => {
                     setNewProduct((prev) => ({ ...prev, name: event.target.value }))
                   }
                   placeholder="Nome do produto"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                 />
                 <textarea
                   value={newProduct.imageUrls}
@@ -2488,7 +2488,7 @@ const AdminPage = () => {
                     setNewProduct((prev) => ({ ...prev, imageUrls: event.target.value }))
                   }
                   placeholder="URLs das imagens (uma por linha)"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100 min-h-24"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100 min-h-24"
                 />
 
                 <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
@@ -2504,7 +2504,7 @@ const AdminPage = () => {
                       const files = event.target.files ? Array.from(event.target.files) : [];
                       setNewProductFiles(files);
                     }}
-                    className="mt-2 block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
+                    className="mt-2 block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-3 file:rounded-lg file:border-0 file:bg-black file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800 dark:file:bg-white dark:file:text-black"
                   />
                   {!isSupabaseConfigured && (
                     <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -2565,7 +2565,7 @@ const AdminPage = () => {
                       });
                     }}
                     placeholder="Preco base"
-                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                   <input
                     value={newProduct.discountPercentage}
@@ -2585,7 +2585,7 @@ const AdminPage = () => {
                       });
                     }}
                     placeholder="Desconto (%)"
-                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                   <input
                     value={newProduct.finalPrice}
@@ -2607,7 +2607,7 @@ const AdminPage = () => {
                       });
                     }}
                     placeholder="Preco final"
-                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                 </div>
 
@@ -2645,7 +2645,7 @@ const AdminPage = () => {
                       }))
                     }
                     disabled={categories.length === 0}
-                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400"
                   >
                     {categories.length === 0 ? (
                       <option value="">Cadastre uma categoria primeiro</option>
@@ -2663,7 +2663,7 @@ const AdminPage = () => {
                       setNewProduct((prev) => ({ ...prev, stock: event.target.value }))
                     }
                     placeholder="Estoque inicial"
-                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                 </div>
 
@@ -2688,7 +2688,7 @@ const AdminPage = () => {
                       }))
                     }
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      newProduct.isFeatured ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                      newProduct.isFeatured ? 'bg-black' : 'bg-slate-300 dark:bg-slate-700'
                     }`}
                   >
                     <span
@@ -2705,7 +2705,7 @@ const AdminPage = () => {
                     setNewProduct((prev) => ({ ...prev, sizes: event.target.value }))
                   }
                   placeholder="Tamanhos (P,M,G,GG)"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                 />
                 <textarea
                   value={newProduct.description}
@@ -2713,7 +2713,7 @@ const AdminPage = () => {
                     setNewProduct((prev) => ({ ...prev, description: event.target.value }))
                   }
                   placeholder="Descricao"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100 min-h-24"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100 min-h-24"
                 />
 
                 {formMessage && (
@@ -2723,7 +2723,7 @@ const AdminPage = () => {
                 <button
                   type="submit"
                   disabled={categories.length === 0}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 rounded-xl transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-black py-3 font-semibold text-white transition-colors hover:bg-slate-800 disabled:bg-slate-400 dark:bg-white dark:text-black dark:hover:bg-slate-200 dark:disabled:bg-slate-600 dark:disabled:text-slate-300"
                 >
                   <PlusCircle size={16} />
                   Adicionar produto
@@ -2735,7 +2735,7 @@ const AdminPage = () => {
       )}
 
       {activeTab === 'orders' && (
-        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="relative flex-1 min-w-[220px]">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -2743,7 +2743,7 @@ const AdminPage = () => {
                 value={orderSearch}
                 onChange={(event) => setOrderSearch(event.target.value)}
                 placeholder="Buscar por pedido, nome ou e-mail"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 pl-9 pr-3 text-sm text-slate-800 dark:text-slate-100"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black py-3 pl-9 pr-3 text-sm text-slate-800 dark:text-slate-100"
               />
             </div>
             <button
@@ -2782,7 +2782,7 @@ const AdminPage = () => {
                   </div>
 
                   <div className="text-right">
-                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-400">
                       {currencyFormatter.format(order.total)}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -2815,7 +2815,7 @@ const AdminPage = () => {
                         }
                       })();
                     }}
-                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                    className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                   >
                     {statusOptions.map((status) => (
                       <option key={status} value={status}>
@@ -2868,7 +2868,7 @@ const AdminPage = () => {
       )}
 
       {activeTab === 'customers' && (
-        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
           <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Usuarios admin</h2>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
             Contas com permissao de gerenciamento total da loja.
@@ -2878,11 +2878,11 @@ const AdminPage = () => {
             {adminUsers.map((adminUser) => (
               <article
                 key={adminUser.id}
-                className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-800/60"
+                className="rounded-xl border border-emerald-200 dark:border-emerald-900 p-4 bg-emerald-50 dark:bg-emerald-950/20"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 grid place-items-center">
+                    <div className="h-9 w-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 grid place-items-center">
                       <ShieldCheck size={18} />
                     </div>
                     <div>
@@ -2933,7 +2933,7 @@ const AdminPage = () => {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 grid place-items-center">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-black/40 text-slate-700 dark:text-slate-300 grid place-items-center">
                         <UserCircle2 size={18} />
                       </div>
                       <div>
@@ -2956,7 +2956,7 @@ const AdminPage = () => {
                       <p className="font-semibold text-slate-900 dark:text-white">
                         {customer.ordersCount} pedido(s)
                       </p>
-                      <p className="text-blue-600 dark:text-blue-400 font-semibold">
+                      <p className="text-slate-600 dark:text-slate-400 font-semibold">
                         {currencyFormatter.format(customer.totalSpent)}
                       </p>
                       {customer.userId ? (
@@ -3076,7 +3076,7 @@ const AdminPage = () => {
 
       {activeTab === 'settings' && (
         <section className="grid gap-6 lg:grid-cols-2">
-          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
               Contato principal
             </h2>
@@ -3108,7 +3108,7 @@ const AdminPage = () => {
                     }
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       contactVisibilityDraft.whatsapp
-                        ? 'bg-blue-600'
+                        ? 'bg-black'
                         : 'bg-slate-300 dark:bg-slate-700'
                     }`}
                   >
@@ -3126,7 +3126,7 @@ const AdminPage = () => {
                       handleContactDraftChange('whatsappLabel', event.target.value)
                     }
                     placeholder="WhatsApp exibido (ex.: (81) 98896-6556)"
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                   <input
                     value={contactDraft.whatsappUrl}
@@ -3134,7 +3134,7 @@ const AdminPage = () => {
                       handleContactDraftChange('whatsappUrl', event.target.value)
                     }
                     placeholder="URL do WhatsApp (ex.: https://wa.me/5581988966556)"
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                 </div>
               </div>
@@ -3162,7 +3162,7 @@ const AdminPage = () => {
                     }
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       contactVisibilityDraft.email
-                        ? 'bg-blue-600'
+                        ? 'bg-black'
                         : 'bg-slate-300 dark:bg-slate-700'
                     }`}
                   >
@@ -3177,7 +3177,7 @@ const AdminPage = () => {
                   value={contactDraft.email}
                   onChange={(event) => handleContactDraftChange('email', event.target.value)}
                   placeholder="E-mail de contato"
-                  className="mt-3 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  className="mt-3 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                 />
               </div>
 
@@ -3204,7 +3204,7 @@ const AdminPage = () => {
                     }
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       contactVisibilityDraft.handle
-                        ? 'bg-blue-600'
+                        ? 'bg-black'
                         : 'bg-slate-300 dark:bg-slate-700'
                     }`}
                   >
@@ -3219,7 +3219,7 @@ const AdminPage = () => {
                   value={contactDraft.handle}
                   onChange={(event) => handleContactDraftChange('handle', event.target.value)}
                   placeholder="Perfil exibido (ex.: nuvleoficial)"
-                  className="mt-3 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  className="mt-3 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                 />
               </div>
 
@@ -3229,14 +3229,14 @@ const AdminPage = () => {
 
               <button
                 type="submit"
-                className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-sm font-semibold transition-colors"
+                className="inline-flex items-center justify-center rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200"
               >
                 Salvar contato e redes
               </button>
             </form>
           </article>
 
-          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
               Links sociais
             </h2>
@@ -3260,7 +3260,7 @@ const AdminPage = () => {
                 aria-label="Alternar exibicao dos icones de redes no rodape"
                 onClick={() => setShowSocialIconsDraft((previous) => !previous)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  showSocialIconsDraft ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                  showSocialIconsDraft ? 'bg-black' : 'bg-slate-300 dark:bg-slate-700'
                 }`}
               >
                 <span
@@ -3295,7 +3295,7 @@ const AdminPage = () => {
                       }
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                         socialVisibilityDraft[platform.id]
-                          ? 'bg-blue-600'
+                          ? 'bg-black'
                           : 'bg-slate-300 dark:bg-slate-700'
                       }`}
                     >
@@ -3313,7 +3313,7 @@ const AdminPage = () => {
                     }
                     placeholder="URL"
                     aria-label={`URL ${platform.label}`}
-                    className="mt-3 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                    className="mt-3 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                   />
                 </div>
               ))}
@@ -3351,7 +3351,7 @@ const AdminPage = () => {
                           title={platform.label}
                           className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
                             hasUrl
-                              ? 'border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                              ? 'border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300'
                               : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'
                           }`}
                         >
@@ -3370,7 +3370,7 @@ const AdminPage = () => {
             </p>
           </article>
 
-          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 lg:col-span-2">
+          <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6 lg:col-span-2">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
               Cupons de desconto
             </h2>
@@ -3389,7 +3389,7 @@ const AdminPage = () => {
                   onChange={(event) => handleCouponDraftChange('code', event.target.value)}
                   placeholder="NUVLE10"
                   disabled={Boolean(editingCouponCode)}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100 disabled:opacity-60"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100 disabled:opacity-60"
                 />
                 {editingCouponCode && (
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -3408,7 +3408,7 @@ const AdminPage = () => {
                     handleCouponDraftChange('discountPercentage', event.target.value)
                   }
                   placeholder="10"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                 />
               </div>
 
@@ -3422,7 +3422,7 @@ const AdminPage = () => {
                     handleCouponDraftChange('maxUsesPerCustomer', event.target.value)
                   }
                   placeholder="1"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                 />
               </div>
 
@@ -3434,7 +3434,7 @@ const AdminPage = () => {
                   value={couponDraft.description}
                   onChange={(event) => handleCouponDraftChange('description', event.target.value)}
                   placeholder="10% de desconto na primeira compra"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                 />
               </div>
 
@@ -3446,7 +3446,7 @@ const AdminPage = () => {
                   aria-label="Alternar cupom ativo"
                   onClick={() => handleCouponDraftChange('isActive', !couponDraft.isActive)}
                   className={`relative inline-flex h-11 w-16 items-center rounded-full transition-colors ${
-                    couponDraft.isActive ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                    couponDraft.isActive ? 'bg-black' : 'bg-slate-300 dark:bg-slate-700'
                   }`}
                 >
                   <span
@@ -3457,7 +3457,7 @@ const AdminPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 text-sm font-semibold transition-colors"
+                  className="flex-1 inline-flex items-center justify-center rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200"
                 >
                   {editingCouponCode ? 'Salvar' : 'Criar'}
                 </button>
@@ -3536,7 +3536,7 @@ const AdminPage = () => {
                         <button
                           type="button"
                           onClick={() => startEditingCoupon(coupon)}
-                          className="rounded-xl border border-blue-200 dark:border-blue-900 px-3 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                          className="rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
                           Editar
                         </button>
@@ -3568,7 +3568,7 @@ const AdminPage = () => {
                               );
                             })();
                           }}
-                          className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-colors"
+                          className="rounded-xl border border-emerald-200 dark:border-emerald-900 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
                         >
                           {coupon.isActive ? 'Desativar' : 'Ativar'}
                         </button>
@@ -3612,7 +3612,7 @@ const AdminPage = () => {
       )}
 
       {activeTab === 'logs' && (
-        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white inline-flex items-center gap-2">
@@ -3690,7 +3690,7 @@ const AdminPage = () => {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest">
+                      <span className="rounded-full bg-slate-100 dark:bg-black/40 text-slate-700 dark:text-slate-300 px-2.5 py-1 text-xs font-semibold uppercase tracking-widest">
                         {log.scope}
                       </span>
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">

@@ -21,9 +21,9 @@ const CartPage = () => {
 
   if (state.items.length === 0) {
     return (
-      <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-10 text-center animate-fade-in">
+      <section className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-black p-10 text-center animate-fade-in">
         <div className="mx-auto h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-          <ShoppingBag className="text-blue-600 dark:text-blue-400" size={30} />
+          <ShoppingBag className="text-slate-600 dark:text-slate-400" size={30} />
         </div>
         <h1 className="mt-5 text-3xl font-bold text-slate-900 dark:text-white">
           Seu carrinho esta vazio
@@ -33,7 +33,7 @@ const CartPage = () => {
         </p>
         <Link
           to="/produtos"
-          className="mt-6 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors"
+          className="mt-6 inline-flex items-center gap-2 bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 px-5 py-3 rounded-xl font-semibold transition-colors"
         >
           <ArrowLeft size={16} />
           Ver produtos
@@ -44,8 +44,8 @@ const CartPage = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 md:p-10">
-        <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400">
+      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-8 md:p-10">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-400">
           Carrinho
         </p>
         <h1 className="mt-2 text-4xl font-black text-slate-900 dark:text-white">
@@ -63,7 +63,7 @@ const CartPage = () => {
             return (
               <article
                 key={itemKey}
-                className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5"
+                className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-4 sm:p-5"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <img
@@ -77,7 +77,7 @@ const CartPage = () => {
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       Tamanho: {item.size || 'Unico'}
                     </p>
-                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-1">
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-400 mt-1">
                       R$ {item.price.toFixed(2)}
                     </p>
                   </div>
@@ -105,7 +105,7 @@ const CartPage = () => {
 
                     <button
                       onClick={() => removeItem(itemKey)}
-                      className="h-9 w-9 grid place-items-center rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+                      className="h-9 w-9 grid place-items-center rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                       aria-label="Remover item"
                     >
                       <Trash2 size={15} />
@@ -117,7 +117,7 @@ const CartPage = () => {
           })}
         </div>
 
-        <aside className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 h-fit sticky top-28">
+        <aside className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-5 h-fit sticky top-28">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
             Resumo do pedido
           </h2>
@@ -140,7 +140,7 @@ const CartPage = () => {
           <div className="mt-5 rounded-xl bg-slate-100 dark:bg-slate-800 p-3">
             <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <div
-                className="h-full bg-blue-600 transition-all duration-500"
+                className="h-full bg-slate-600 transition-all duration-500"
                 style={{ width: `${shippingProgress}%` }}
               />
             </div>
@@ -154,7 +154,7 @@ const CartPage = () => {
           <div className="mt-5 grid gap-2">
             <Link
               to="/checkout"
-              className="w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors"
+              className="w-full text-center bg-black hover:bg-slate-800 text-white dark:bg-white dark:text-black dark:hover:bg-slate-200 font-semibold py-3 rounded-xl transition-colors"
             >
               Ir para checkout
             </Link>
