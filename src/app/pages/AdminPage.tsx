@@ -1612,6 +1612,83 @@ const AdminPage = () => {
                 .slice(0, 8);
 
               const maxTopQty = Math.max(1, ...topProducts.map((row) => row.quantity));
+              const timelinePoints: Array<{
+                key: string;
+                label: string;
+                orders: number;
+                revenue: number;
+              }> = [];
+
+              if (analyticsRange === '7d' || analyticsRange === '30d') {
+                const totalDays = analyticsRange === '7d' ? 7 : 30;
+                const start = daysAgo(totalDays - 1);
+                start.setHours(0, 0, 0, 0);
+
+                for (let index = 0; index < totalDays; index += 1) {
+                  const day = new Date(start);
+                  day.setDate(start.getDate() + index);
+                  timelinePoints.push({
+                    key: toLocalDateKey(day),
+                    label: day.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+                    orders: 0,
+                    revenue: 0,
+                  });
+                }
+              } else {
+                const totalMonths = analyticsRange === '365d' ? 12 : 18;
+                const currentMonth = new Date();
+                currentMonth.setDate(1);
+                currentMonth.setHours(0, 0, 0, 0);
+
+                for (let index = totalMonths - 1; index >= 0; index -= 1) {
+                  const month = new Date(currentMonth);
+                  month.setMonth(currentMonth.getMonth() - index);
+                  timelinePoints.push({
+                    key: `${month.getFullYear()}-${pad2(month.getMonth() + 1)}`,
+                    label: month.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+                    orders: 0,
+                    revenue: 0,
+                  });
+                }
+              }
+
+              const timelineByKey = new Map(timelinePoints.map((point) => [point.key, point]));
+
+              orders.forEach((order) => {
+                const createdAt = new Date(order.createdAt);
+                const pointKey =
+                  analyticsRange === '7d' || analyticsRange === '30d'
+                    ? toLocalDateKey(createdAt)
+                    : `${createdAt.getFullYear()}-${pad2(createdAt.getMonth() + 1)}`;
+                const point = timelineByKey.get(pointKey);
+                if (!point) return;
+                point.orders += 1;
+                point.revenue += order.total;
+              });
+
+              const timelineOrdersMax = Math.max(
+                1,
+                ...timelinePoints.map((point) => point.orders)
+              );
+              const timelineRevenueMax = Math.max(
+                1,
+                ...timelinePoints.map((point) => point.revenue)
+              );
+              const hasTimelineValues = timelinePoints.some(
+                (point) => point.orders > 0 || point.revenue > 0
+              );
+
+              const halfIndex = Math.max(1, Math.floor(timelinePoints.length / 2));
+              const olderWindow = timelinePoints.slice(0, halfIndex);
+              const recentWindow = timelinePoints.slice(halfIndex);
+
+              const olderOrders = olderWindow.reduce((sum, point) => sum + point.orders, 0);
+              const recentOrders = recentWindow.reduce((sum, point) => sum + point.orders, 0);
+              const olderRevenue = olderWindow.reduce((sum, point) => sum + point.revenue, 0);
+              const recentRevenue = recentWindow.reduce((sum, point) => sum + point.revenue, 0);
+
+              const ordersDiff = recentOrders - olderOrders;
+              const revenueDiff = recentRevenue - olderRevenue;
 
               return (
                 <div className="mt-6 space-y-6">
@@ -1673,7 +1750,7 @@ const AdminPage = () => {
                             </span>
                             <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                               <div
-                                className="h-full bg-slate-600 rounded-full"
+                                className="h-full rounded-full bg-black dark:bg-white"
                                 style={{
                                   width: `${(point.value / Math.max(1, newUsersYear)) * 100}%`,
                                 }}
@@ -1706,7 +1783,7 @@ const AdminPage = () => {
                             </span>
                             <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                               <div
-                                className="h-full bg-slate-600 rounded-full"
+                                className="h-full rounded-full bg-black dark:bg-white"
                                 style={{
                                   width: `${(point.value / Math.max(1, ordersYear)) * 100}%`,
                                 }}
@@ -1745,7 +1822,7 @@ const AdminPage = () => {
                               </div>
                               <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                                 <div
-                                  className="h-full bg-slate-600 rounded-full"
+                                  className="h-full rounded-full bg-emerald-600 dark:bg-emerald-400"
                                   style={{ width: `${(row.quantity / maxTopQty) * 100}%` }}
                                 />
                               </div>
@@ -1759,6 +1836,95 @@ const AdminPage = () => {
                       )}
                     </article>
                   </div>
+
+                  <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                          Andamento no tempo
+                        </h3>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          Comparativo de pedidos e faturamento ao longo do periodo selecionado.
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Janela recente x anterior</p>
+                        <p
+                          className={`text-xs font-semibold ${
+                            ordersDiff >= 0
+                              ? 'text-emerald-700 dark:text-emerald-300'
+                              : 'text-red-600 dark:text-red-400'
+                          }`}
+                        >
+                          Pedidos: {ordersDiff >= 0 ? '+' : ''}
+                          {ordersDiff}
+                        </p>
+                        <p
+                          className={`text-xs font-semibold ${
+                            revenueDiff >= 0
+                              ? 'text-emerald-700 dark:text-emerald-300'
+                              : 'text-red-600 dark:text-red-400'
+                          }`}
+                        >
+                          Receita: {revenueDiff >= 0 ? '+' : ''}
+                          {currencyFormatter.format(revenueDiff)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {!hasTimelineValues ? (
+                      <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                        Sem dados de pedidos para montar o comparativo temporal.
+                      </p>
+                    ) : (
+                      <div className="mt-4 space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                        {timelinePoints.map((point) => (
+                          <div key={point.key} className="grid grid-cols-[86px_1fr_auto] gap-3 items-center">
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                              {point.label}
+                            </span>
+                            <div className="space-y-1.5">
+                              <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-black dark:bg-white"
+                                  style={{
+                                    width: `${(point.orders / timelineOrdersMax) * 100}%`,
+                                  }}
+                                />
+                              </div>
+                              <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-emerald-600 dark:bg-emerald-400"
+                                  style={{
+                                    width: `${(point.revenue / timelineRevenueMax) * 100}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                {point.orders} ped.
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {currencyFormatter.format(point.revenue)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-black dark:bg-white" />
+                        Pedidos
+                      </span>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+                        Faturamento
+                      </span>
+                    </div>
+                  </article>
                 </div>
               );
             })()}
