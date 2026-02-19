@@ -56,7 +56,7 @@ const Footer = () => {
     whatsappHref;
 
   return (
-    <footer className="border-t border-slate-200 dark:border-slate-800 bg-gradient-to-r from-[#081323] via-[#0a1a2e] to-[#0c2242] mt-16">
+    <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black mt-16">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-12">
         <div className="grid gap-8 md:grid-cols-3">
           <div>
@@ -65,20 +65,20 @@ const Footer = () => {
               alt="Nuvle"
               className="h-10 w-auto"
             />
-            <p className="mt-3 text-sm text-slate-200 max-w-sm">
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 max-w-sm">
               Loja virtual de roupas com foco em estilo, conforto e atendimento direto.
             </p>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold tracking-widest uppercase text-slate-300">
+            <h4 className="text-sm font-semibold tracking-widest uppercase text-slate-600 dark:text-slate-300">
               Navegacao
             </h4>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link
                   to="/produtos"
-                  className="text-slate-200 hover:text-cyan-200"
+                  className="text-slate-700 dark:text-slate-200 hover:text-black dark:hover:text-white"
                 >
                   Produtos
                 </Link>
@@ -86,7 +86,7 @@ const Footer = () => {
               <li>
                 <Link
                   to="/pedidos"
-                  className="text-slate-200 hover:text-cyan-200"
+                  className="text-slate-700 dark:text-slate-200 hover:text-black dark:hover:text-white"
                 >
                   Meus pedidos
                 </Link>
@@ -94,7 +94,7 @@ const Footer = () => {
               <li>
                 <Link
                   to="/login"
-                  className="text-slate-200 hover:text-cyan-200"
+                  className="text-slate-700 dark:text-slate-200 hover:text-black dark:hover:text-white"
                 >
                   Login
                 </Link>
@@ -103,10 +103,10 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold tracking-widest uppercase text-slate-300">
+            <h4 className="text-sm font-semibold tracking-widest uppercase text-slate-600 dark:text-slate-300">
               Contato
             </h4>
-            <ul className="mt-3 space-y-2 text-sm text-slate-100">
+            <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-100">
               {settings.contactVisibility.whatsapp && (
                 <li className="flex items-center gap-2">
                   <PhoneCall size={15} />
@@ -115,7 +115,7 @@ const Footer = () => {
                       href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-cyan-200"
+                      className="hover:text-black dark:hover:text-white"
                     >
                       WhatsApp: {settings.contact.whatsappLabel}
                     </a>
@@ -129,7 +129,7 @@ const Footer = () => {
                   <Mail size={15} />
                   <a
                     href={`mailto:${settings.contact.email}`}
-                    className="hover:text-cyan-200"
+                    className="hover:text-black dark:hover:text-white"
                   >
                     {settings.contact.email}
                   </a>
@@ -143,7 +143,7 @@ const Footer = () => {
                       href={instagramHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-cyan-200"
+                      className="hover:text-black dark:hover:text-white"
                     >
                       {settings.contact.handle}
                     </a>
@@ -168,7 +168,7 @@ const Footer = () => {
                       <span
                         key={platform.id}
                         title={platform.label}
-                        className="inline-flex items-center justify-center rounded-full border border-slate-500/50 h-10 w-10 text-slate-400"
+                        className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-400 dark:text-slate-500"
                       >
                         <platform.Icon size={18} />
                         <span className="sr-only">{platform.label}</span>
@@ -184,7 +184,7 @@ const Footer = () => {
                       rel="noopener noreferrer"
                       aria-label={platform.label}
                       title={platform.label}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-500/50 h-10 w-10 text-slate-200 hover:border-cyan-200 hover:text-cyan-200 transition-colors"
+                      className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-700 h-10 w-10 text-slate-700 dark:text-slate-200 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white transition-colors"
                     >
                       <platform.Icon size={18} />
                       <span className="sr-only">{platform.label}</span>
@@ -196,14 +196,14 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-10 pt-5 border-t border-slate-500/40 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs text-slate-300">
+        <div className="mt-10 pt-5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs text-slate-600 dark:text-slate-300">
           <p>(c) {currentYear} Nuvle. Todos os direitos reservados.</p>
           {channelsHref ? (
             <a
               href={channelsHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-cyan-200"
+              className="hover:text-black dark:hover:text-white"
             >
               Canais oficiais
             </a>

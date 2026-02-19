@@ -60,7 +60,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
   return (
     <article
       onClick={() => onProductClick(product)}
-      className="group rounded-3xl shadow-medium border overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-hard bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"
+      className="group rounded-3xl shadow-medium border overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-hard bg-white border-slate-200 dark:bg-black dark:border-slate-700"
     >
       <div className="relative">
         <img
@@ -75,12 +75,12 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
             {getCategoryLabel(product.category)}
           </span>
           {discount > 0 && (
-            <span className="rounded-md bg-red-500 text-white px-2.5 py-1 text-xs font-bold">
+            <span className="rounded-md bg-black text-white dark:bg-white dark:text-black px-2.5 py-1 text-xs font-bold">
               -{discount}%
             </span>
           )}
           {product.isFeatured && (
-            <span className="rounded-md bg-cyan-300 text-black px-2.5 py-1 text-xs font-black uppercase tracking-wide">
+            <span className="rounded-md bg-black text-white dark:bg-white dark:text-black px-2.5 py-1 text-xs font-black uppercase tracking-wide">
               Em alta
             </span>
           )}
@@ -90,7 +90,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           onClick={handleLike}
           className={`absolute top-3 right-3 h-9 w-9 rounded-full grid place-items-center border transition-colors ${
             isLiked
-              ? 'bg-red-500 border-red-500 text-white'
+              ? 'bg-black border-black text-white dark:bg-white dark:border-white dark:text-black'
               : 'bg-white/95 border-slate-300 text-slate-700 hover:bg-white dark:bg-black/70 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-black/85'
           }`}
           aria-label="Favoritar produto"
@@ -119,7 +119,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
               R$ {product.originalPrice.toFixed(2)}
             </p>
           )}
-          <p className="text-3xl font-black text-sky-700 dark:text-cyan-200">
+          <p className="text-3xl font-black text-black dark:text-white">
             R$ {product.price.toFixed(2)}
           </p>
         </div>
@@ -133,7 +133,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
               value={selectedSize}
               onChange={(event) => setSelectedSize(event.target.value)}
               onClick={(event) => event.stopPropagation()}
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-black px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
             >
               {product.sizes.map((size) => (
                 <option
@@ -152,7 +152,7 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           <button
             onClick={handleAddToCart}
             disabled={isOutOfStock}
-            className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-slate-500 disabled:text-slate-800 font-semibold py-2.5 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
+            className="bg-black text-white hover:bg-slate-900 dark:bg-white dark:text-black dark:hover:bg-slate-200 disabled:bg-slate-500 disabled:text-slate-800 font-semibold py-2.5 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
           >
             <ShoppingCart size={16} />
             {isOutOfStock ? 'Indisponivel' : 'Comprar'}

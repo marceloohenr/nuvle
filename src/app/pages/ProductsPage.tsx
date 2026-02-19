@@ -143,10 +143,10 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-white via-slate-100 to-slate-200 dark:from-[#0d1a2f] dark:via-[#0a1527] dark:to-[#081120] p-7 md:p-10">
+      <section className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-black p-7 md:p-10">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-700 dark:text-cyan-200">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700 dark:text-slate-300">
               Catalogo completo
             </p>
             <h1 className="font-display text-6xl md:text-7xl uppercase tracking-wide text-slate-950 dark:text-white mt-2">
@@ -157,7 +157,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
               rapido no que voce procura.
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-black/30 px-4 py-3">
+          <div className="rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-black px-4 py-3">
             <p className="text-xs uppercase tracking-widest text-slate-600 dark:text-slate-300">
               resultados
             </p>
@@ -168,7 +168,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
         </div>
       </section>
 
-      <section className="grid gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 md:p-6">
+      <section className="grid gap-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-black p-4 md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search
@@ -179,7 +179,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Pesquisar por nome ou categoria"
-              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 pl-10 pr-4 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-400 dark:focus:ring-cyan-300/70"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-black py-3 pl-10 pr-4 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white/70"
             />
           </div>
 
@@ -188,7 +188,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
             <select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as SortOption)}
-              className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 px-3 text-slate-900 dark:text-slate-100"
+              className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-black py-3 px-3 text-slate-900 dark:text-slate-100"
             >
               <option value="recommended">Mais relevantes</option>
               <option value="price-asc">Menor preco</option>
@@ -208,8 +208,8 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
                 onClick={() => updateCategory('all')}
                 className={`rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
                   activeCategory === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
+                    ? 'bg-black text-white dark:bg-white dark:text-black'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-black dark:text-slate-100 dark:hover:bg-slate-900'
                 }`}
               >
                 Todos
@@ -220,8 +220,8 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
                   onClick={() => updateCategory(category.id)}
                   className={`rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
                     activeCategory === category.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
+                      ? 'bg-black text-white dark:bg-white dark:text-black'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-black dark:text-slate-100 dark:hover:bg-slate-900'
                   }`}
                 >
                   {getCategoryLabel(category.id)}
@@ -237,7 +237,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
             <select
               value={selectedSize}
               onChange={(event) => setSelectedSize(event.target.value)}
-              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 px-3 text-slate-900 dark:text-slate-100"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-black py-3 px-3 text-slate-900 dark:text-slate-100"
             >
               <option value="all">Todos os tamanhos</option>
               {availableSizes.map((size) => (
@@ -255,7 +255,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
             <select
               value={priceFilter}
               onChange={(event) => setPriceFilter(event.target.value as PriceFilter)}
-              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 px-3 text-slate-900 dark:text-slate-100"
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-black py-3 px-3 text-slate-900 dark:text-slate-100"
             >
               <option value="all">Todas</option>
               <option value="under-80">Abaixo de R$ 80</option>
@@ -274,8 +274,8 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
               onClick={() => setOnlyInStock((previous) => !previous)}
               className={`w-full rounded-xl border px-3 py-3 text-sm font-semibold transition-colors ${
                 onlyInStock
-                  ? 'border-blue-600 bg-blue-600 text-white'
-                  : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-100'
+                  ? 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black'
+                  : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-black text-slate-700 dark:text-slate-100'
               }`}
             >
               {onlyInStock ? 'Somente com estoque' : 'Mostrar todos'}
@@ -291,7 +291,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
           {activeFilterCount > 0 && (
             <button
               onClick={resetFilters}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-sky-700 dark:text-cyan-200 hover:text-black dark:hover:text-white"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-black dark:hover:text-white"
             >
               <RotateCcw size={14} />
               Limpar filtros
@@ -302,7 +302,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
 
       <section>
         {filteredProducts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-10 text-center">
+          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-black p-10 text-center">
             <p className="text-2xl font-semibold text-slate-900 dark:text-white">
               Nenhum produto encontrado
             </p>
@@ -311,7 +311,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
             </p>
             <button
               onClick={resetFilters}
-              className="mt-5 inline-flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 font-semibold px-5 py-2.5 rounded-md transition-colors"
+              className="mt-5 inline-flex items-center gap-2 bg-black text-white hover:bg-slate-900 dark:bg-white dark:text-black dark:hover:bg-slate-200 font-semibold px-5 py-2.5 rounded-md transition-colors"
             >
               Limpar e mostrar todos
             </button>

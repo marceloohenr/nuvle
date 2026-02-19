@@ -369,7 +369,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
             >
               <ShoppingCart size={19} />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-sky-400 text-black text-xs font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-black text-white dark:bg-white dark:text-black text-xs font-bold flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
