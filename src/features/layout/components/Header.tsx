@@ -1,5 +1,6 @@
 import { LogOut, Menu, Moon, Search, ShieldCheck, ShoppingCart, Sun, UserCircle2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useCart } from '../../cart/context/CartContext';
@@ -87,6 +88,12 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
   }, [location.pathname, location.hash]);
 
   useEffect(() => {
+    if (isMenuOpen) {
+      setIsHeaderVisible(true);
+    }
+  }, [isMenuOpen]);
+
+  useEffect(() => {
     if (typeof document === 'undefined') return;
 
     const previousOverflow = document.body.style.overflow;
@@ -113,6 +120,21 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
       window.removeEventListener('keydown', handleEscape);
     };
   }, [isMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -154,7 +176,135 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
     };
   }, [isMenuOpen]);
 
+  const closeMenu = () => setIsMenuOpen(false);
+
+  const mobileMenu =
+    isMenuOpen && typeof document !== 'undefined'
+      ? createPortal(
+          <div className="md:hidden fixed inset-0 z-[80]">
+            <button
+              type="button"
+              onClick={closeMenu}
+              className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
+              aria-label="Fechar menu"
+            />
+            <aside
+              id="mobile-nav-menu"
+              className="absolute right-0 top-0 h-full w-full max-w-[22rem] border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-black/95 shadow-2xl overflow-y-auto"
+              aria-label="Menu mobile"
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-black/95 px-4 py-4 backdrop-blur">
+                <p className="text-sm font-bold tracking-wide text-slate-900 dark:text-white uppercase">
+                  Menu
+                </p>
+                <button
+                  type="button"
+                  onClick={closeMenu}
+                  className="p-2 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
+                  aria-label="Fechar menu"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3">
+                  {isAuthenticated ? (
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {currentUser?.name ?? 'Conta logada'}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Navegacao da loja
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMenu();
+                      onSearchToggle();
+                    }}
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-3 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900"
+                  >
+                    Buscar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleTheme();
+                      closeMenu();
+                    }}
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-3 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900"
+                  >
+                    {isDark ? 'Claro' : 'Escuro'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMenu();
+                      onCartToggle();
+                    }}
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-3 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900"
+                  >
+                    Carrinho
+                  </button>
+                </div>
+
+                <nav className="flex flex-col gap-2">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => {
+                        if (item.to === '/conta#favoritos') {
+                          scrollToFavoritesSection();
+                        }
+                        closeMenu();
+                      }}
+                      className={`px-4 py-3.5 rounded-xl text-sm font-semibold transition-colors ${
+                        isNavItemActive(item.to)
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-slate-900'
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+
+                <div className="grid gap-2">
+                  {!isAuthenticated ? (
+                    <Link
+                      to="/login"
+                      onClick={closeMenu}
+                      className="inline-flex items-center justify-center px-4 py-3.5 rounded-xl text-sm font-semibold bg-blue-600 text-white"
+                    >
+                      Entrar na conta
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        void logout();
+                        closeMenu();
+                      }}
+                      className="inline-flex items-center justify-center px-4 py-3.5 rounded-xl text-sm font-semibold border border-slate-300 text-slate-700 bg-slate-100 dark:border-slate-700 dark:text-slate-100 dark:bg-slate-900"
+                    >
+                      Sair da conta
+                    </button>
+                  )}
+                </div>
+              </div>
+            </aside>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
+    <>
     <header
       className={`fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-black/75 backdrop-blur-xl transition-transform duration-300 will-change-transform ${
         isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
@@ -165,12 +315,12 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
       </div>
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="h-[74px] sm:h-[86px] flex items-center justify-between gap-2 sm:gap-4">
-          <Link to="/" className="flex items-center gap-3 min-w-[130px]">
+        <div className="h-[70px] sm:h-[86px] flex items-center justify-between gap-2 sm:gap-4">
+          <Link to="/" className="flex items-center gap-2 min-w-0">
             <img
               src={nuvleLogo}
               alt="Nuvle"
-              className="h-9 sm:h-11 md:h-12 w-auto"
+              className="h-7 sm:h-11 md:h-12 w-auto"
             />
           </Link>
 
@@ -195,10 +345,10 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={onSearchToggle}
-              className="p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
+              className="hidden md:inline-flex p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
               aria-label="Pesquisar produtos"
             >
               <Search size={19} />
@@ -206,7 +356,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
+              className="hidden md:inline-flex p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
               aria-label="Alternar tema"
             >
               {isDark ? <Sun size={19} /> : <Moon size={19} />}
@@ -214,7 +364,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={onCartToggle}
-              className="relative p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
+              className="relative p-2 sm:p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
               aria-label="Abrir carrinho"
             >
               <ShoppingCart size={19} />
@@ -228,7 +378,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
             {!isAuthenticated ? (
               <Link
                 to="/login"
-                className="hidden sm:inline-flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
+                className="hidden md:inline-flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
               >
                 <UserCircle2 size={16} />
                 Entrar
@@ -237,7 +387,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
               <>
                 <Link
                   to={isAdmin ? '/admin' : '/conta'}
-                  className="hidden sm:inline-flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
+                  className="hidden md:inline-flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
                 >
                   {isAdmin ? <ShieldCheck size={16} /> : <UserCircle2 size={16} />}
                   {currentUser?.name?.split(' ')[0] ?? 'Conta'}
@@ -246,7 +396,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
                   onClick={() => {
                     void logout();
                   }}
-                  className="hidden sm:inline-flex items-center gap-2 border border-slate-300 text-slate-700 px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
+                  className="hidden md:inline-flex items-center gap-2 border border-slate-300 text-slate-700 px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
                 >
                   <LogOut size={15} />
                   Sair
@@ -256,7 +406,7 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
 
             <button
               onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="md:hidden p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
+              className="md:hidden p-2 sm:p-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
               aria-label="Alternar menu"
               aria-controls="mobile-nav-menu"
               aria-expanded={isMenuOpen}
@@ -266,81 +416,9 @@ const Header = ({ onCartToggle, onSearchToggle }: HeaderProps) => {
           </div>
         </div>
       </div>
-
-      {isMenuOpen && (
-        <div className="md:hidden absolute inset-x-0 top-full z-40 h-[calc(100dvh-106px)] sm:h-[calc(100dvh-118px)]">
-          <button
-            type="button"
-            onClick={() => setIsMenuOpen(false)}
-            className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
-            aria-label="Fechar menu"
-          />
-          <aside
-            id="mobile-nav-menu"
-            className="relative ml-auto h-full w-[88%] max-w-sm border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-black/95 shadow-2xl overflow-y-auto"
-            aria-label="Menu mobile"
-          >
-            <div className="p-4 space-y-4">
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3">
-                {isAuthenticated ? (
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {currentUser?.name ?? 'Conta logada'}
-                  </p>
-                ) : (
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Navegacao da loja
-                  </p>
-                )}
-              </div>
-
-              <nav className="flex flex-col gap-2">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => {
-                      if (item.to === '/conta#favoritos') {
-                        scrollToFavoritesSection();
-                      }
-                      setIsMenuOpen(false);
-                    }}
-                    className={`px-4 py-3.5 rounded-xl text-sm font-semibold transition-colors ${
-                      isNavItemActive(item.to)
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-700 bg-slate-100 dark:text-slate-100 dark:bg-slate-900'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-
-              <div className="grid gap-2">
-                {!isAuthenticated ? (
-                  <Link
-                    to="/login"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="inline-flex items-center justify-center px-4 py-3.5 rounded-xl text-sm font-semibold bg-blue-600 text-white"
-                  >
-                    Entrar na conta
-                  </Link>
-                ) : (
-                  <button
-                    onClick={() => {
-                      void logout();
-                      setIsMenuOpen(false);
-                    }}
-                    className="inline-flex items-center justify-center px-4 py-3.5 rounded-xl text-sm font-semibold border border-slate-300 text-slate-700 bg-slate-100 dark:border-slate-700 dark:text-slate-100 dark:bg-slate-900"
-                  >
-                    Sair da conta
-                  </button>
-                )}
-              </div>
-            </div>
-          </aside>
-        </div>
-      )}
     </header>
+    {mobileMenu}
+    </>
   );
 };
 
