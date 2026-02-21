@@ -8,7 +8,7 @@ import {
 } from 'react-router-dom';
 import { useAuth } from '../features/auth';
 import { Cart } from '../features/cart';
-import { ProductModal, SearchModal, type Product } from '../features/catalog';
+import { SearchModal } from '../features/catalog';
 import { Footer, Header } from '../features/layout';
 import { AppProviders } from '../shared/providers';
 import {
@@ -76,13 +76,6 @@ const AdminRoute = ({ children }: { children: ReactElement }) => {
 function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-
-  const handleProductClick = (product: Product) => {
-    setSelectedProduct(product);
-    setIsProductModalOpen(true);
-  };
 
   return (
     <AppProviders>
@@ -95,11 +88,8 @@ function App() {
 
           <main className="relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 pt-[124px] pb-8 md:pb-10">
             <Routes>
-              <Route path="/" element={<HomePage onProductClick={handleProductClick} />} />
-              <Route
-                path="/produtos"
-                element={<ProductsPage onProductClick={handleProductClick} />}
-              />
+              <Route path="/" element={<HomePage />} />
+              <Route path="/produtos" element={<ProductsPage />} />
               <Route path="/carrinho" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/produto/:productId" element={<ProductDetailsPage />} />
@@ -148,16 +138,9 @@ function App() {
             onClose={() => setIsCartOpen(false)}
           />
 
-          <ProductModal
-            product={selectedProduct}
-            isOpen={isProductModalOpen}
-            onClose={() => setIsProductModalOpen(false)}
-          />
-
           <SearchModal
             isOpen={isSearchOpen}
             onClose={() => setIsSearchOpen(false)}
-            onProductClick={handleProductClick}
           />
         </div>
       </BrowserRouter>

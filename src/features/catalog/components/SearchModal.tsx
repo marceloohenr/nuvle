@@ -7,10 +7,9 @@ import ProductCard from './ProductCard';
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onProductClick: (product: Product) => void;
 }
 
-const SearchModal = ({ isOpen, onClose, onProductClick }: SearchModalProps) => {
+const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
   const { products } = useCatalog();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -25,8 +24,7 @@ const SearchModal = ({ isOpen, onClose, onProductClick }: SearchModalProps) => {
     );
   }, [products, searchTerm]);
 
-  const handleProductSelect = (product: Product) => {
-    onProductClick(product);
+  const handleProductSelect = (_product: Product) => {
     onClose();
   };
 

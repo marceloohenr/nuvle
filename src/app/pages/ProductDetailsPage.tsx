@@ -95,6 +95,10 @@ const ProductDetailsPage = () => {
     setActiveImageIndex(0);
   }, [product?.id]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [productId]);
+
   if (!productId) {
     return <Navigate to="/produtos" replace />;
   }

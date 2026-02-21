@@ -1,6 +1,6 @@
 import { Heart, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../cart/context/CartContext';
 import { Product } from '../types/product';
 import { useCatalog } from '../context/CatalogContext';
@@ -9,10 +9,11 @@ import { useToast } from '../../../shared/providers';
 
 interface ProductCardProps {
   product: Product;
-  onProductClick: (product: Product) => void;
+  onProductClick?: (product: Product) => void;
 }
 
 const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
+  const navigate = useNavigate();
   const { dispatch } = useCart();
   const { showToast } = useToast();
   const { getCategoryLabel, getProductSizeStock } = useCatalog();
@@ -57,9 +58,14 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
     })();
   };
 
+  const handleOpenProductDetails = () => {
+    onProductClick?.(product);
+    navigate(`/produto/${product.id}`);
+  };
+
   return (
     <article
-      onClick={() => onProductClick(product)}
+      onClick={handleOpenProductDetails}
       className="group rounded-3xl shadow-medium border overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-hard bg-white border-slate-200 dark:bg-black dark:border-slate-700"
     >
       <div className="relative">

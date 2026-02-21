@@ -1,11 +1,7 @@
 import { ArrowRight, BadgePercent } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ProductCard, type Product, useCatalog } from '../../features/catalog';
-
-interface HomePageProps {
-  onProductClick: (product: Product) => void;
-}
+import { ProductCard, useCatalog } from '../../features/catalog';
 
 const benefits = [
   'Checkout rapido em poucos passos',
@@ -14,7 +10,7 @@ const benefits = [
 ];
 const campaignImage = 'https://i.postimg.cc/0jnfGsYP/arte-new.png';
 
-const HomePage = ({ onProductClick }: HomePageProps) => {
+const HomePage = () => {
   const { products, categories, getCategoryLabel } = useCatalog();
   const featuredProducts = useMemo(() => {
     const flagged = products.filter((product) => Boolean(product.isFeatured));
@@ -170,7 +166,7 @@ const HomePage = ({ onProductClick }: HomePageProps) => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} onProductClick={onProductClick} />
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </section>

@@ -7,14 +7,10 @@ import {
   useCatalog,
 } from '../../features/catalog';
 
-interface ProductsPageProps {
-  onProductClick: (product: Product) => void;
-}
-
 type PriceFilter = 'all' | 'under-80' | '80-100' | '100-120' | 'over-120';
 type SortOption = 'recommended' | 'price-asc' | 'price-desc' | 'name-asc';
 
-const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
+const ProductsPage = () => {
   const { products, categories, getCategoryLabel, getProductSizeStock } = useCatalog();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
@@ -319,11 +315,7 @@ const ProductsPage = ({ onProductClick }: ProductsPageProps) => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onProductClick={onProductClick}
-              />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}
